@@ -1,13 +1,11 @@
-# DV300-final-proj
-
-# Project Name
+# SymptomJournal 
 
 # Tech stack
-- Next.js (React)
+- React Native
 - FastAPI (Python)
 - Supabase 
 - Nvidia NIM (Build.nvidia.com) or Google Gemini API
 - Vercel(Frontend) and Railway/Render(Backend) for deployment
 
 # Status
- - In planning - idea selection in progress, plan will be updated soon 
+ - In planning - project proposal in progress 
