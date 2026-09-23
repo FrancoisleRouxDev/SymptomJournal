@@ -6,6 +6,7 @@
     "@expo-google-fonts/dm-serif-display": "^0.4.2",
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/ui": "~57.0.19",
+    "@supabase/supabase-js": "^2.117.0",
     "expo": "~57.0.24",
     "expo-constants": "~57.0.19",
     "expo-device": "~57.0.2",
