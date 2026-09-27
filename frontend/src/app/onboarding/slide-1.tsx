@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { Droplets } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -13,7 +14,7 @@ export default function OnboardingSlide1() {
             <SafeAreaView style={styles.safe}>
                 {/* Icon */}
                 <View style={styles.iconContainer}>
-                    <Text style={styles.icon}>💧</Text>
+                    <Droplets size={36} color={Colors.sage.dark} />
                 </View>
 
                 {/* Text */}
