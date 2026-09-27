@@ -95,14 +95,14 @@ export default function SignIn() {
           </TouchableOpacity>
 
           {/* Divider */}
-          <View style={styles.divider}>
+          {/* <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or continue with</Text>
             <View style={styles.dividerLine} />
-          </View>
+          </View> */}
 
           {/* Social buttons */}
-          <View style={styles.socialRow}>
+          {/* <View style={styles.socialRow}>
             <TouchableOpacity style={styles.socialButton}>
               <Apple size={16} color={Colors.neutral.brown} />
               <Text style={styles.socialText}>Apple</Text>
@@ -110,7 +110,7 @@ export default function SignIn() {
             <TouchableOpacity style={styles.socialButton}>
               <Text style={styles.socialText}>G  Google</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Sign up link */}
           <View style={styles.signUpRow}>
