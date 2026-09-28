@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from supabase import create_client
-from routers import symptoms
+from routers import symptoms, analysis
 import os
 
 load_dotenv()
@@ -15,6 +15,7 @@ supabase = create_client(
 
 # Include routers
 app.include_router(symptoms.router)
+app.include_router(analysis.router)
 
 @app.get("/")
 def root():
