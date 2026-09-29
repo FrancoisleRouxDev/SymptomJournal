@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from models.symptom import SymptomLogCreate, SymptomLogWithTriggers
 from services.auth_service import verify_token
+from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
 import os
@@ -16,7 +17,9 @@ supabase = create_client(
 
 
 @router.post("/log")
+@limiter.limit("30/hour")
 async def log_symptom(
+    request: Request,
     symptom: SymptomLogWithTriggers,
     user_id: str = Depends(verify_token)
 ):
@@ -57,7 +60,9 @@ async def log_symptom(
 
 
 @router.get("/history")
+@limiter.limit("60/hour")
 async def get_symptom_history(
+    request: Request,
     user_id: str = Depends(verify_token)
 ):
     try:
@@ -74,7 +79,9 @@ async def get_symptom_history(
 
 
 @router.get("/history/{log_id}")
+@limiter.limit("60/hour")
 async def get_single_log(
+    request: Request,
     log_id: str,
     user_id: str = Depends(verify_token)
 ):
@@ -96,7 +103,9 @@ async def get_single_log(
 
 
 @router.delete("/history/{log_id}")
+@limiter.limit("30/hour")
 async def delete_log(
+    request: Request,
     log_id: str,
     user_id: str = Depends(verify_token)
 ):
