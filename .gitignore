@@ -48,8 +48,8 @@ backend/.coverage
 backend/.coverage.*
 backend/coverage.xml
 backend/*.cover
-backend/test_nvidia.py
-backend/test_openrouter.py
+backend/tests/test_nvidia.py
+backend/tests/test_openrouter.py
 
 # ─── Database / Supabase ─────────────────────────────────────────────────────
 supabase/.branches/
