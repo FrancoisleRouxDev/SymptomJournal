@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Depends
 from services.ai_service import analyse_patterns, generate_doctor_summary
+from services.auth_service import verify_token
 from supabase import create_client
 from dotenv import load_dotenv
 import os
@@ -18,10 +19,9 @@ MINIMUM_ENTRIES = 3
 
 @router.get("/patterns")
 async def get_patterns(
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
-        # Fetch user's symptom logs
         result = supabase.table("symptom_logs")\
             .select("*, triggers(*)")\
             .eq("user_id", user_id)\
@@ -31,7 +31,6 @@ async def get_patterns(
 
         logs = result.data
 
-        # Check minimum entry threshold
         if len(logs) < MINIMUM_ENTRIES:
             return {
                 "ready": False,
@@ -39,10 +38,8 @@ async def get_patterns(
                 "entries_count": len(logs)
             }
 
-        # Run AI analysis
         analysis = analyse_patterns(logs)
 
-        # Store analysis in Supabase
         if logs:
             supabase.table("ai_analysis").insert({
                 "user_id": user_id,
@@ -64,10 +61,9 @@ async def get_patterns(
 
 @router.post("/summary")
 async def generate_summary(
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
-        # Fetch logs
         logs_result = supabase.table("symptom_logs")\
             .select("*")\
             .eq("user_id", user_id)\
@@ -83,7 +79,6 @@ async def generate_summary(
                 detail=f"Need at least {MINIMUM_ENTRIES} symptom logs to generate a summary."
             )
 
-        # Get latest analysis
         analysis_result = supabase.table("ai_analysis")\
             .select("*")\
             .eq("user_id", user_id)\
@@ -91,7 +86,6 @@ async def generate_summary(
             .limit(1)\
             .execute()
 
-        # Use existing analysis or run fresh
         if analysis_result.data:
             analysis = {
                 "most_frequent_symptom": "See patterns below",
@@ -103,10 +97,8 @@ async def generate_summary(
         else:
             analysis = analyse_patterns(logs)
 
-        # Generate doctor summary
         summary_text = generate_doctor_summary(logs, analysis)
 
-        # Store summary
         summary_result = supabase.table("doctor_summaries").insert({
             "user_id": user_id,
             "summary_text": summary_text,

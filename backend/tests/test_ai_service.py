@@ -6,9 +6,13 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from services.auth_service import verify_token
 from main import app
 
 client = TestClient(app)
+
+# Override auth for testing
+app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
 
 TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
 
@@ -124,8 +128,7 @@ class TestAIPatternAnalysis:
         mock_analyse.return_value = MOCK_ANALYSIS
 
         response = client.get(
-            "/analysis/patterns",
-            headers={"x-user-id": TEST_USER_ID}
+            "/analysis/patterns"
         )
 
         assert response.status_code == 200
@@ -145,8 +148,7 @@ class TestAIPatternAnalysis:
             )
 
         response = client.get(
-            "/analysis/patterns",
-            headers={"x-user-id": TEST_USER_ID}
+            "/analysis/patterns"
         )
 
         assert response.status_code == 200
@@ -158,9 +160,14 @@ class TestAIPatternAnalysis:
 
     @patch("routers.analysis.supabase")
     def test_get_patterns_missing_user_id(self, mock_supabase):
-        """Test that patterns endpoint requires user ID header"""
+        """Test that patterns endpoint requires valid auth token"""
+        app.dependency_overrides.clear()
+
         response = client.get("/analysis/patterns")
-        assert response.status_code == 422
+
+        app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
+
+        assert response.status_code == 401
         print("✅ test_get_patterns_missing_user_id passed")
 
     @patch("routers.analysis.supabase")
@@ -177,8 +184,7 @@ class TestAIPatternAnalysis:
         mock_analyse.return_value = MOCK_ANALYSIS
 
         response = client.get(
-            "/analysis/patterns",
-            headers={"x-user-id": TEST_USER_ID}
+            "/analysis/patterns"
         )
 
         analysis = response.json()["analysis"]
@@ -210,8 +216,7 @@ class TestDoctorSummary:
         mock_generate.return_value = MOCK_SUMMARY
 
         response = client.post(
-            "/analysis/summary",
-            headers={"x-user-id": TEST_USER_ID}
+            "/analysis/summary"
         )
 
         assert response.status_code == 200
@@ -229,8 +234,7 @@ class TestDoctorSummary:
             )
 
         response = client.post(
-            "/analysis/summary",
-            headers={"x-user-id": TEST_USER_ID}
+            "/analysis/summary"
         )
 
         assert response.status_code == 400
@@ -238,9 +242,14 @@ class TestDoctorSummary:
 
     @patch("routers.analysis.supabase")
     def test_generate_summary_missing_user_id(self, mock_supabase):
-        """Test summary endpoint requires user ID"""
+        """Test summary endpoint requires valid auth token"""
+        app.dependency_overrides.clear()
+
         response = client.post("/analysis/summary")
-        assert response.status_code == 422
+
+        app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
+
+        assert response.status_code == 401
         print("✅ test_generate_summary_missing_user_id passed")
 
 
