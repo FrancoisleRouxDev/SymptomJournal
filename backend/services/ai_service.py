@@ -12,7 +12,6 @@ client = OpenAI(
 
 MODEL = os.getenv("NVIDIA_MODEL", "meta/llama-3.2-11b-vision-instruct")
 
-
 def analyse_patterns(symptom_logs: list[dict]) -> dict:
     """
     Analyses a list of symptom log entries and identifies patterns,
