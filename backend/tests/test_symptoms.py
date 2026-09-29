@@ -6,9 +6,13 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from services.auth_service import verify_token
 from main import app
 
 client = TestClient(app)
+
+# Override auth for testing
+app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
 
 # Mock user ID for testing
 TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
@@ -65,8 +69,7 @@ class TestSymptomLogging:
                 "time_of_day": "afternoon",
                 "mood": "anxious",
                 "triggers": []
-            },
-            headers={"x-user-id": TEST_USER_ID}
+            }
         )
 
         assert response.status_code == 200
@@ -89,8 +92,7 @@ class TestSymptomLogging:
                     {"trigger_type": "sleep", "trigger_value": "less than 6 hours"},
                     {"trigger_type": "stress", "trigger_value": "work deadline"}
                 ]
-            },
-            headers={"x-user-id": TEST_USER_ID}
+            }
         )
 
         assert response.status_code == 200
@@ -104,8 +106,7 @@ class TestSymptomLogging:
             json={
                 "severity": 5,
                 "time_of_day": "morning"
-            },
-            headers={"x-user-id": TEST_USER_ID}
+            }
         )
 
         assert response.status_code == 422
@@ -113,7 +114,10 @@ class TestSymptomLogging:
 
     @patch("routers.symptoms.supabase")
     def test_log_symptom_missing_user_id(self, mock_supabase):
-        """Test that logging fails without a user ID header"""
+        """Test that logging fails without a valid auth token"""
+        # Temporarily remove the override to test real auth
+        app.dependency_overrides.clear()
+
         response = client.post(
             "/symptoms/log",
             json={
@@ -122,7 +126,10 @@ class TestSymptomLogging:
             }
         )
 
-        assert response.status_code == 422
+        # Restore override for other tests
+        app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
+
+        assert response.status_code == 401
         print("✅ test_log_symptom_missing_user_id passed")
 
     @patch("routers.symptoms.supabase")
@@ -132,8 +139,7 @@ class TestSymptomLogging:
             .eq.return_value.order.return_value.execute = mock_symptom_history
 
         response = client.get(
-            "/symptoms/history",
-            headers={"x-user-id": TEST_USER_ID}
+            "/symptoms/history"
         )
 
         assert response.status_code == 200
@@ -149,16 +155,14 @@ class TestSymptomLogging:
         # Test severity 1 (minimum)
         response = client.post(
             "/symptoms/log",
-            json={"description": "Mild discomfort", "severity": 1},
-            headers={"x-user-id": TEST_USER_ID}
+            json={"description": "Mild discomfort", "severity": 1}
         )
         assert response.status_code == 200
 
         # Test severity 10 (maximum)
         response = client.post(
             "/symptoms/log",
-            json={"description": "Severe pain", "severity": 10},
-            headers={"x-user-id": TEST_USER_ID}
+            json={"description": "Severe pain", "severity": 10}
         )
         assert response.status_code == 200
         print("✅ test_severity_range passed")

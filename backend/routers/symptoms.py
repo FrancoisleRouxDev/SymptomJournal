@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Depends
 from models.symptom import SymptomLogCreate, SymptomLogWithTriggers
+from services.auth_service import verify_token
 from supabase import create_client
 from dotenv import load_dotenv
 import os
@@ -13,13 +14,13 @@ supabase = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
+
 @router.post("/log")
 async def log_symptom(
     symptom: SymptomLogWithTriggers,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
-        # Insert symptom log
         log_data = {
             "user_id": user_id,
             "description": symptom.description,
@@ -35,7 +36,6 @@ async def log_symptom(
 
         log_id = result.data[0]["id"]
 
-        # Insert triggers if any
         if symptom.triggers:
             trigger_data = [
                 {
@@ -58,7 +58,7 @@ async def log_symptom(
 
 @router.get("/history")
 async def get_symptom_history(
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
         result = supabase.table("symptom_logs")\
@@ -76,7 +76,7 @@ async def get_symptom_history(
 @router.get("/history/{log_id}")
 async def get_single_log(
     log_id: str,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
         result = supabase.table("symptom_logs")\
@@ -98,7 +98,7 @@ async def get_single_log(
 @router.delete("/history/{log_id}")
 async def delete_log(
     log_id: str,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
         supabase.table("symptom_logs")\
