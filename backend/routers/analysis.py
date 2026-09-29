@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from services.ai_service import analyse_patterns, generate_doctor_summary
 from services.auth_service import verify_token
+from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
 import os
@@ -18,7 +19,9 @@ MINIMUM_ENTRIES = 3
 
 
 @router.get("/patterns")
+@limiter.limit("10/hour")
 async def get_patterns(
+    request: Request,
     user_id: str = Depends(verify_token)
 ):
     try:
@@ -60,7 +63,9 @@ async def get_patterns(
 
 
 @router.post("/summary")
+@limiter.limit("5/hour")
 async def generate_summary(
+    request: Request,
     user_id: str = Depends(verify_token)
 ):
     try:
@@ -114,3 +119,4 @@ async def generate_summary(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+        

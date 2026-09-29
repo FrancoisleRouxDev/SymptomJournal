@@ -11,11 +11,11 @@ from main import app
 
 client = TestClient(app)
 
+# Mock user ID for testing — must be defined BEFORE the override
+TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
+
 # Override auth for testing
 app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
-
-# Mock user ID for testing
-TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000"
 
 # Mock Supabase responses
 def mock_symptom_insert(*args, **kwargs):
@@ -115,7 +115,6 @@ class TestSymptomLogging:
     @patch("routers.symptoms.supabase")
     def test_log_symptom_missing_user_id(self, mock_supabase):
         """Test that logging fails without a valid auth token"""
-        # Temporarily remove the override to test real auth
         app.dependency_overrides.clear()
 
         response = client.post(
@@ -126,7 +125,6 @@ class TestSymptomLogging:
             }
         )
 
-        # Restore override for other tests
         app.dependency_overrides[verify_token] = lambda: TEST_USER_ID
 
         assert response.status_code == 401
@@ -138,9 +136,7 @@ class TestSymptomLogging:
         mock_supabase.table.return_value.select.return_value\
             .eq.return_value.order.return_value.execute = mock_symptom_history
 
-        response = client.get(
-            "/symptoms/history"
-        )
+        response = client.get("/symptoms/history")
 
         assert response.status_code == 200
         assert "symptoms" in response.json()
@@ -152,20 +148,19 @@ class TestSymptomLogging:
         """Test logging symptoms at boundary severity values"""
         mock_supabase.table.return_value.insert.return_value.execute = mock_symptom_insert
 
-        # Test severity 1 (minimum)
         response = client.post(
             "/symptoms/log",
             json={"description": "Mild discomfort", "severity": 1}
         )
         assert response.status_code == 200
 
-        # Test severity 10 (maximum)
         response = client.post(
             "/symptoms/log",
             json={"description": "Severe pain", "severity": 10}
         )
         assert response.status_code == 200
         print("✅ test_severity_range passed")
+
 
 class TestInputValidation:
 
@@ -246,4 +241,3 @@ class TestInputValidation:
         )
         assert response.status_code == 422
         print("✅ test_invalid_trigger_type passed")
-        
