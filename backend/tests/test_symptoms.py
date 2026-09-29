@@ -166,3 +166,84 @@ class TestSymptomLogging:
         )
         assert response.status_code == 200
         print("✅ test_severity_range passed")
+
+class TestInputValidation:
+
+    @patch("routers.symptoms.supabase")
+    def test_severity_below_minimum(self, mock_supabase):
+        """Test that severity below 1 is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "Headache", "severity": 0}
+        )
+        assert response.status_code == 422
+        print("✅ test_severity_below_minimum passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_severity_above_maximum(self, mock_supabase):
+        """Test that severity above 10 is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "Headache", "severity": 11}
+        )
+        assert response.status_code == 422
+        print("✅ test_severity_above_maximum passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_invalid_time_of_day(self, mock_supabase):
+        """Test that invalid time_of_day is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "Headache", "time_of_day": "midnight"}
+        )
+        assert response.status_code == 422
+        print("✅ test_invalid_time_of_day passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_valid_time_of_day_values(self, mock_supabase):
+        """Test all valid time_of_day values are accepted"""
+        mock_supabase.table.return_value.insert.return_value.execute = mock_symptom_insert
+
+        for time in ["morning", "afternoon", "evening", "night"]:
+            response = client.post(
+                "/symptoms/log",
+                json={"description": "Headache", "time_of_day": time}
+            )
+            assert response.status_code == 200, f"Failed for time_of_day: {time}"
+        print("✅ test_valid_time_of_day_values passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_description_too_short(self, mock_supabase):
+        """Test that description under 3 characters is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "ab"}
+        )
+        assert response.status_code == 422
+        print("✅ test_description_too_short passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_description_too_long(self, mock_supabase):
+        """Test that description over 500 characters is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "a" * 501}
+        )
+        assert response.status_code == 422
+        print("✅ test_description_too_long passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_invalid_trigger_type(self, mock_supabase):
+        """Test that invalid trigger type is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={
+                "description": "Headache",
+                "triggers": [
+                    {"trigger_type": "invalid_type", "trigger_value": "test"}
+                ]
+            }
+        )
+        assert response.status_code == 422
+        print("✅ test_invalid_trigger_type passed")
+        
