@@ -54,7 +54,7 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 
 ## Roadmap
 - [X] Phase 1 — Setup & scaffolding (Days 1–3)
-- [ ] Phase 2 — Auth, onboarding, symptom logging (Days 4–7)
+- [X] Phase 2 — Auth, onboarding, symptom logging (Days 4–7)
 - [ ] Phase 3 — AI integration via FastAPI (Days 8–12)
 - [ ] Phase 4 — Core features & screens (Days 13–16)
 - [ ] Phase 5 — Polish & testing (Days 17–19)
