@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { User, Mail, Lock } from 'lucide-react-native';
+import { signUp } from '@/lib/auth';
+import { Alert } from 'react-native';
 
 export default function SignUp() {
   const router = useRouter();
@@ -15,8 +17,22 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
 
   const handleSignUp = async () => {
-    // Supabase auth will go here in next step
-    console.log('Sign up:', name, email, password);
+    if (!name || !email || !password) {
+      Alert.alert('Missing fields', 'Please fill in all fields.');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      return;
+    }
+
+    try {
+      await signUp(name, email, password);
+      router.replace('/(tabs)/home' as any);
+    } catch (error: any) {
+      Alert.alert('Sign up failed', error.message);
+    }
   };
 
   return (
