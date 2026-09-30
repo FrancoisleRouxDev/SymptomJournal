@@ -4,11 +4,13 @@ from services.auth_service import verify_token
 from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
+from services.logger import get_logger
 import os
 
 load_dotenv()
 
 router = APIRouter(prefix="/symptoms", tags=["symptoms"])
+logger = get_logger("symptoms")
 
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
@@ -56,6 +58,7 @@ async def log_symptom(
         }
 
     except Exception as e:
+        logger.error(f"Error in log_symptom: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -75,6 +78,7 @@ async def get_symptom_history(
         return {"symptoms": result.data}
 
     except Exception as e:
+        logger.error(f"Error in get_symptom_history: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -99,6 +103,7 @@ async def get_single_log(
         return result.data
 
     except Exception as e:
+        logger.error(f"Error in get_single_log: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -119,4 +124,5 @@ async def delete_log(
         return {"message": "Log deleted successfully"}
 
     except Exception as e:
+        logger.error(f"Error in delete_log: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

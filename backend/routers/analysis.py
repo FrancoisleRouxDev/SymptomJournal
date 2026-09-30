@@ -4,11 +4,13 @@ from services.auth_service import verify_token
 from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
+from services.logger import get_logger
 import os
 
 load_dotenv()
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
+logger = get_logger("analysis")
 
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
