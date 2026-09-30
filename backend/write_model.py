@@ -1,4 +1,4 @@
-content = '''from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -57,8 +57,3 @@ class TriggerCreate(BaseModel):
 
 class SymptomLogWithTriggers(SymptomLogCreate):
     triggers: Optional[list[TriggerCreate]] = []
-'''
-
-with open('models/symptom.py', 'w') as f:
-    f.write(content)
-print('Done')
