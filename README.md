@@ -21,7 +21,7 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 ---
 
 ## Project Status
-🟢 Active development — Phase 2 Auth, onboarding, symptom logging, entering Phase 3
+🟢 Active development — Phase 3 AI integration via FastAPI, entering Phase 4
 
 ---
 
