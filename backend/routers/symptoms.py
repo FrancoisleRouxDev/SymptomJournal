@@ -70,7 +70,7 @@ async def get_symptom_history(
 ):
     try:
         result = supabase.table("symptom_logs")\
-            .select("*")\
+            .select("*, triggers(*)")\
             .eq("user_id", user_id)\
             .order("created_at", desc=True)\
             .execute()

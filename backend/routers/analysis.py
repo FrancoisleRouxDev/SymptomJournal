@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from services.ai_service import analyse_patterns, generate_doctor_summary
+from services.ai_service import analyse_patterns, generate_doctor_summary, _compute_average_severity
 from services.auth_service import verify_token
 from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
 from services.logger import get_logger
+from collections import Counter
 import os
 
 load_dotenv()
@@ -19,6 +20,16 @@ supabase = create_client(
 
 MINIMUM_ENTRIES = 3
 
+
+def _most_frequent_symptom(logs: list[dict]) -> str:
+    """Return the most commonly logged symptom description."""
+    if not logs:
+        return "Unknown"
+    descriptions = [log.get("description", "").lower().strip() for log in logs if log.get("description")]
+    if not descriptions:
+        return "Unknown"
+    most_common, _ = Counter(descriptions).most_common(1)[0]
+    return most_common.capitalize()
 
 @router.get("/patterns")
 @limiter.limit("10/hour")
@@ -72,7 +83,7 @@ async def generate_summary(
 ):
     try:
         logs_result = supabase.table("symptom_logs")\
-            .select("*")\
+            .select("*, triggers(*)")\
             .eq("user_id", user_id)\
             .order("created_at", desc=True)\
             .limit(30)\
@@ -94,12 +105,14 @@ async def generate_summary(
             .execute()
 
         if analysis_result.data:
+            cached = analysis_result.data[0]
             analysis = {
-                "most_frequent_symptom": "See patterns below",
-                "average_severity": "N/A",
+                # Derive these locally from the actual logs for accuracy
+                "most_frequent_symptom": _most_frequent_symptom(logs),
+                "average_severity": _compute_average_severity(logs),
                 "key_findings": [],
-                "time_pattern": analysis_result.data[0].get("trigger_summary", ""),
-                "suggestion": analysis_result.data[0].get("recommendation", "")
+                "time_pattern": cached.get("trigger_summary", ""),
+                "suggestion": cached.get("recommendation", "")
             }
         else:
             analysis = analyse_patterns(logs)

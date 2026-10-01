@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import json
+import re
 
 load_dotenv()
 
@@ -12,15 +13,58 @@ client = OpenAI(
 
 MODEL = os.getenv("NVIDIA_MODEL", "meta/llama-3.2-11b-vision-instruct")
 
+
+def _format_triggers(triggers: list[dict]) -> str:
+    """Convert a list of trigger dicts into a readable string for the prompt."""
+    if not triggers:
+        return "None noted"
+    return ", ".join(
+        f"{t.get('trigger_type', '?')} ({t.get('trigger_value', '?')})"
+        for t in triggers
+    )
+
+
+def _strip_json_fences(text: str) -> str:
+    """
+    Robustly strips markdown code fences from an AI response.
+    Handles ```json ... ```, ``` ... ```, and bare JSON alike.
+    """
+    # Match optional language tag after opening fence
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if match:
+        return match.group(1).strip()
+    return text.strip()
+
+
+def _compute_average_severity(logs: list[dict]) -> float | None:
+    """Compute average severity locally — never trust the AI for this."""
+    values = [
+        log["severity"]
+        for log in logs
+        if log.get("severity") is not None
+    ]
+    if not values:
+        return None
+    return round(sum(values) / len(values), 1)
+
+
 def analyse_patterns(symptom_logs: list[dict]) -> dict:
     """
     Analyses a list of symptom log entries and identifies patterns,
     triggers, and trends. Returns structured findings.
+
+    Raises ValueError if no logs are provided.
     """
+    if not symptom_logs:
+        raise ValueError("Cannot analyse patterns with no symptom logs.")
+
+    # Compute average severity deterministically before calling the AI
+    avg_severity = _compute_average_severity(symptom_logs)
 
     # Format logs into readable text for the prompt
     formatted_logs = ""
     for i, log in enumerate(symptom_logs, 1):
+        triggers_text = _format_triggers(log.get("triggers") or [])
         formatted_logs += f"""
 Entry {i}:
 - Date: {log.get('created_at', 'Unknown')}
@@ -28,7 +72,7 @@ Entry {i}:
 - Severity: {log.get('severity', 'Not rated')}/10
 - Time of day: {log.get('time_of_day', 'Not specified')}
 - Mood: {log.get('mood', 'Not specified')}
-- Triggers: {log.get('triggers', 'None noted')}
+- Triggers: {triggers_text}
 """
 
     prompt = f"""You are a calm, supportive health journal assistant. 
@@ -47,7 +91,6 @@ Here are the user's recent symptom log entries:
 Analyse these entries and respond with ONLY a JSON object in this exact format:
 {{
     "most_frequent_symptom": "the symptom that appears most often",
-    "average_severity": "average severity score as a number",
     "key_findings": [
         {{
             "title": "short finding title",
@@ -78,20 +121,19 @@ Respond with ONLY the JSON. No explanation, no preamble."""
         )
 
         response_text = completion.choices[0].message.content.strip()
+        clean_text = _strip_json_fences(response_text)
+        result = json.loads(clean_text)
 
-        # Clean up response if model adds markdown fences
-        if response_text.startswith("```"):
-            response_text = response_text.split("```")[1]
-            if response_text.startswith("json"):
-                response_text = response_text[4:]
+        # Inject the locally-computed average severity — never from AI
+        result["average_severity"] = avg_severity if avg_severity is not None else "N/A"
 
-        return json.loads(response_text)
+        return result
 
     except json.JSONDecodeError:
         # If AI returns invalid JSON, return a safe fallback
         return {
             "most_frequent_symptom": "Unable to determine",
-            "average_severity": "N/A",
+            "average_severity": avg_severity if avg_severity is not None else "N/A",
             "key_findings": [
                 {
                     "title": "More data needed",
@@ -111,15 +153,26 @@ def generate_doctor_summary(symptom_logs: list[dict], analysis: dict) -> str:
     Generates a structured, professional doctor summary from
     symptom logs and AI analysis findings.
     """
+    if not symptom_logs:
+        raise ValueError("Cannot generate a summary with no symptom logs.")
 
     formatted_logs = ""
     for log in symptom_logs:
-        formatted_logs += f"- {log.get('created_at', '')[:10]}: {log.get('description')} (severity {log.get('severity', 'N/A')}/10)\n"
+        triggers_text = _format_triggers(log.get("triggers") or [])
+        formatted_logs += (
+            f"- {log.get('created_at', '')[:10]}: "
+            f"{log.get('description')} "
+            f"(severity {log.get('severity', 'N/A')}/10"
+            f"{', triggers: ' + triggers_text if triggers_text != 'None noted' else ''})\n"
+        )
 
     findings = "\n".join([
         f"- {f['title']}: {f['description']}"
         for f in analysis.get('key_findings', [])
     ])
+
+    avg = analysis.get('average_severity', 'N/A')
+    avg_display = f"{avg}/10" if avg != "N/A" else "N/A"
 
     prompt = f"""You are a health journal assistant helping a patient prepare for a doctor's appointment.
 
@@ -130,7 +183,7 @@ SYMPTOM HISTORY:
 
 PATTERNS IDENTIFIED:
 - Most frequent symptom: {analysis.get('most_frequent_symptom')}
-- Average severity: {analysis.get('average_severity')}/10
+- Average severity: {avg_display}
 - Time pattern: {analysis.get('time_pattern')}
 {findings}
 
