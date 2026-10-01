@@ -53,7 +53,7 @@ MOCK_LOGS = [
 
 MOCK_ANALYSIS = {
     "most_frequent_symptom": "Tension headache",
-    "average_severity": "5.7",
+    "average_severity": 5.7,
     "key_findings": [
         {
             "title": "Sleep connection",
@@ -269,6 +269,8 @@ class TestAIService:
             assert "most_frequent_symptom" in result
             assert "key_findings" in result
             assert isinstance(result["key_findings"], list)
+            # average_severity should be computed locally, not from AI JSON
+            assert result["average_severity"] == 5.7  # (6+4+7)/3 = 5.666... → 5.7
             print("✅ test_analyse_patterns_structure passed")
 
     def test_analyse_patterns_fallback_on_invalid_json(self):
@@ -284,7 +286,16 @@ class TestAIService:
             assert "most_frequent_symptom" in result
             assert "key_findings" in result
             assert result["most_frequent_symptom"] == "Unable to determine"
+            # Even on fallback, average_severity should be the locally computed value
+            assert result["average_severity"] == 5.7
             print("✅ test_analyse_patterns_fallback_on_invalid_json passed")
+
+    def test_analyse_patterns_raises_on_empty_logs(self):
+        """Test that passing no logs raises ValueError"""
+        from services.ai_service import analyse_patterns
+        with pytest.raises(ValueError, match="no symptom logs"):
+            analyse_patterns([])
+        print("✅ test_analyse_patterns_raises_on_empty_logs passed")
 
     def test_generate_doctor_summary_returns_string(self):
         """Test that doctor summary returns a string"""
@@ -299,3 +310,70 @@ class TestAIService:
             assert isinstance(result, str)
             assert len(result) > 0
             print("✅ test_generate_doctor_summary_returns_string passed")
+
+    def test_generate_doctor_summary_raises_on_empty_logs(self):
+        """Test that passing no logs to summary raises ValueError"""
+        from services.ai_service import generate_doctor_summary
+        with pytest.raises(ValueError, match="no symptom logs"):
+            generate_doctor_summary([], MOCK_ANALYSIS)
+        print("✅ test_generate_doctor_summary_raises_on_empty_logs passed")
+
+    def test_strip_json_fences_plain_json(self):
+        """Test _strip_json_fences handles raw JSON with no fences"""
+        from services.ai_service import _strip_json_fences
+        raw = '{"key": "value"}'
+        assert _strip_json_fences(raw) == raw
+        print("✅ test_strip_json_fences_plain_json passed")
+
+    def test_strip_json_fences_with_json_tag(self):
+        """Test _strip_json_fences strips ```json ... ``` fences"""
+        from services.ai_service import _strip_json_fences
+        fenced = '```json\n{"key": "value"}\n```'
+        assert _strip_json_fences(fenced) == '{"key": "value"}'
+        print("✅ test_strip_json_fences_with_json_tag passed")
+
+    def test_strip_json_fences_without_tag(self):
+        """Test _strip_json_fences strips plain ``` ... ``` fences"""
+        from services.ai_service import _strip_json_fences
+        fenced = '```\n{"key": "value"}\n```'
+        assert _strip_json_fences(fenced) == '{"key": "value"}'
+        print("✅ test_strip_json_fences_without_tag passed")
+
+    def test_format_triggers_empty(self):
+        """Test _format_triggers returns 'None noted' for empty list"""
+        from services.ai_service import _format_triggers
+        assert _format_triggers([]) == "None noted"
+        print("✅ test_format_triggers_empty passed")
+
+    def test_format_triggers_with_values(self):
+        """Test _format_triggers formats trigger dicts into readable text"""
+        from services.ai_service import _format_triggers
+        triggers = [
+            {"trigger_type": "sleep", "trigger_value": "less than 6 hours"},
+            {"trigger_type": "stress", "trigger_value": "work deadline"}
+        ]
+        result = _format_triggers(triggers)
+        assert "sleep (less than 6 hours)" in result
+        assert "stress (work deadline)" in result
+        print("✅ test_format_triggers_with_values passed")
+
+    def test_compute_average_severity_normal(self):
+        """Test _compute_average_severity returns correct average"""
+        from services.ai_service import _compute_average_severity
+        logs = [{"severity": 6}, {"severity": 4}, {"severity": 7}]
+        assert _compute_average_severity(logs) == 5.7
+        print("✅ test_compute_average_severity_normal passed")
+
+    def test_compute_average_severity_with_nulls(self):
+        """Test _compute_average_severity skips None severity values"""
+        from services.ai_service import _compute_average_severity
+        logs = [{"severity": 6}, {"severity": None}, {"severity": 8}]
+        assert _compute_average_severity(logs) == 7.0
+        print("✅ test_compute_average_severity_with_nulls passed")
+
+    def test_compute_average_severity_all_nulls(self):
+        """Test _compute_average_severity returns None if no severities"""
+        from services.ai_service import _compute_average_severity
+        logs = [{"severity": None}, {"severity": None}]
+        assert _compute_average_severity(logs) is None
+        print("✅ test_compute_average_severity_all_nulls passed")
