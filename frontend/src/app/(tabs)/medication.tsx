@@ -11,6 +11,7 @@ import {
     Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
@@ -29,6 +30,8 @@ const QUICK_QUESTIONS = [
 ];
 
 export default function MedicationAssistantScreen() {
+    const router = useRouter();
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -56,7 +59,6 @@ export default function MedicationAssistantScreen() {
         setLoading(true);
 
         try {
-            // Simulated / AI assistant response (or backend AI query)
             let assistantResponse = '';
             const lower = textToSend.toLowerCase();
 
@@ -89,8 +91,11 @@ export default function MedicationAssistantScreen() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
                 
-                {/* Header */}
+                {/* Header with Back Button */}
                 <View style={styles.header}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+                        <Text style={styles.backBtnText}>‹ Back</Text>
+                    </TouchableOpacity>
                     <Text style={styles.title}>Medication Assistant</Text>
                     <Text style={styles.subtitle}>AI-powered medication info & general health guidance</Text>
                 </View>
@@ -163,7 +168,7 @@ export default function MedicationAssistantScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
     header: {
         paddingHorizontal: Spacing.lg,
@@ -171,6 +176,14 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.sm,
         borderBottomWidth: 1,
         borderBottomColor: Colors.neutral.border,
+    },
+    backBtn: {
+        marginBottom: 6,
+    },
+    backBtnText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.body,
+        color: Colors.sage.dark,
     },
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
