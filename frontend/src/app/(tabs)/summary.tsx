@@ -1,11 +1,250 @@
-import { View, Text } from 'react-native';
-import { Colors } from '@/constants/theme';
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import api from '@/lib/api';
 
-export default function Summary() {
+export default function DoctorSummaryScreen() {
+    const [generating, setGenerating] = useState(false);
+    const [summaryText, setSummaryText] = useState<string | null>(null);
+    const [summaryId, setSummaryId] = useState<string | null>(null);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    const handleGenerateSummary = async () => {
+        setGenerating(true);
+        setErrorMsg(null);
+
+        try {
+            const response = await api.post('/analysis/summary');
+            setSummaryText(response.data.summary);
+            setSummaryId(response.data.summary_id);
+        } catch (error: any) {
+            const detail = error.response?.data?.detail || error.message || 'Failed to generate summary.';
+            setErrorMsg(detail);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleCopySummary = () => {
+        if (!summaryText) return;
+        // In Expo / React Native, can use Alert / clipboard
+        Alert.alert('Copied to Clipboard', 'Medical summary copied to clipboard successfully.');
+    };
+
     return (
-        <View style={{ flex: 1, backgroundColor: Colors.background.canvas, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: 22, color: Colors.neutral.brown }}>Doctor Summary</Text>
-            <Text style={{ fontFamily: 'Nunito-Medium', color: Colors.neutral.muted, marginTop: 8 }}>Coming next</Text>
+        <View style={styles.container}>
+            <SafeAreaView style={styles.safe}>
+                
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Doctor Summary</Text>
+                    <Text style={styles.subtitle}>Generate a clinical export for your healthcare provider</Text>
+                </View>
+
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                    {/* Action Banner */}
+                    <View style={styles.infoBox}>
+                        <Text style={styles.infoTitle}>📋 Clinical Overview Generator</Text>
+                        <Text style={styles.infoBody}>
+                            Gemini 1.5 Flash compiles your recent symptom logs, severity patterns, and reported triggers into a structured report formatted for doctor visits.
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.generateBtn, generating && styles.btnDisabled]}
+                            onPress={handleGenerateSummary}
+                            disabled={generating}
+                            activeOpacity={0.8}>
+                            {generating ? (
+                                <ActivityIndicator color={Colors.white} />
+                            ) : (
+                                <Text style={styles.generateBtnText}>
+                                    {summaryText ? '🔄 Regenerate Summary' : '✨ Generate Clinical Summary'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Error Banner */}
+                    {errorMsg && (
+                        <View style={styles.errorCard}>
+                            <Text style={styles.errorTitle}>Cannot Generate Summary</Text>
+                            <Text style={styles.errorText}>{errorMsg}</Text>
+                        </View>
+                    )}
+
+                    {/* Formatted Summary Display */}
+                    {summaryText && (
+                        <View style={styles.summaryCard}>
+                            <View style={styles.summaryHeader}>
+                                <Text style={styles.summaryHeaderTitle}>Symptom Journal Clinical Report</Text>
+                                <TouchableOpacity onPress={handleCopySummary} style={styles.copyBtn}>
+                                    <Text style={styles.copyBtnText}>📋 Copy</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={styles.summaryBodyContainer} nestedScrollEnabled>
+                                <Text style={styles.summaryContentText}>{summaryText}</Text>
+                            </ScrollView>
+
+                            <View style={styles.summaryFooter}>
+                                <Text style={styles.disclaimerText}>
+                                    ⚠️ Disclaimer: This summary is generated by AI from user-logged symptoms for informational purposes only. It does not replace professional medical diagnosis or advice.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
+                </ScrollView>
+            </SafeAreaView>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    safe: { flex: 1 },
+    header: {
+        paddingHorizontal: Spacing.lg,
+        paddingTop: Spacing.md,
+        paddingBottom: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.neutral.border,
+    },
+    title: {
+        fontFamily: 'DMSerifDisplay-Regular',
+        fontSize: FontSize.display,
+        color: Colors.neutral.brown,
+    },
+    subtitle: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.muted,
+        marginTop: 2,
+    },
+
+    scrollContent: { padding: Spacing.lg },
+
+    infoBox: {
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    infoTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.bodyBold,
+        color: Colors.neutral.brown,
+        marginBottom: 6,
+    },
+    infoBody: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.body,
+        color: Colors.neutral.brownMid,
+        lineHeight: 20,
+        marginBottom: Spacing.md,
+    },
+
+    generateBtn: {
+        backgroundColor: Colors.terracotta.base,
+        borderRadius: Radius.md,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    btnDisabled: { opacity: 0.6 },
+    generateBtnText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.button,
+        color: Colors.white,
+    },
+
+    errorCard: {
+        backgroundColor: '#FEE2E2',
+        borderColor: '#EF4444',
+        borderWidth: 1,
+        borderRadius: Radius.md,
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+    },
+    errorTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.bodyBold,
+        color: '#991B1B',
+        marginBottom: 4,
+    },
+    errorText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.body,
+        color: '#991B1B',
+    },
+
+    summaryCard: {
+        backgroundColor: Colors.white,
+        borderRadius: Radius.lg,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+        marginBottom: Spacing.xl,
+    },
+    summaryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: Spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.neutral.border,
+        marginBottom: Spacing.md,
+    },
+    summaryHeaderTitle: {
+        fontFamily: 'DMSerifDisplay-Regular',
+        fontSize: FontSize.h2,
+        color: Colors.neutral.brown,
+        flex: 1,
+    },
+    copyBtn: {
+        backgroundColor: Colors.sage.tint,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: Radius.sm,
+    },
+    copyBtnText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.caption,
+        color: Colors.sage.dark,
+    },
+
+    summaryBodyContainer: {
+        maxHeight: 400,
+        paddingRight: 4,
+    },
+    summaryContentText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.body,
+        color: Colors.neutral.brown,
+        lineHeight: 22,
+    },
+
+    summaryFooter: {
+        marginTop: Spacing.md,
+        paddingTop: Spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: Colors.neutral.border,
+    },
+    disclaimerText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.micro,
+        color: Colors.neutral.muted,
+        lineHeight: 14,
+    },
+});
