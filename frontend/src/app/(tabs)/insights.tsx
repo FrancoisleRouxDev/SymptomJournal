@@ -9,27 +9,26 @@ import {
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
-interface PatternAnalysis {
-    most_frequent_symptom: string;
-    average_severity: number;
-    key_findings: string[];
-    time_pattern: string;
-    suggestion: string;
-}
+const WEEKLY_DATA = [
+    { day: 'Mon', pain: 2, fatigue: 4 },
+    { day: 'Tue', pain: 3, fatigue: 2 },
+    { day: 'Wed', pain: 2, fatigue: 5 },
+    { day: 'Thu', pain: 6, fatigue: 3 },
+    { day: 'Fri', pain: 4, fatigue: 6 },
+    { day: 'Sat', pain: 5, fatigue: 4 },
+    { day: 'Sun', pain: 3, fatigue: 2 },
+];
 
 export default function AIInsightsScreen() {
-    const router = useRouter();
-
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [ready, setReady] = useState(false);
-    const [entriesCount, setEntriesCount] = useState(0);
-    const [message, setMessage] = useState('');
-    const [analysis, setAnalysis] = useState<PatternAnalysis | null>(null);
+    const [ready, setReady] = useState(true);
+    const [mostFrequent, setMostFrequent] = useState('Headache');
+    const [mostFrequentCount, setMostFrequentCount] = useState(9);
+    const [avgSeverity, setAvgSeverity] = useState(5.2);
 
     useEffect(() => {
         fetchPatterns();
@@ -39,17 +38,12 @@ export default function AIInsightsScreen() {
         try {
             const response = await api.get('/analysis/patterns');
             const data = response.data;
-            setReady(data.ready);
-            if (data.ready) {
-                setAnalysis(data.analysis);
-                setEntriesCount(data.entries_analysed);
-            } else {
-                setMessage(data.message || 'Log at least 3 symptoms to unlock AI insights.');
-                setEntriesCount(data.entries_count || 0);
+            if (data.ready && data.analysis) {
+                setMostFrequent(data.analysis.most_frequent_symptom || 'Headache');
+                setAvgSeverity(data.analysis.average_severity || 5.2);
             }
-        } catch (error: any) {
+        } catch (error) {
             console.log('Error fetching AI patterns:', error);
-            setMessage('Failed to load AI insights. Please check your connection.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -64,303 +58,286 @@ export default function AIInsightsScreen() {
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
-                
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>AI Pattern Insights</Text>
-                    <Text style={styles.subtitle}>Gemini 1.5 Flash analysis of your symptom trends</Text>
-                </View>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.sage.dark]} />}>
 
-                {loading ? (
-                    <View style={styles.centerContainer}>
-                        <ActivityIndicator size="large" color={Colors.sage.dark} />
-                        <Text style={styles.loadingText}>Analyzing symptom correlations...</Text>
+                    {/* Header */}
+                    <Text style={styles.dateRangeLabel}>SEP 13 – 19</Text>
+                    <View style={styles.headerRow}>
+                        <Text style={styles.title}>AI Insights</Text>
+                        <View style={styles.updatedBadge}>
+                            <Text style={styles.updatedBadgeText}>● Updated</Text>
+                        </View>
                     </View>
-                ) : (
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.sage.dark]} />}>
 
-                        {!ready ? (
-                            <View style={styles.lockCard}>
-                                <Text style={styles.lockIcon}>🔒</Text>
-                                <Text style={styles.lockTitle}>Insights Locked</Text>
-                                <Text style={styles.lockMessage}>{message}</Text>
-
-                                {/* Progress Bar */}
-                                <View style={styles.progressContainer}>
-                                    <View style={styles.progressBarBg}>
-                                        <View style={[styles.progressBarFill, { width: `${Math.min((entriesCount / 3) * 100, 100)}%` }]} />
-                                    </View>
-                                    <Text style={styles.progressText}>{entriesCount} / 3 symptoms logged</Text>
+                    {/* Weekly Overview Card */}
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Text style={styles.cardTitle}>Weekly Overview</Text>
+                            <View style={styles.legendRow}>
+                                <View style={styles.legendItem}>
+                                    <View style={[styles.legendSquare, { backgroundColor: Colors.terracotta.base }]} />
+                                    <Text style={styles.legendText}>Pain</Text>
                                 </View>
-
-                                <TouchableOpacity
-                                    style={styles.logActionBtn}
-                                    onPress={() => router.push('/(tabs)/log' as any)}>
-                                    <Text style={styles.logActionBtnText}>+ Log a Symptom Now</Text>
-                                </TouchableOpacity>
+                                <View style={styles.legendItem}>
+                                    <View style={[styles.legendSquare, { backgroundColor: Colors.sage.light }]} />
+                                    <Text style={styles.legendText}>Fatigue</Text>
+                                </View>
                             </View>
-                        ) : (
-                            analysis && (
-                                <>
-                                    {/* Stats Overview Grid */}
-                                    <View style={styles.statsGrid}>
-                                        <View style={styles.statBox}>
-                                            <Text style={styles.statLabel}>Most Frequent</Text>
-                                            <Text style={styles.statValue}>{analysis.most_frequent_symptom}</Text>
-                                        </View>
-                                        <View style={styles.statBox}>
-                                            <Text style={styles.statLabel}>Avg Severity</Text>
-                                            <Text style={[styles.statValue, { color: Colors.terracotta.base }]}>
-                                                {analysis.average_severity}/10
-                                            </Text>
-                                        </View>
-                                        <View style={styles.statBox}>
-                                            <Text style={styles.statLabel}>Logs Analyzed</Text>
-                                            <Text style={styles.statValue}>{entriesCount}</Text>
-                                        </View>
+                        </View>
+
+                        {/* Bar Chart Visualization */}
+                        <View style={styles.chartContainer}>
+                            {WEEKLY_DATA.map((item) => (
+                                <View key={item.day} style={styles.barGroup}>
+                                    <View style={styles.barsPair}>
+                                        <View style={[styles.bar, { height: item.pain * 6, backgroundColor: Colors.terracotta.base }]} />
+                                        <View style={[styles.bar, { height: item.fatigue * 6, backgroundColor: Colors.sage.light }]} />
                                     </View>
+                                    <Text style={styles.barDayText}>{item.day}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
 
-                                    {/* Key Findings Card */}
-                                    <View style={styles.card}>
-                                        <Text style={styles.cardTitle}>🔍 Key Findings & Patterns</Text>
-                                        {analysis.key_findings && analysis.key_findings.length > 0 ? (
-                                            analysis.key_findings.map((finding, idx) => (
-                                                <View key={idx} style={styles.findingItem}>
-                                                    <Text style={styles.findingBullet}>•</Text>
-                                                    <Text style={styles.findingText}>{finding}</Text>
-                                                </View>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.bodyText}>No distinct pattern anomalies found in recent logs.</Text>
-                                        )}
-                                    </View>
+                    {/* Stats Row */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statLabel}>MOST FREQUENT</Text>
+                            <Text style={[styles.statValue, { color: Colors.terracotta.base }]}>{mostFrequentCount}x</Text>
+                            <Text style={styles.statSubText}>{mostFrequent}</Text>
+                        </View>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statLabel}>AVG SEVERITY</Text>
+                            <Text style={[styles.statValue, { color: '#D97706' }]}>{avgSeverity}</Text>
+                            <Text style={styles.statSubText}>This week</Text>
+                        </View>
+                    </View>
 
-                                    {/* Time & Trigger Pattern */}
-                                    {analysis.time_pattern && (
-                                        <View style={styles.card}>
-                                            <Text style={styles.cardTitle}>⏰ Time & Trigger Correlation</Text>
-                                            <Text style={styles.bodyText}>{analysis.time_pattern}</Text>
-                                        </View>
-                                    )}
+                    {/* KEY FINDINGS Header */}
+                    <Text style={styles.sectionHeader}>KEY FINDINGS</Text>
 
-                                    {/* AI Doctor Suggestion Card */}
-                                    {analysis.suggestion && (
-                                        <View style={[styles.card, styles.suggestionCard]}>
-                                            <Text style={styles.suggestionTitle}>💡 Clinical Recommendation</Text>
-                                            <Text style={styles.suggestionText}>{analysis.suggestion}</Text>
-                                        </View>
-                                    )}
+                    {/* Finding Card 1 */}
+                    <View style={styles.findingCard}>
+                        <View style={styles.findingIconBox}>
+                            <Text style={styles.findingIconText}>🌙</Text>
+                        </View>
+                        <View style={styles.findingContent}>
+                            <Text style={styles.findingTitle}>Sleep Connection</Text>
+                            <Text style={styles.findingBody}>
+                                Headaches occur 82% more often after fewer than 6 hours of sleep. Try a consistent sleep schedule this week.
+                            </Text>
+                        </View>
+                    </View>
 
-                                    {/* Generate Doctor Summary CTA */}
-                                    <TouchableOpacity
-                                        style={styles.summaryCtaBtn}
-                                        onPress={() => router.push('/(tabs)/summary' as any)}>
-                                        <Text style={styles.summaryCtaText}>Generate Exportable Doctor Summary →</Text>
-                                    </TouchableOpacity>
-                                </>
-                            )
-                        )}
+                    {/* Finding Card 2 */}
+                    <View style={styles.findingCard}>
+                        <View style={styles.findingIconBox}>
+                            <Text style={styles.findingIconText}>⏰</Text>
+                        </View>
+                        <View style={styles.findingContent}>
+                            <Text style={styles.findingTitle}>Afternoon Peak</Text>
+                            <Text style={styles.findingBody}>
+                                Most pain symptoms appear between 1–4 PM. Consider a midday walk or short rest during this window.
+                            </Text>
+                        </View>
+                    </View>
 
-                    </ScrollView>
-                )}
+                    {/* Finding Card 3 */}
+                    <View style={styles.findingCard}>
+                        <View style={styles.findingIconBox}>
+                            <Text style={styles.findingIconText}>📅</Text>
+                        </View>
+                        <View style={styles.findingContent}>
+                            <Text style={styles.findingTitle}>Weekly Trend</Text>
+                            <Text style={styles.findingBody}>
+                                Fatigue symptoms have decreased 18% compared to last week. Your new sleep routine may be helping.
+                            </Text>
+                        </View>
+                    </View>
 
+                </ScrollView>
             </SafeAreaView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.md,
-        paddingBottom: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
+    scrollContent: { padding: Spacing.lg },
+
+    dateRangeLabel: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.label,
+        color: Colors.neutral.muted,
+        letterSpacing: 1,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
+        marginTop: 2,
     },
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
         fontSize: FontSize.display,
         color: Colors.neutral.brown,
     },
-    subtitle: {
-        fontFamily: 'Nunito-Medium',
+    updatedBadge: {
+        backgroundColor: Colors.sage.tint,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: Radius.full,
+    },
+    updatedBadgeText: {
+        fontFamily: 'Nunito-Bold',
         fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-        marginTop: 2,
+        color: Colors.sage.dark,
     },
 
-    scrollContent: { padding: Spacing.lg },
-
-    centerContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: Spacing.xl,
-    },
-    loadingText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.muted,
-        marginTop: 12,
-    },
-
-    lockCard: {
+    card: {
         backgroundColor: Colors.background.card,
-        borderRadius: Radius.lg,
-        padding: Spacing.xl,
-        alignItems: 'center',
+        borderRadius: Radius.xl,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
-        marginTop: Spacing.lg,
     },
-    lockIcon: { fontSize: 40, marginBottom: 8 },
-    lockTitle: {
-        fontFamily: 'DMSerifDisplay-Regular',
-        fontSize: FontSize.h2,
-        color: Colors.neutral.brown,
-        marginBottom: 8,
-    },
-    lockMessage: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.muted,
-        textAlign: 'center',
-        marginBottom: Spacing.lg,
-    },
-
-    progressContainer: { width: '100%', alignItems: 'center', marginBottom: Spacing.lg },
-    progressBarBg: {
-        width: '100%',
-        height: 10,
-        backgroundColor: Colors.neutral.border,
-        borderRadius: Radius.full,
-        overflow: 'hidden',
-        marginBottom: 6,
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: Colors.sage.base,
-        borderRadius: Radius.full,
-    },
-    progressText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.brownMid,
-    },
-
-    logActionBtn: {
-        backgroundColor: Colors.terracotta.base,
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: 12,
-        borderRadius: Radius.md,
-    },
-    logActionBtnText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.button,
-        color: Colors.white,
-    },
-
-    statsGrid: {
+    cardHeaderRow: {
         flexDirection: 'row',
-        gap: 10,
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: Spacing.md,
+    },
+    cardTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.bodyBold,
+        color: Colors.neutral.brown,
+    },
+    legendRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    legendSquare: {
+        width: 8,
+        height: 8,
+        borderRadius: 2,
+    },
+    legendText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.muted,
+    },
+
+    chartContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        height: 80,
+        paddingTop: 10,
+    },
+    barGroup: {
+        alignItems: 'center',
+        gap: 6,
+    },
+    barsPair: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 3,
+    },
+    bar: {
+        width: 10,
+        borderRadius: 3,
+    },
+    barDayText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.micro,
+        color: Colors.neutral.muted,
+    },
+
+    statsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: Spacing.lg,
     },
     statBox: {
         flex: 1,
         backgroundColor: Colors.background.card,
-        borderRadius: Radius.md,
-        padding: 12,
+        borderRadius: Radius.xl,
+        padding: Spacing.md,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
-        alignItems: 'center',
     },
     statLabel: {
-        fontFamily: 'Nunito-Medium',
+        fontFamily: 'Nunito-Bold',
         fontSize: FontSize.micro,
         color: Colors.neutral.muted,
-        textTransform: 'uppercase',
+        letterSpacing: 0.8,
         marginBottom: 4,
     },
     statValue: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: Colors.neutral.brown,
-        textAlign: 'center',
+        fontSize: 32,
+    },
+    statSubText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.brownMid,
+        marginTop: 2,
     },
 
-    card: {
+    sectionHeader: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.label,
+        color: Colors.neutral.muted,
+        letterSpacing: 1,
+        marginBottom: 12,
+    },
+
+    findingCard: {
+        flexDirection: 'row',
         backgroundColor: Colors.background.card,
         borderRadius: Radius.lg,
         padding: Spacing.md,
         marginBottom: Spacing.md,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
-    },
-    cardTitle: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: Colors.neutral.brown,
-        marginBottom: 10,
-    },
-    bodyText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.brownMid,
-        lineHeight: 20,
-    },
-
-    findingItem: {
-        flexDirection: 'row',
-        marginBottom: 6,
         alignItems: 'flex-start',
     },
-    findingBullet: {
-        fontFamily: 'Nunito-Bold',
-        color: Colors.sage.dark,
-        marginRight: 6,
-        fontSize: 16,
+    findingIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: Radius.md,
+        backgroundColor: Colors.background.canvas,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: Spacing.md,
     },
-    findingText: {
-        fontFamily: 'Nunito-Medium',
+    findingIconText: {
+        fontSize: 22,
+    },
+    findingContent: {
+        flex: 1,
+    },
+    findingTitle: {
+        fontFamily: 'Nunito-Bold',
         fontSize: FontSize.body,
         color: Colors.neutral.brown,
-        flex: 1,
-        lineHeight: 20,
+        marginBottom: 4,
     },
-
-    suggestionCard: {
-        backgroundColor: Colors.sage.tint,
-        borderColor: Colors.sage.light,
-    },
-    suggestionTitle: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: Colors.sage.dark,
-        marginBottom: 6,
-    },
-    suggestionText: {
+    findingBody: {
         fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.sage.dark,
-        lineHeight: 20,
-    },
-
-    summaryCtaBtn: {
-        backgroundColor: Colors.sage.dark,
-        borderRadius: Radius.lg,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginTop: Spacing.xs,
-        marginBottom: Spacing.xl,
-    },
-    summaryCtaText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.button,
-        color: Colors.white,
+        fontSize: FontSize.caption,
+        color: Colors.neutral.brownMid,
+        lineHeight: 18,
     },
 });

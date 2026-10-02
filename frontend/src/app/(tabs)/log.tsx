@@ -7,83 +7,42 @@ import {
     TextInput,
     TouchableOpacity,
     ActivityIndicator,
-    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
-const TIME_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Night'];
-const MOOD_OPTIONS = ['Good', 'Neutral', 'Stressed', 'Anxious', 'Fatigued'];
-const QUICK_TRIGGERS = [
-    { type: 'sleep', value: '< 6 hours' },
-    { type: 'stress', value: 'High workload' },
-    { type: 'food', value: 'Coffee' },
-    { type: 'food', value: 'Dairy/Gluten' },
-    { type: 'activity', value: 'Intense exercise' },
-    { type: 'weather', value: 'Temperature change' },
+const CATEGORIES = [
+    { name: 'Pain', icon: '⚡' },
+    { name: 'Fatigue', icon: '🌙' },
+    { name: 'Mood', icon: '💭' },
+    { name: 'Digestion', icon: '🌿' },
+    { name: 'Breathing', icon: '💨' },
+    { name: 'Skin', icon: '✨' },
 ];
+
+const BODY_AREAS = ['Head', 'Neck', 'Chest', 'Abdomen', 'Back', 'Arms', 'Legs', 'General'];
+
+const TIME_OPTIONS = ['now', '1h ago', '3h ago', 'earlier'];
 
 export default function LogSymptomScreen() {
     const router = useRouter();
 
-    const [description, setDescription] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('Pain');
+    const [selectedBodyArea, setSelectedBodyArea] = useState('Head');
     const [severity, setSeverity] = useState<number>(5);
-    const [timeOfDay, setTimeOfDay] = useState<string>('Afternoon');
-    const [mood, setMood] = useState<string>('Neutral');
-    const [selectedTriggers, setSelectedTriggers] = useState<Array<{ trigger_type: string; trigger_value: string }>>([]);
-    
-    // Custom trigger inputs
-    const [customType, setCustomType] = useState('');
-    const [customValue, setCustomValue] = useState('');
-    const [showCustomTrigger, setShowCustomTrigger] = useState(false);
+    const [whenStarted, setWhenStarted] = useState('now');
+    const [notes, setNotes] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-    const toggleQuickTrigger = (trigger: { type: string; value: string }) => {
-        const exists = selectedTriggers.some(
-            (t) => t.trigger_type === trigger.type && t.trigger_value === trigger.value
-        );
-
-        if (exists) {
-            setSelectedTriggers(
-                selectedTriggers.filter(
-                    (t) => !(t.trigger_type === trigger.type && t.trigger_value === trigger.value)
-                )
-            );
-        } else {
-            setSelectedTriggers([
-                ...selectedTriggers,
-                { trigger_type: trigger.type, trigger_value: trigger.value },
-            ]);
-        }
-    };
-
-    const addCustomTrigger = () => {
-        if (!customType.trim() || !customValue.trim()) return;
-        setSelectedTriggers([
-            ...selectedTriggers,
-            { trigger_type: customType.trim().toLowerCase(), trigger_value: customValue.trim() },
-        ]);
-        setCustomType('');
-        setCustomValue('');
-        setShowCustomTrigger(false);
-    };
-
-    const removeTrigger = (index: number) => {
-        const updated = [...selectedTriggers];
-        updated.splice(index, 1);
-        setSelectedTriggers(updated);
-    };
-
     const handleSubmit = async () => {
-        if (!description.trim()) {
-            setErrorMsg('Please describe your symptom before submitting.');
-            return;
-        }
+        const fullDescription = notes.trim()
+            ? `${selectedCategory} (${selectedBodyArea}) - ${notes.trim()}`
+            : `${selectedCategory} (${selectedBodyArea})`;
 
         setErrorMsg(null);
         setSuccessMsg(null);
@@ -91,20 +50,21 @@ export default function LogSymptomScreen() {
 
         try {
             const payload = {
-                description: description.trim(),
+                description: fullDescription,
                 severity,
-                time_of_day: timeOfDay,
-                mood,
-                triggers: selectedTriggers,
+                time_of_day: whenStarted === 'now' ? 'Present' : whenStarted,
+                mood: selectedCategory === 'Mood' ? 'Stressed' : 'Neutral',
+                triggers: [
+                    { trigger_type: 'category', trigger_value: selectedCategory },
+                    { trigger_type: 'body_area', trigger_value: selectedBodyArea },
+                ],
             };
 
             await api.post('/symptoms/log', payload);
 
             setSuccessMsg('Symptom logged successfully!');
-            // Reset form
-            setDescription('');
+            setNotes('');
             setSeverity(5);
-            setSelectedTriggers([]);
 
             setTimeout(() => {
                 setSuccessMsg(null);
@@ -120,8 +80,8 @@ export default function LogSymptomScreen() {
 
     const getSeverityColor = (val: number) => {
         if (val <= 3) return Colors.sage.base;
-        if (val <= 6) return '#D97706'; // Amber
-        return Colors.terracotta.base; // Red/Terracotta
+        if (val <= 6) return '#D97706';
+        return Colors.terracotta.base;
     };
 
     return (
@@ -131,8 +91,7 @@ export default function LogSymptomScreen() {
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Log Symptom</Text>
-                        <Text style={styles.subtitle}>Track your symptoms to uncover patterns with AI</Text>
+                        <Text style={styles.title}>Log a Symptom</Text>
                     </View>
 
                     {/* Feedback Messages */}
@@ -147,27 +106,55 @@ export default function LogSymptomScreen() {
                         </View>
                     )}
 
-                    {/* Description Input */}
-                    <View style={styles.card}>
-                        <Text style={styles.label}>Symptom Description *</Text>
-                        <TextInput
-                            style={styles.textArea}
-                            placeholder="e.g. Throbbing headache on the left side with light sensitivity..."
-                            placeholderTextColor={Colors.neutral.muted}
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                            numberOfLines={3}
-                        />
+                    {/* CATEGORY Grid */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>CATEGORY</Text>
+                        <View style={styles.categoryGrid}>
+                            {CATEGORIES.map((cat) => {
+                                const isSelected = selectedCategory === cat.name;
+                                return (
+                                    <TouchableOpacity
+                                        key={cat.name}
+                                        style={[styles.categoryTile, isSelected && styles.categoryTileSelected]}
+                                        onPress={() => setSelectedCategory(cat.name)}
+                                        activeOpacity={0.8}>
+                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Text style={[styles.categoryText, isSelected && styles.categoryTextSelected]}>
+                                            {cat.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
                     </View>
 
-                    {/* Severity Slider / Selector */}
+                    {/* BODY AREA Horizontal / Wrapped Pills */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>BODY AREA</Text>
+                        <View style={styles.pillsRow}>
+                            {BODY_AREAS.map((area) => {
+                                const isSelected = selectedBodyArea === area;
+                                return (
+                                    <TouchableOpacity
+                                        key={area}
+                                        style={[styles.areaPill, isSelected && styles.areaPillSelected]}
+                                        onPress={() => setSelectedBodyArea(area)}>
+                                        <Text style={[styles.areaPillText, isSelected && styles.areaPillTextSelected]}>
+                                            {area}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* SEVERITY Card */}
                     <View style={styles.card}>
                         <View style={styles.rowBetween}>
-                            <Text style={styles.label}>Severity Level</Text>
-                            <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(severity) }]}>
-                                <Text style={styles.severityBadgeText}>{severity}/10</Text>
-                            </View>
+                            <Text style={styles.sectionLabel}>SEVERITY</Text>
+                            <Text style={[styles.severityValueText, { color: getSeverityColor(severity) }]}>
+                                {severity}<Text style={styles.severityDenom}>/10</Text>
+                            </Text>
                         </View>
 
                         <View style={styles.severityPillsContainer}>
@@ -189,120 +176,46 @@ export default function LogSymptomScreen() {
                                 );
                             })}
                         </View>
+
                         <View style={styles.rowBetween}>
-                            <Text style={styles.helperText}>1 = Mild</Text>
-                            <Text style={styles.helperText}>10 = Severe</Text>
+                            <Text style={[styles.rangeLabel, { color: Colors.sage.base }]}>Mild</Text>
+                            <Text style={[styles.rangeLabel, { color: '#D97706' }]}>Moderate</Text>
+                            <Text style={[styles.rangeLabel, { color: Colors.terracotta.base }]}>Severe</Text>
                         </View>
                     </View>
 
-                    {/* Time of Day */}
-                    <View style={styles.card}>
-                        <Text style={styles.label}>Time of Day</Text>
-                        <View style={styles.optionsRow}>
-                            {TIME_OPTIONS.map((time) => (
-                                <TouchableOpacity
-                                    key={time}
-                                    style={[styles.optionPill, timeOfDay === time && styles.optionPillSelected]}
-                                    onPress={() => setTimeOfDay(time)}>
-                                    <Text style={[styles.optionPillText, timeOfDay === time && styles.optionPillTextSelected]}>
-                                        {time}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Mood */}
-                    <View style={styles.card}>
-                        <Text style={styles.label}>Current Mood</Text>
-                        <View style={styles.optionsRow}>
-                            {MOOD_OPTIONS.map((m) => (
-                                <TouchableOpacity
-                                    key={m}
-                                    style={[styles.optionPill, mood === m && styles.optionPillSelected]}
-                                    onPress={() => setMood(m)}>
-                                    <Text style={[styles.optionPillText, mood === m && styles.optionPillTextSelected]}>
-                                        {m}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Triggers Section */}
-                    <View style={styles.card}>
-                        <Text style={styles.label}>Potential Triggers</Text>
-                        <Text style={styles.helperText}>Tap quick triggers or add your own:</Text>
-
-                        {/* Quick Triggers */}
-                        <View style={styles.quickTriggersGrid}>
-                            {QUICK_TRIGGERS.map((t, idx) => {
-                                const isSelected = selectedTriggers.some(
-                                    (st) => st.trigger_type === t.type && st.trigger_value === t.value
-                                );
+                    {/* WHEN DID IT START? */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>WHEN DID IT START?</Text>
+                        <View style={styles.pillsRow}>
+                            {TIME_OPTIONS.map((time) => {
+                                const isSelected = whenStarted === time;
                                 return (
                                     <TouchableOpacity
-                                        key={idx}
-                                        style={[styles.triggerChip, isSelected && styles.triggerChipSelected]}
-                                        onPress={() => toggleQuickTrigger(t)}>
-                                        <Text style={[styles.triggerChipText, isSelected && styles.triggerChipTextSelected]}>
-                                            {t.type}: {t.value} {isSelected ? '✓' : '+'}
+                                        key={time}
+                                        style={[styles.timePill, isSelected && styles.timePillSelected]}
+                                        onPress={() => setWhenStarted(time)}>
+                                        <Text style={[styles.timePillText, isSelected && styles.timePillTextSelected]}>
+                                            {time}
                                         </Text>
                                     </TouchableOpacity>
                                 );
                             })}
                         </View>
+                    </View>
 
-                        {/* Active Selected Triggers List */}
-                        {selectedTriggers.length > 0 && (
-                            <View style={styles.selectedTriggersContainer}>
-                                <Text style={styles.subLabel}>Selected Triggers ({selectedTriggers.length}):</Text>
-                                {selectedTriggers.map((st, idx) => (
-                                    <View key={idx} style={styles.selectedTriggerItem}>
-                                        <Text style={styles.selectedTriggerText}>
-                                            <Text style={{ fontFamily: 'Nunito-Bold' }}>{st.trigger_type}:</Text> {st.trigger_value}
-                                        </Text>
-                                        <TouchableOpacity onPress={() => removeTrigger(idx)}>
-                                            <Text style={styles.removeText}>✕</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
-
-                        {/* Add Custom Trigger Input */}
-                        {showCustomTrigger ? (
-                            <View style={styles.customTriggerBox}>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Type (e.g. sleep, medication)"
-                                    placeholderTextColor={Colors.neutral.muted}
-                                    value={customType}
-                                    onChangeText={setCustomType}
-                                />
-                                <TextInput
-                                    style={[styles.input, { marginTop: 8 }]}
-                                    placeholder="Value (e.g. late sleep, missed dose)"
-                                    placeholderTextColor={Colors.neutral.muted}
-                                    value={customValue}
-                                    onChangeText={setCustomValue}
-                                />
-                                <View style={[styles.rowBetween, { marginTop: 12 }]}>
-                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCustomTrigger(false)}>
-                                        <Text style={styles.cancelBtnText}>Cancel</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.addBtn} onPress={addCustomTrigger}>
-                                        <Text style={styles.addBtnText}>Add Trigger</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={styles.addCustomBtn}
-                                onPress={() => setShowCustomTrigger(true)}>
-                                <Text style={styles.addCustomBtnText}>+ Add Custom Trigger</Text>
-                            </TouchableOpacity>
-                        )}
+                    {/* NOTES (OPTIONAL) */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>NOTES (OPTIONAL)</Text>
+                        <TextInput
+                            style={styles.textArea}
+                            placeholder="Describe how you feel, any triggers you noticed..."
+                            placeholderTextColor={Colors.neutral.muted}
+                            value={notes}
+                            onChangeText={setNotes}
+                            multiline
+                            numberOfLines={4}
+                        />
                     </View>
 
                     {/* Submit Button */}
@@ -310,7 +223,7 @@ export default function LogSymptomScreen() {
                         style={[styles.submitBtn, loading && styles.btnDisabled]}
                         onPress={handleSubmit}
                         disabled={loading}
-                        activeOpacity={0.8}>
+                        activeOpacity={0.85}>
                         {loading ? (
                             <ActivityIndicator color={Colors.white} />
                         ) : (
@@ -325,7 +238,7 @@ export default function LogSymptomScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
     scrollContent: { padding: Spacing.lg },
 
@@ -334,12 +247,6 @@ const styles = StyleSheet.create({
         fontFamily: 'DMSerifDisplay-Regular',
         fontSize: FontSize.display,
         color: Colors.neutral.brown,
-    },
-    subtitle: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.muted,
-        marginTop: 4,
     },
 
     errorBox: {
@@ -369,72 +276,102 @@ const styles = StyleSheet.create({
         color: Colors.sage.dark,
     },
 
+    section: { marginBottom: Spacing.lg },
+    sectionLabel: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.label,
+        color: Colors.neutral.muted,
+        letterSpacing: 1,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+    },
+
+    categoryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    categoryTile: {
+        width: '31%',
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.lg,
+        paddingVertical: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    categoryTileSelected: {
+        backgroundColor: Colors.terracotta.base,
+        borderColor: Colors.terracotta.base,
+    },
+    categoryIcon: { fontSize: 24, marginBottom: 6 },
+    categoryText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.body,
+        color: Colors.neutral.brown,
+    },
+    categoryTextSelected: {
+        color: Colors.white,
+    },
+
+    pillsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    areaPill: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: Radius.full,
+        backgroundColor: Colors.background.card,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    areaPillSelected: {
+        backgroundColor: Colors.sage.base,
+        borderColor: Colors.sage.base,
+    },
+    areaPillText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.body,
+        color: Colors.neutral.brown,
+    },
+    areaPillTextSelected: {
+        color: Colors.white,
+    },
+
     card: {
         backgroundColor: Colors.background.card,
         borderRadius: Radius.lg,
         padding: Spacing.md,
+        marginBottom: Spacing.lg,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
-        marginBottom: Spacing.md,
     },
-
-    label: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: Colors.neutral.brown,
-        marginBottom: 8,
-    },
-    subLabel: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.brownMid,
-        marginBottom: 6,
-    },
-    helperText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-        marginBottom: 8,
-    },
-
-    textArea: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.brown,
-        backgroundColor: Colors.background.canvas,
-        borderRadius: Radius.md,
-        padding: Spacing.md,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-        minHeight: 80,
-        textAlignVertical: 'top',
-    },
-
     rowBetween: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-
-    severityBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: Radius.full,
-    },
-    severityBadgeText: {
+    severityValueText: {
         fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.h2,
+    },
+    severityDenom: {
+        fontFamily: 'Nunito-Medium',
         fontSize: FontSize.caption,
-        color: Colors.white,
+        color: Colors.neutral.muted,
     },
 
     severityPillsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginVertical: 12,
+        marginVertical: 14,
     },
     severityPill: {
-        width: 30,
-        height: 36,
+        width: 28,
+        height: 34,
         borderRadius: Radius.sm,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
@@ -447,134 +384,43 @@ const styles = StyleSheet.create({
         fontSize: FontSize.caption,
         color: Colors.neutral.brown,
     },
-
-    optionsRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    optionPill: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: Radius.full,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-        backgroundColor: Colors.background.canvas,
-    },
-    optionPillSelected: {
-        backgroundColor: Colors.sage.base,
-        borderColor: Colors.sage.base,
-    },
-    optionPillText: {
+    rangeLabel: {
         fontFamily: 'Nunito-Bold',
         fontSize: FontSize.caption,
+    },
+
+    timePill: {
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: Radius.full,
+        backgroundColor: Colors.background.card,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    timePillSelected: {
+        backgroundColor: Colors.neutral.brown,
+        borderColor: Colors.neutral.brown,
+    },
+    timePillText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.body,
         color: Colors.neutral.brown,
     },
-    optionPillTextSelected: {
+    timePillTextSelected: {
         color: Colors.white,
     },
 
-    quickTriggersGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 12,
-    },
-    triggerChip: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: Radius.md,
-        backgroundColor: Colors.background.canvas,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-    },
-    triggerChipSelected: {
-        backgroundColor: Colors.terracotta.tint,
-        borderColor: Colors.terracotta.base,
-    },
-    triggerChipText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.brownMid,
-    },
-    triggerChipTextSelected: {
-        fontFamily: 'Nunito-Bold',
-        color: Colors.terracotta.dark,
-    },
-
-    selectedTriggersContainer: {
-        marginTop: 8,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: Colors.neutral.border,
-    },
-    selectedTriggerItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: Colors.background.canvas,
-        padding: 8,
-        borderRadius: Radius.sm,
-        marginBottom: 4,
-    },
-    selectedTriggerText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.brown,
-    },
-    removeText: {
-        fontFamily: 'Nunito-Bold',
-        color: Colors.terracotta.base,
-        fontSize: 14,
-        paddingHorizontal: 6,
-    },
-
-    addCustomBtn: {
-        paddingVertical: 8,
-        alignItems: 'center',
-    },
-    addCustomBtnText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.sage.dark,
-    },
-
-    customTriggerBox: {
-        marginTop: 8,
-        padding: 12,
-        backgroundColor: Colors.background.canvas,
-        borderRadius: Radius.md,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-    },
-    input: {
+    textArea: {
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.body,
         color: Colors.neutral.brown,
-        backgroundColor: Colors.white,
-        borderRadius: Radius.sm,
-        padding: 8,
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.lg,
+        padding: Spacing.md,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
-    },
-    cancelBtn: {
-        padding: 8,
-    },
-    cancelBtnText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-    },
-    addBtn: {
-        backgroundColor: Colors.sage.base,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: Radius.md,
-    },
-    addBtnText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.white,
+        minHeight: 100,
+        textAlignVertical: 'top',
     },
 
     submitBtn: {
@@ -582,12 +428,10 @@ const styles = StyleSheet.create({
         borderRadius: Radius.lg,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: Spacing.sm,
+        marginTop: Spacing.md,
         marginBottom: Spacing.xl,
     },
-    btnDisabled: {
-        opacity: 0.6,
-    },
+    btnDisabled: { opacity: 0.6 },
     submitBtnText: {
         fontFamily: 'Nunito-Bold',
         fontSize: FontSize.button,

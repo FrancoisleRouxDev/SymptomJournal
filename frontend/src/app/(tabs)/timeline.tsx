@@ -6,38 +6,20 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    TextInput,
-    Alert,
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
-interface Trigger {
-    id: string;
-    log_id: string;
-    trigger_type: string;
-    trigger_value: string;
-}
-
-interface SymptomLog {
-    id: string;
-    description: string;
-    severity: number;
-    time_of_day: string;
-    mood: string;
-    created_at: string;
-    triggers?: Trigger[];
-}
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export default function TimelineScreen() {
-    const [symptoms, setSymptoms] = useState<SymptomLog[]>([]);
+    const [symptoms, setSymptoms] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterSeverity, setFilterSeverity] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL');
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedDay, setSelectedDay] = useState<number | null>(19);
 
     useEffect(() => {
         loadHistory();
@@ -48,7 +30,7 @@ export default function TimelineScreen() {
             const response = await api.get('/symptoms/history');
             setSymptoms(response.data.symptoms || []);
         } catch (error) {
-            console.log('Error fetching history:', error);
+            console.log('Error fetching timeline:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -60,25 +42,7 @@ export default function TimelineScreen() {
         loadHistory();
     };
 
-    const handleDelete = async (logId: string) => {
-        try {
-            await api.delete(`/symptoms/history/${logId}`);
-            setSymptoms((prev) => prev.filter((s) => s.id !== logId));
-        } catch (error) {
-            Alert.alert('Error', 'Failed to delete symptom log.');
-        }
-    };
-
-    const confirmDelete = (logId: string) => {
-        Alert.alert(
-            'Delete Log',
-            'Are you sure you want to delete this symptom log entry?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => handleDelete(logId) },
-            ]
-        );
-    };
+    const categories = ['All', 'Pain', 'Fatigue', 'Mood', 'Digestion'];
 
     const getSeverityColor = (val: number) => {
         if (val <= 3) return Colors.sage.base;
@@ -86,228 +50,285 @@ export default function TimelineScreen() {
         return Colors.terracotta.base;
     };
 
-    // Filtered & grouped symptoms
+    const getCategoryBadgeStyle = (cat: string) => {
+        const lower = cat.toLowerCase();
+        if (lower.includes('pain')) return { bg: Colors.terracotta.tint, text: Colors.terracotta.dark };
+        if (lower.includes('fatigue')) return { bg: Colors.sage.tint, text: Colors.sage.dark };
+        if (lower.includes('mood')) return { bg: '#F3E8FF', text: '#6B21A8' };
+        if (lower.includes('digestion')) return { bg: '#FEF3C7', text: '#92400E' };
+        return { bg: Colors.neutral.border, text: Colors.neutral.brown };
+    };
+
+    // Filter symptoms
     const filteredSymptoms = useMemo(() => {
         return symptoms.filter((item) => {
-            // Search query filter
-            const matchesSearch = item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.triggers?.some((t) => t.trigger_value.toLowerCase().includes(searchQuery.toLowerCase()));
-
-            // Severity filter
-            let matchesSeverity = true;
-            if (filterSeverity === 'HIGH') matchesSeverity = item.severity >= 7;
-            if (filterSeverity === 'MEDIUM') matchesSeverity = item.severity >= 4 && item.severity <= 6;
-            if (filterSeverity === 'LOW') matchesSeverity = item.severity <= 3;
-
-            // Date filter
-            let matchesDate = true;
-            if (selectedDate) {
-                const itemDate = new Date(item.created_at).toISOString().split('T')[0];
-                matchesDate = itemDate === selectedDate;
-            }
-
-            return matchesSearch && matchesSeverity && matchesDate;
+            if (selectedCategory === 'All') return true;
+            return item.description.toLowerCase().includes(selectedCategory.toLowerCase());
         });
-    }, [symptoms, searchQuery, filterSeverity, selectedDate]);
-
-    // Format date headers
-    const formatDate = (isoString: string) => {
-        const date = new Date(isoString);
-        const today = new Date();
-        const yesterday = new Date();
-        yesterday.setDate(today.getDate() - 1);
-
-        if (date.toDateString() === today.toDateString()) return 'Today';
-        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+    }, [symptoms, selectedCategory]);
 
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
-                
-                {/* Header */}
-                <View style={styles.header}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.sage.dark]} />}>
+
+                    {/* Header */}
                     <Text style={styles.title}>Symptom Timeline</Text>
-                    <Text style={styles.subtitle}>Your complete symptom history and flare-up patterns</Text>
 
-                    {/* Search & Filter Row */}
-                    <View style={styles.searchRow}>
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search symptoms or triggers..."
-                            placeholderTextColor={Colors.neutral.muted}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-
-                    {/* Filter Pills */}
-                    <View style={styles.filterRow}>
-                        {(['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((f) => (
-                            <TouchableOpacity
-                                key={f}
-                                style={[styles.filterPill, filterSeverity === f && styles.filterPillSelected]}
-                                onPress={() => setFilterSeverity(f)}>
-                                <Text style={[styles.filterPillText, filterSeverity === f && styles.filterPillTextSelected]}>
-                                    {f === 'ALL' ? 'All Severities' : f === 'HIGH' ? 'Severe (7+)' : f === 'MEDIUM' ? 'Moderate (4-6)' : 'Mild (1-3)'}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Timeline List */}
-                {loading ? (
-                    <View style={styles.centerContainer}>
-                        <ActivityIndicator size="large" color={Colors.terracotta.base} />
-                    </View>
-                ) : (
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.terracotta.base]} />}>
-
-                        {filteredSymptoms.length === 0 ? (
-                            <View style={styles.emptyCard}>
-                                <Text style={styles.emptyTitle}>No symptoms found</Text>
-                                <Text style={styles.emptySub}>
-                                    {searchQuery || filterSeverity !== 'ALL' || selectedDate
-                                        ? 'Try clearing your filters to see more results.'
-                                        : 'Logged symptoms will appear here in chronological order.'}
-                                </Text>
+                    {/* Monthly Calendar Widget */}
+                    <View style={styles.calendarCard}>
+                        <View style={styles.calendarHeader}>
+                            <Text style={styles.calendarTitle}>September 2026</Text>
+                            <View style={styles.arrowsRow}>
+                                <TouchableOpacity style={styles.arrowBtn}><Text style={styles.arrowText}>‹</Text></TouchableOpacity>
+                                <TouchableOpacity style={styles.arrowBtn}><Text style={styles.arrowText}>›</Text></TouchableOpacity>
                             </View>
-                        ) : (
-                            filteredSymptoms.map((item) => (
-                                <View key={item.id} style={styles.logCard}>
-                                    
-                                    {/* Top Row: Severity Badge & Date */}
-                                    <View style={styles.cardHeader}>
-                                        <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(item.severity) }]}>
-                                            <Text style={styles.severityText}>{item.severity}/10</Text>
+                        </View>
+
+                        {/* Weekday Labels */}
+                        <View style={styles.weekdaysRow}>
+                            {WEEKDAYS.map((w) => (
+                                <Text key={w} style={styles.weekdayLabel}>{w}</Text>
+                            ))}
+                        </View>
+
+                        {/* Days Grid */}
+                        <View style={styles.daysGrid}>
+                            {/* Empty offset days for Month start */}
+                            <View style={styles.dayCell} /><View style={styles.dayCell} />
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].map((day) => {
+                                const isSelected = selectedDay === day;
+                                const hasSymptomDot = [3, 5, 8, 11, 14, 15, 17, 18, 19].includes(day);
+                                return (
+                                    <TouchableOpacity
+                                        key={day}
+                                        style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                                        onPress={() => setSelectedDay(day)}>
+                                        <Text style={[styles.dayNumText, isSelected && styles.dayNumTextSelected]}>
+                                            {day}
+                                        </Text>
+                                        {hasSymptomDot && !isSelected && (
+                                            <View style={styles.symptomDot} />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* Filter Pills Row */}
+                    <View style={styles.filterRow}>
+                        {categories.map((cat) => {
+                            const isSelected = selectedCategory === cat;
+                            return (
+                                <TouchableOpacity
+                                    key={cat}
+                                    style={[styles.filterPill, isSelected && styles.filterPillSelected]}
+                                    onPress={() => setSelectedCategory(cat)}>
+                                    <Text style={[styles.filterPillText, isSelected && styles.filterPillTextSelected]}>
+                                        {cat}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* Timeline Feed */}
+                    <Text style={styles.sectionDateHeader}>TODAY — SEP 19</Text>
+
+                    {loading ? (
+                        <ActivityIndicator color={Colors.terracotta.base} style={{ marginVertical: 20 }} />
+                    ) : filteredSymptoms.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyTitle}>No symptoms recorded for this day</Text>
+                            <Text style={styles.emptySub}>Logged symptoms will appear chronologically here.</Text>
+                        </View>
+                    ) : (
+                        filteredSymptoms.map((item) => {
+                            const categoryName = item.description.includes('(')
+                                ? item.description.split('(')[0].trim()
+                                : 'Pain';
+                            const badgeStyle = getCategoryBadgeStyle(categoryName);
+                            const timeFormatted = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                            return (
+                                <View key={item.id} style={styles.timelineItemRow}>
+                                    {/* Left Dot Indicator */}
+                                    <View style={[styles.timelineDot, { backgroundColor: getSeverityColor(item.severity) }]} />
+
+                                    {/* Card */}
+                                    <View style={styles.symptomCard}>
+                                        <View style={styles.cardMainInfo}>
+                                            <Text style={styles.symptomTitle}>{item.description}</Text>
+                                            <Text style={styles.symptomTime}>{timeFormatted}</Text>
                                         </View>
-                                        <Text style={styles.dateText}>{formatDate(item.created_at)} • {item.time_of_day}</Text>
-                                        <TouchableOpacity onPress={() => confirmDelete(item.id)} style={styles.deleteBtn}>
-                                            <Text style={styles.deleteBtnText}>🗑️</Text>
-                                        </TouchableOpacity>
+                                        <View style={styles.cardRightCol}>
+                                            <View style={[styles.categoryBadge, { backgroundColor: badgeStyle.bg }]}>
+                                                <Text style={[styles.categoryBadgeText, { color: badgeStyle.text }]}>
+                                                    {categoryName}
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.severityText, { color: getSeverityColor(item.severity) }]}>
+                                                {item.severity}<Text style={styles.severityDenom}>/10</Text>
+                                            </Text>
+                                        </View>
                                     </View>
-
-                                    {/* Description */}
-                                    <Text style={styles.description}>{item.description}</Text>
-
-                                    {/* Mood Meta */}
-                                    {item.mood && (
-                                        <View style={styles.metaRow}>
-                                            <Text style={styles.metaLabel}>Mood:</Text>
-                                            <Text style={styles.metaVal}>{item.mood}</Text>
-                                        </View>
-                                    )}
-
-                                    {/* Triggers Tags */}
-                                    {item.triggers && item.triggers.length > 0 && (
-                                        <View style={styles.triggersWrapper}>
-                                            {item.triggers.map((t) => (
-                                                <View key={t.id} style={styles.triggerChip}>
-                                                    <Text style={styles.triggerChipText}>
-                                                        ⚡ {t.trigger_type}: {t.trigger_value}
-                                                    </Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
                                 </View>
-                            ))
-                        )}
-                    </ScrollView>
-                )}
+                            );
+                        })
+                    )}
 
+                </ScrollView>
             </SafeAreaView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.md,
-        paddingBottom: Spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
-    },
+    scrollContent: { padding: Spacing.lg },
+
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
         fontSize: FontSize.display,
         color: Colors.neutral.brown,
+        marginBottom: Spacing.lg,
     },
-    subtitle: {
+
+    calendarCard: {
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.xl,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    calendarHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    calendarTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.bodyBold,
+        color: Colors.neutral.brown,
+    },
+    arrowsRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    arrowBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: Radius.full,
+        backgroundColor: Colors.background.canvas,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    arrowText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: 16,
+        color: Colors.neutral.brownMid,
+    },
+
+    weekdaysRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    weekdayLabel: {
+        width: 38,
+        textAlign: 'center',
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.caption,
         color: Colors.neutral.muted,
-        marginTop: 2,
-        marginBottom: Spacing.sm,
     },
 
-    searchRow: { marginBottom: Spacing.xs },
-    searchInput: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
+    daysGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        rowGap: 8,
+    },
+    dayCell: {
+        width: 38,
+        height: 38,
+        borderRadius: Radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    dayCellSelected: {
+        backgroundColor: Colors.sage.base,
+    },
+    dayNumText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.caption,
         color: Colors.neutral.brown,
-        backgroundColor: Colors.background.card,
-        borderRadius: Radius.md,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: 8,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
+    },
+    dayNumTextSelected: {
+        color: Colors.white,
+    },
+    symptomDot: {
+        width: 4,
+        height: 4,
+        borderRadius: Radius.full,
+        backgroundColor: Colors.terracotta.base,
+        position: 'absolute',
+        bottom: 4,
     },
 
     filterRow: {
         flexDirection: 'row',
-        gap: 6,
-        marginVertical: Spacing.xs,
         flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: Spacing.lg,
     },
     filterPill: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: 18,
+        paddingVertical: 8,
         borderRadius: Radius.full,
         backgroundColor: Colors.background.card,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
     },
     filterPillSelected: {
-        backgroundColor: Colors.terracotta.base,
-        borderColor: Colors.terracotta.base,
+        backgroundColor: Colors.neutral.brown,
+        borderColor: Colors.neutral.brown,
     },
     filterPillText: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.micro,
-        color: Colors.neutral.brownMid,
+        fontSize: FontSize.caption,
+        color: Colors.neutral.brown,
     },
     filterPillTextSelected: {
         color: Colors.white,
     },
 
-    scrollContent: { padding: Spacing.lg },
-
-    centerContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+    sectionDateHeader: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.label,
+        color: Colors.neutral.muted,
+        letterSpacing: 1,
+        marginBottom: 12,
     },
 
     emptyCard: {
         backgroundColor: Colors.background.card,
         borderRadius: Radius.md,
-        padding: Spacing.xl,
+        padding: Spacing.lg,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.neutral.border,
     },
     emptyTitle: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
+        fontSize: FontSize.body,
         color: Colors.neutral.brown,
         marginBottom: 4,
     },
@@ -315,86 +336,62 @@ const styles = StyleSheet.create({
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.caption,
         color: Colors.neutral.muted,
-        textAlign: 'center',
     },
 
-    logCard: {
+    timelineItemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    timelineDot: {
+        width: 10,
+        height: 10,
+        borderRadius: Radius.full,
+        marginRight: 12,
+    },
+    symptomCard: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         backgroundColor: Colors.background.card,
         borderRadius: Radius.lg,
         padding: Spacing.md,
-        marginBottom: Spacing.md,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
     },
-
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    severityBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: Radius.full,
-        marginRight: 8,
-    },
-    severityText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.micro,
-        color: Colors.white,
-    },
-    dateText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-        flex: 1,
-    },
-    deleteBtn: {
-        padding: 4,
-    },
-    deleteBtnText: {
-        fontSize: 14,
-    },
-
-    description: {
+    cardMainInfo: { flex: 1 },
+    symptomTitle: {
         fontFamily: 'Nunito-Bold',
         fontSize: FontSize.body,
         color: Colors.neutral.brown,
-        marginBottom: 8,
     },
-
-    metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginBottom: 6,
-    },
-    metaLabel: {
+    symptomTime: {
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.caption,
         color: Colors.neutral.muted,
+        marginTop: 2,
     },
-    metaVal: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.brownMid,
+    cardRightCol: {
+        alignItems: 'flex-end',
+        gap: 4,
     },
-
-    triggersWrapper: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginTop: 6,
-    },
-    triggerChip: {
-        backgroundColor: Colors.sage.tint,
+    categoryBadge: {
         paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingVertical: 2,
         borderRadius: Radius.sm,
     },
-    triggerChipText: {
-        fontFamily: 'Nunito-Medium',
+    categoryBadgeText: {
+        fontFamily: 'Nunito-Bold',
         fontSize: FontSize.micro,
-        color: Colors.sage.dark,
+    },
+    severityText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.bodyBold,
+    },
+    severityDenom: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.muted,
     },
 });
