@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -12,97 +12,113 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
+const TOP_SYMPTOMS = [
+    { name: 'Tension Headache', count: 9, max: 10, color: Colors.terracotta.base },
+    { name: 'Fatigue', count: 7, max: 10, color: Colors.sage.base },
+    { name: 'Stomach Cramps', count: 5, max: 10, color: '#D97706' },
+    { name: 'Anxiety', count: 4, max: 10, color: '#9333EA' },
+    { name: 'Shortness of Breath', count: 2, max: 10, color: '#2563EB' },
+];
+
 export default function DoctorSummaryScreen() {
     const [generating, setGenerating] = useState(false);
     const [summaryText, setSummaryText] = useState<string | null>(null);
-    const [summaryId, setSummaryId] = useState<string | null>(null);
-    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    const handleGenerateSummary = async () => {
-        setGenerating(true);
-        setErrorMsg(null);
-
-        try {
-            const response = await api.post('/analysis/summary');
-            setSummaryText(response.data.summary);
-            setSummaryId(response.data.summary_id);
-        } catch (error: any) {
-            const detail = error.response?.data?.detail || error.message || 'Failed to generate summary.';
-            setErrorMsg(detail);
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const handleCopySummary = () => {
-        if (!summaryText) return;
-        // In Expo / React Native, can use Alert / clipboard
-        Alert.alert('Copied to Clipboard', 'Medical summary copied to clipboard successfully.');
+    const handleExportPDF = () => {
+        Alert.alert('Export PDF', 'Preparing clinical PDF report for Sarah Mitchell...');
     };
 
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
-                
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>Doctor Summary</Text>
-                    <Text style={styles.subtitle}>Generate a clinical export for your healthcare provider</Text>
-                </View>
-
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    {/* Action Banner */}
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoTitle}>📋 Clinical Overview Generator</Text>
-                        <Text style={styles.infoBody}>
-                            Gemini 1.5 Flash compiles your recent symptom logs, severity patterns, and reported triggers into a structured report formatted for doctor visits.
-                        </Text>
-
-                        <TouchableOpacity
-                            style={[styles.generateBtn, generating && styles.btnDisabled]}
-                            onPress={handleGenerateSummary}
-                            disabled={generating}
-                            activeOpacity={0.8}>
-                            {generating ? (
-                                <ActivityIndicator color={Colors.white} />
-                            ) : (
-                                <Text style={styles.generateBtnText}>
-                                    {summaryText ? '🔄 Regenerate Summary' : '✨ Generate Clinical Summary'}
-                                </Text>
-                            )}
+                    {/* Top Bar */}
+                    <View style={styles.headerRow}>
+                        <Text style={styles.title}>Doctor Summary</Text>
+                        <TouchableOpacity style={styles.exportBtn} onPress={handleExportPDF}>
+                            <Text style={styles.exportBtnText}>↑ Export PDF</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Error Banner */}
-                    {errorMsg && (
-                        <View style={styles.errorCard}>
-                            <Text style={styles.errorTitle}>Cannot Generate Summary</Text>
-                            <Text style={styles.errorText}>{errorMsg}</Text>
-                        </View>
-                    )}
+                    {/* PATIENT REPORT Card (Dark Brown Container) */}
+                    <View style={styles.patientCard}>
+                        <Text style={styles.patientLabel}>PATIENT REPORT</Text>
+                        <Text style={styles.patientName}>Sarah Mitchell</Text>
+                        <Text style={styles.patientSub}>Sep 1 – Sep 19, 2026 • 18 days tracked</Text>
 
-                    {/* Formatted Summary Display */}
-                    {summaryText && (
-                        <View style={styles.summaryCard}>
-                            <View style={styles.summaryHeader}>
-                                <Text style={styles.summaryHeaderTitle}>Symptom Journal Clinical Report</Text>
-                                <TouchableOpacity onPress={handleCopySummary} style={styles.copyBtn}>
-                                    <Text style={styles.copyBtnText}>📋 Copy</Text>
-                                </TouchableOpacity>
+                        {/* 3 Stats Row inside dark card */}
+                        <View style={styles.darkStatsRow}>
+                            <View style={styles.darkStatBox}>
+                                <Text style={styles.darkStatNum}>32</Text>
+                                <Text style={styles.darkStatLabel}>ENTRIES LOGGED</Text>
                             </View>
-
-                            <ScrollView style={styles.summaryBodyContainer} nestedScrollEnabled>
-                                <Text style={styles.summaryContentText}>{summaryText}</Text>
-                            </ScrollView>
-
-                            <View style={styles.summaryFooter}>
-                                <Text style={styles.disclaimerText}>
-                                    ⚠️ Disclaimer: This summary is generated by AI from user-logged symptoms for informational purposes only. It does not replace professional medical diagnosis or advice.
-                                </Text>
+                            <View style={styles.darkStatBox}>
+                                <Text style={styles.darkStatNum}>6</Text>
+                                <Text style={styles.darkStatLabel}>SYMPTOM TYPES</Text>
+                            </View>
+                            <View style={styles.darkStatBox}>
+                                <Text style={styles.darkStatNum}>5.1</Text>
+                                <Text style={styles.darkStatLabel}>AVG SEVERITY</Text>
                             </View>
                         </View>
-                    )}
+                    </View>
+
+                    {/* MOST FREQUENT SYMPTOMS Card */}
+                    <View style={styles.card}>
+                        <Text style={styles.cardSectionLabel}>MOST FREQUENT SYMPTOMS</Text>
+                        <View style={styles.symptomsList}>
+                            {TOP_SYMPTOMS.map((item) => (
+                                <View key={item.name} style={styles.symptomRow}>
+                                    <View style={styles.symptomNameRow}>
+                                        <Text style={styles.symptomName}>{item.name}</Text>
+                                        <Text style={styles.symptomCountText}>{item.count}x</Text>
+                                    </View>
+                                    <View style={styles.progressBarTrack}>
+                                        <View
+                                            style={[
+                                                styles.progressBarFill,
+                                                { width: `${(item.count / item.max) * 100}%`, backgroundColor: item.color },
+                                            ]}
+                                        />
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* PATTERNS & NOTES Card */}
+                    <View style={styles.card}>
+                        <Text style={styles.cardSectionLabel}>PATTERNS & NOTES</Text>
+
+                        <View style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>
+                                Headaches most common 1–4 PM, often preceded by poor sleep
+                            </Text>
+                        </View>
+
+                        <View style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>
+                                Digestive symptoms cluster around weekends
+                            </Text>
+                        </View>
+
+                        <View style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>
+                                Fatigue symptoms improving week-over-week (↓18%)
+                            </Text>
+                        </View>
+
+                        <View style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>
+                                No symptom-free days longer than 2 consecutive days
+                            </Text>
+                        </View>
+                    </View>
 
                 </ScrollView>
             </SafeAreaView>
@@ -111,140 +127,148 @@ export default function DoctorSummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.md,
-        paddingBottom: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
+    scrollContent: { padding: Spacing.lg },
+
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
     },
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
         fontSize: FontSize.display,
         color: Colors.neutral.brown,
     },
-    subtitle: {
-        fontFamily: 'Nunito-Medium',
+    exportBtn: {
+        backgroundColor: Colors.neutral.brown,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: Radius.full,
+    },
+    exportBtnText: {
+        fontFamily: 'Nunito-Bold',
         fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-        marginTop: 2,
-    },
-
-    scrollContent: { padding: Spacing.lg },
-
-    infoBox: {
-        backgroundColor: Colors.background.card,
-        borderRadius: Radius.lg,
-        padding: Spacing.lg,
-        marginBottom: Spacing.md,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-    },
-    infoTitle: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: Colors.neutral.brown,
-        marginBottom: 6,
-    },
-    infoBody: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: Colors.neutral.brownMid,
-        lineHeight: 20,
-        marginBottom: Spacing.md,
-    },
-
-    generateBtn: {
-        backgroundColor: Colors.terracotta.base,
-        borderRadius: Radius.md,
-        paddingVertical: 14,
-        alignItems: 'center',
-    },
-    btnDisabled: { opacity: 0.6 },
-    generateBtnText: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.button,
         color: Colors.white,
     },
 
-    errorCard: {
-        backgroundColor: '#FEE2E2',
-        borderColor: '#EF4444',
-        borderWidth: 1,
-        borderRadius: Radius.md,
-        padding: Spacing.md,
-        marginBottom: Spacing.md,
+    patientCard: {
+        backgroundColor: '#3E2D1E',
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
     },
-    errorTitle: {
+    patientLabel: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.bodyBold,
-        color: '#991B1B',
+        fontSize: FontSize.micro,
+        color: 'rgba(255, 255, 255, 0.65)',
+        letterSpacing: 1,
         marginBottom: 4,
     },
-    errorText: {
+    patientName: {
+        fontFamily: 'DMSerifDisplay-Regular',
+        fontSize: FontSize.h1,
+        color: Colors.white,
+    },
+    patientSub: {
         fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.body,
-        color: '#991B1B',
-    },
-
-    summaryCard: {
-        backgroundColor: Colors.white,
-        borderRadius: Radius.lg,
-        padding: Spacing.md,
-        borderWidth: 1,
-        borderColor: Colors.neutral.border,
-        marginBottom: Spacing.xl,
-    },
-    summaryHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: Spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
+        fontSize: FontSize.caption,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 2,
         marginBottom: Spacing.md,
     },
-    summaryHeaderTitle: {
-        fontFamily: 'DMSerifDisplay-Regular',
-        fontSize: FontSize.h2,
-        color: Colors.neutral.brown,
+
+    darkStatsRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    darkStatBox: {
         flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        borderRadius: Radius.md,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
     },
-    copyBtn: {
-        backgroundColor: Colors.sage.tint,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: Radius.sm,
-    },
-    copyBtnText: {
+    darkStatNum: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.caption,
-        color: Colors.sage.dark,
+        fontSize: FontSize.h2,
+        color: Colors.white,
+    },
+    darkStatLabel: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.micro,
+        color: 'rgba(255, 255, 255, 0.75)',
+        marginTop: 4,
+        letterSpacing: 0.5,
     },
 
-    summaryBodyContainer: {
-        maxHeight: 400,
-        paddingRight: 4,
+    card: {
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
     },
-    summaryContentText: {
+    cardSectionLabel: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.label,
+        color: Colors.neutral.muted,
+        letterSpacing: 1,
+        marginBottom: Spacing.md,
+    },
+
+    symptomsList: {
+        gap: 14,
+    },
+    symptomRow: {
+        gap: 6,
+    },
+    symptomNameRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    symptomName: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.body,
+        color: Colors.neutral.brown,
+    },
+    symptomCountText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.muted,
+    },
+    progressBarTrack: {
+        height: 8,
+        backgroundColor: Colors.background.canvas,
+        borderRadius: Radius.full,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: Radius.full,
+    },
+
+    bulletItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    bulletDot: {
+        width: 8,
+        height: 8,
+        borderRadius: Radius.full,
+        backgroundColor: Colors.sage.base,
+        marginTop: 6,
+        marginRight: 10,
+    },
+    bulletText: {
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.body,
         color: Colors.neutral.brown,
-        lineHeight: 22,
-    },
-
-    summaryFooter: {
-        marginTop: Spacing.md,
-        paddingTop: Spacing.sm,
-        borderTopWidth: 1,
-        borderTopColor: Colors.neutral.border,
-    },
-    disclaimerText: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.micro,
-        color: Colors.neutral.muted,
-        lineHeight: 14,
+        flex: 1,
+        lineHeight: 20,
     },
 });

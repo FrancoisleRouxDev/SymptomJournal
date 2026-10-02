@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Switch,
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,12 +12,18 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser, signOut } from '@/lib/auth';
 
+const ACHIEVEMENTS = [
+    { title: '7-Day Streak', icon: '🔥', earned: true },
+    { title: '50 Entries', icon: '📝', earned: true },
+    { title: 'Pattern Spotter', icon: '🎯', earned: true },
+    { title: '30-Day Streak', icon: '🌿', earned: false },
+    { title: '100 Entries', icon: '🏆', earned: false },
+    { title: 'AI Explorer', icon: '💡', earned: false },
+];
+
 export default function ProfileScreen() {
     const router = useRouter();
-
     const [user, setUser] = useState<any>(null);
-    const [dailyReminders, setDailyReminders] = useState(true);
-    const [aiSharing, setAiSharing] = useState(true);
 
     useEffect(() => {
         loadUserProfile();
@@ -51,90 +56,89 @@ export default function ProfileScreen() {
         );
     };
 
-    const userName = user?.user_metadata?.name || 'SymptomJournal User';
-    const userEmail = user?.email || 'user@example.com';
-    const memberSince = user?.created_at
-        ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        : '2026';
+    const userName = user?.user_metadata?.name || 'Sarah Mitchell';
+    const userEmail = user?.email || 'sarah@example.com';
+    const initial = userName.charAt(0).toUpperCase();
 
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
-                
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>User Profile</Text>
-                    <Text style={styles.subtitle}>Manage your health info, preferences & account settings</Text>
-                </View>
-
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    {/* User Card */}
-                    <View style={styles.userCard}>
+                    {/* Header */}
+                    <View style={styles.headerRow}>
+                        <Text style={styles.title}>Profile</Text>
+                        <TouchableOpacity style={styles.gearBtn}>
+                            <Text style={styles.gearText}>⚙️</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Sage Green Profile Card */}
+                    <View style={styles.profileCard}>
                         <View style={styles.avatarCircle}>
-                            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+                            <Text style={styles.avatarText}>{initial}</Text>
                         </View>
-                        <View style={styles.userInfo}>
-                            <Text style={styles.userName}>{userName}</Text>
-                            <Text style={styles.userEmail}>{userEmail}</Text>
-                            <Text style={styles.memberTag}>Member since {memberSince}</Text>
+                        <Text style={styles.nameText}>{userName}</Text>
+                        <Text style={styles.emailText}>{userEmail}</Text>
+                        <Text style={styles.memberSub}>Member since Jan 2026</Text>
+
+                        <TouchableOpacity style={styles.editBtn}>
+                            <Text style={styles.editBtnText}>Edit Profile</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* 3 Stat Boxes Row */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statNum}>32</Text>
+                            <Text style={styles.statLabel}>Entries</Text>
+                        </View>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statNum}>18</Text>
+                            <Text style={styles.statLabel}>Days Active</Text>
+                        </View>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statNum}>6</Text>
+                            <Text style={styles.statLabel}>Symptom Types</Text>
                         </View>
                     </View>
 
-                    {/* Health Profile Card */}
+                    {/* Achievements Card */}
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>🩺 Health Profile</Text>
-                        
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Primary Conditions</Text>
-                            <Text style={styles.infoVal}>Migraine, Tension Headaches</Text>
+                        <View style={styles.cardHeaderRow}>
+                            <Text style={styles.cardTitle}>Achievements</Text>
+                            <Text style={styles.earnedText}>3 / 6 earned</Text>
                         </View>
 
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Known Allergies</Text>
-                            <Text style={styles.infoVal}>Penicillin, Dust Mites</Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Emergency Contact</Text>
-                            <Text style={styles.infoVal}>+27 (0)82 123 4567</Text>
+                        <View style={styles.achievementsGrid}>
+                            {ACHIEVEMENTS.map((item) => (
+                                <View key={item.title} style={[styles.achievementTile, !item.earned && styles.achievementTileLocked]}>
+                                    <View style={[styles.badgeIconBox, !item.earned && styles.badgeIconBoxLocked]}>
+                                        <Text style={[styles.badgeIconText, !item.earned && { opacity: 0.4 }]}>{item.icon}</Text>
+                                    </View>
+                                    <Text style={[styles.achievementTitle, !item.earned && styles.achievementTitleLocked]}>
+                                        {item.title}
+                                    </Text>
+                                </View>
+                            ))}
                         </View>
                     </View>
 
-                    {/* App Preferences Card */}
+                    {/* Health Overview Card */}
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>⚙️ Preferences & Privacy</Text>
-
-                        <View style={styles.switchRow}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.switchLabel}>Daily Symptom Reminder</Text>
-                                <Text style={styles.switchSub}>Receive daily evening logging prompts</Text>
-                            </View>
-                            <Switch
-                                value={dailyReminders}
-                                onValueChange={setDailyReminders}
-                                trackColor={{ false: Colors.neutral.border, true: Colors.sage.base }}
-                            />
+                        <Text style={styles.cardTitle}>Health Overview</Text>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Primary Doctor</Text>
+                            <Text style={styles.infoVal}>Dr. Priya Anand</Text>
                         </View>
-
-                        <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.switchLabel}>AI Insights Processing</Text>
-                                <Text style={styles.switchSub}>Allow Gemini AI pattern correlation</Text>
-                            </View>
-                            <Switch
-                                value={aiSharing}
-                                onValueChange={setAiSharing}
-                                trackColor={{ false: Colors.neutral.border, true: Colors.sage.base }}
-                            />
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Tracked Conditions</Text>
+                            <Text style={styles.infoVal}>Migraine, Chronic Fatigue</Text>
                         </View>
                     </View>
 
-                    {/* Sign Out Action */}
-                    <TouchableOpacity
-                        style={styles.signOutBtn}
-                        onPress={handleSignOut}
-                        activeOpacity={0.8}>
+                    {/* Sign Out Button */}
+                    <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
                         <Text style={styles.signOutBtnText}>Sign Out of Account</Text>
                     </TouchableOpacity>
 
@@ -145,92 +149,180 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.canvas },
+    container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.md,
-        paddingBottom: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
+    scrollContent: { padding: Spacing.lg },
+
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
     },
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
         fontSize: FontSize.display,
         color: Colors.neutral.brown,
     },
-    subtitle: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
-        marginTop: 2,
-    },
-
-    scrollContent: { padding: Spacing.lg },
-
-    userCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    gearBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: Radius.full,
         backgroundColor: Colors.background.card,
-        borderRadius: Radius.lg,
-        padding: Spacing.lg,
-        marginBottom: Spacing.md,
+        justifyContent: 'center',
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.neutral.border,
     },
+    gearText: { fontSize: 18 },
+
+    profileCard: {
+        backgroundColor: '#5C7C67',
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        alignItems: 'center',
+        marginBottom: Spacing.lg,
+    },
     avatarCircle: {
-        width: 56,
-        height: 56,
+        width: 64,
+        height: 64,
         borderRadius: Radius.full,
-        backgroundColor: Colors.sage.base,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        borderWidth: 2,
+        borderColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.md,
+        marginBottom: 10,
     },
     avatarText: {
         fontFamily: 'DMSerifDisplay-Regular',
-        fontSize: 26,
+        fontSize: 28,
         color: Colors.white,
     },
-    userInfo: { flex: 1 },
-    userName: {
+    nameText: {
         fontFamily: 'DMSerifDisplay-Regular',
-        fontSize: FontSize.h2,
-        color: Colors.neutral.brown,
+        fontSize: FontSize.h1,
+        color: Colors.white,
     },
-    userEmail: {
+    emailText: {
         fontFamily: 'Nunito-Medium',
         fontSize: FontSize.caption,
-        color: Colors.neutral.muted,
+        color: 'rgba(255, 255, 255, 0.85)',
         marginTop: 2,
     },
-    memberTag: {
-        fontFamily: 'Nunito-Bold',
+    memberSub: {
+        fontFamily: 'Nunito-Medium',
         fontSize: FontSize.micro,
-        color: Colors.sage.dark,
-        marginTop: 4,
+        color: 'rgba(255, 255, 255, 0.7)',
+        marginTop: 2,
+        marginBottom: Spacing.md,
+    },
+    editBtn: {
+        backgroundColor: 'rgba(255, 255, 255, 0.22)',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: Radius.full,
+    },
+    editBtnText: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.caption,
+        color: Colors.white,
+    },
+
+    statsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: Spacing.lg,
+    },
+    statBox: {
+        flex: 1,
+        backgroundColor: Colors.background.card,
+        borderRadius: Radius.xl,
+        paddingVertical: 14,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.neutral.border,
+    },
+    statNum: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: 24,
+        color: Colors.neutral.brown,
+    },
+    statLabel: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.micro,
+        color: Colors.neutral.muted,
+        marginTop: 2,
     },
 
     card: {
         backgroundColor: Colors.background.card,
-        borderRadius: Radius.lg,
-        padding: Spacing.md,
-        marginBottom: Spacing.md,
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
         borderWidth: 1,
         borderColor: Colors.neutral.border,
+    },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
     },
     cardTitle: {
         fontFamily: 'Nunito-Bold',
         fontSize: FontSize.bodyBold,
         color: Colors.neutral.brown,
-        marginBottom: Spacing.md,
+    },
+    earnedText: {
+        fontFamily: 'Nunito-Medium',
+        fontSize: FontSize.caption,
+        color: Colors.neutral.muted,
+    },
+
+    achievementsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        justifyContent: 'space-between',
+    },
+    achievementTile: {
+        width: '30%',
+        alignItems: 'center',
+    },
+    achievementTileLocked: {
+        opacity: 0.5,
+    },
+    badgeIconBox: {
+        width: 52,
+        height: 52,
+        borderRadius: Radius.lg,
+        backgroundColor: Colors.background.canvas,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    badgeIconBoxLocked: {
+        backgroundColor: '#EFE8DE',
+    },
+    badgeIconText: {
+        fontSize: 24,
+    },
+    achievementTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: FontSize.micro,
+        color: Colors.neutral.brown,
+        textAlign: 'center',
+    },
+    achievementTitleLocked: {
+        color: Colors.neutral.muted,
     },
 
     infoRow: {
-        marginBottom: Spacing.sm,
-        paddingBottom: Spacing.xs,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: Colors.neutral.border,
     },
     infoLabel: {
         fontFamily: 'Nunito-Medium',
@@ -245,32 +337,12 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 
-    switchRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
-    },
-    switchLabel: {
-        fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.body,
-        color: Colors.neutral.brown,
-    },
-    switchSub: {
-        fontFamily: 'Nunito-Medium',
-        fontSize: FontSize.micro,
-        color: Colors.neutral.muted,
-        marginTop: 2,
-    },
-
     signOutBtn: {
         backgroundColor: Colors.terracotta.base,
         borderRadius: Radius.lg,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: Spacing.sm,
+        marginTop: Spacing.xs,
         marginBottom: Spacing.xl,
     },
     signOutBtnText: {
