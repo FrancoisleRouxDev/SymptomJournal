@@ -6,6 +6,7 @@ import {
     List,
     Brain,
     FileText,
+    Pill,
     User
 } from 'lucide-react-native';
 
@@ -62,6 +63,13 @@ export default function TabsLayout() {
                 options={{
                     title: 'Summary',
                     tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="medication"
+                options={{
+                    title: 'Rx Assistant',
+                    tabBarIcon: ({ color, size }) => <Pill size={size} color={color} />,
                 }}
             />
             <Tabs.Screen
