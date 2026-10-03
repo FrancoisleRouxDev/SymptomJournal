@@ -1,25 +1,31 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Depends, Request
 from models.symptom import SymptomLogCreate, SymptomLogWithTriggers
+from services.auth_service import verify_token
+from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
+from services.logger import get_logger
 import os
 
 load_dotenv()
 
 router = APIRouter(prefix="/symptoms", tags=["symptoms"])
+logger = get_logger("symptoms")
 
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
 )
 
+
 @router.post("/log")
+@limiter.limit("30/hour")
 async def log_symptom(
+    request: Request,
     symptom: SymptomLogWithTriggers,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
-        # Insert symptom log
         log_data = {
             "user_id": user_id,
             "description": symptom.description,
@@ -35,7 +41,6 @@ async def log_symptom(
 
         log_id = result.data[0]["id"]
 
-        # Insert triggers if any
         if symptom.triggers:
             trigger_data = [
                 {
@@ -53,16 +58,19 @@ async def log_symptom(
         }
 
     except Exception as e:
+        logger.error(f"Error in log_symptom: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/history")
+@limiter.limit("60/hour")
 async def get_symptom_history(
-    user_id: str = Header(..., alias="x-user-id")
+    request: Request,
+    user_id: str = Depends(verify_token)
 ):
     try:
         result = supabase.table("symptom_logs")\
-            .select("*")\
+            .select("*, triggers(*)")\
             .eq("user_id", user_id)\
             .order("created_at", desc=True)\
             .execute()
@@ -70,13 +78,16 @@ async def get_symptom_history(
         return {"symptoms": result.data}
 
     except Exception as e:
+        logger.error(f"Error in get_symptom_history: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/history/{log_id}")
+@limiter.limit("60/hour")
 async def get_single_log(
+    request: Request,
     log_id: str,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
         result = supabase.table("symptom_logs")\
@@ -92,13 +103,16 @@ async def get_single_log(
         return result.data
 
     except Exception as e:
+        logger.error(f"Error in get_single_log: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/history/{log_id}")
+@limiter.limit("30/hour")
 async def delete_log(
+    request: Request,
     log_id: str,
-    user_id: str = Header(..., alias="x-user-id")
+    user_id: str = Depends(verify_token)
 ):
     try:
         supabase.table("symptom_logs")\
@@ -110,4 +124,5 @@ async def delete_log(
         return {"message": "Log deleted successfully"}
 
     except Exception as e:
+        logger.error(f"Error in delete_log: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
