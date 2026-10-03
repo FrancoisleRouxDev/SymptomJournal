@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { Droplets, Mail, Lock, Eye, EyeOff, Apple } from 'lucide-react-native';
+import { signIn } from '@/lib/auth';
+import { Alert } from 'react-native';
 
 export default function SignIn() {
   const router = useRouter();
@@ -15,8 +17,17 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSignIn = async () => {
-    // Supabase auth will go here in next step
-    console.log('Sign in:', email, password);
+    if (!email || !password) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    try {
+      await signIn(email, password);
+      router.replace('/(tabs)/home' as any);
+    } catch (error: any) {
+      Alert.alert('Sign in failed', error.message);
+    }
   };
 
   return (
