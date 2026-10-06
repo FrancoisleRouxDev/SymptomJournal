@@ -60,16 +60,31 @@ export default function MedicationAssistantScreen() {
 
         try {
             let assistantResponse = '';
-            const lower = textToSend.toLowerCase();
 
-            if (lower.includes('ibuprofen')) {
-                assistantResponse = 'Ibuprofen is a Non-Steroidal Anti-Inflammatory Drug (NSAID). Common side effects include mild stomach upset, heartburn, or nausea. Take it with food or milk to reduce stomach irritation. Consult a doctor if you have kidney or stomach ulcer conditions.';
-            } else if (lower.includes('paracetamol') || lower.includes('acetaminophen')) {
-                assistantResponse = 'Paracetamol (Acetaminophen) is widely used for mild to moderate pain and fever. Maximum daily dose for adults is strictly 4,000 mg (8 x 500mg tablets) in 24 hours. Do not combine with other products containing paracetamol to prevent liver risk.';
-            } else if (lower.includes('headache') || lower.includes('migraine')) {
-                assistantResponse = 'For tension headaches, rest in a quiet, dark room, stay hydrated (drink at least 500ml water), and consider mild OTC pain relievers like Paracetamol or Ibuprofen if safe for you. If headaches are severe or recurring, log them in your Symptom Timeline for your doctor.';
-            } else {
-                assistantResponse = `Thank you for your question regarding "${textToSend}". Always check medication packaging for exact dosage guidelines and consult your pharmacist or healthcare provider before starting new treatments.`;
+            try {
+                // Call real AI backend endpoint
+                const res = await api.post('/analysis/chat', {
+                    query: textToSend.trim(),
+                    history: messages.map((m) => ({ sender: m.sender, text: m.text })),
+                });
+
+                if (res.data?.response) {
+                    assistantResponse = res.data.response;
+                }
+            } catch (apiErr: any) {
+                console.log('AI chat API error, using safe fallback:', apiErr?.message || apiErr);
+                
+                // Fallback rules if backend is unreachable or offline
+                const lower = textToSend.toLowerCase();
+                if (lower.includes('ibuprofen')) {
+                    assistantResponse = 'Ibuprofen is an NSAID commonly used for pain and swelling. Always take with food or milk to protect your stomach. Speak to your doctor if you have kidney or ulcer issues.';
+                } else if (lower.includes('paracetamol') || lower.includes('acetaminophen')) {
+                    assistantResponse = 'Paracetamol is used for mild pain and fever relief. Maximum adult daily limit is strictly 4,000 mg in 24 hours. Avoid combining with other paracetamol products to protect liver health.';
+                } else if (lower.includes('headache') || lower.includes('migraine')) {
+                    assistantResponse = 'For headaches, rest in a dark room, hydrate well, and consider safe OTC relief. Log frequent episodes in your Symptom Timeline for clinical review.';
+                } else {
+                    assistantResponse = `I have received your question: "${textToSend}". Please make sure to discuss specific medication schedules and dosages directly with your prescribing physician or pharmacist.`;
+                }
             }
 
             const aiMsg: Message = {

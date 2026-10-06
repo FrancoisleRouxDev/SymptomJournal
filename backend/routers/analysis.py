@@ -1,5 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from services.ai_service import analyse_patterns, generate_doctor_summary, _compute_average_severity
+from pydantic import BaseModel, Field
+from typing import Optional
+from services.ai_service import (
+    analyse_patterns,
+    generate_doctor_summary,
+    _compute_average_severity,
+    answer_medication_query
+)
 from services.auth_service import verify_token
 from services.rate_limiter import limiter
 from supabase import create_client
@@ -19,6 +26,11 @@ supabase = create_client(
 )
 
 MINIMUM_ENTRIES = 3
+
+
+class ChatQuery(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    history: Optional[list[dict]] = []
 
 
 def _most_frequent_symptom(logs: list[dict]) -> str:
@@ -134,4 +146,27 @@ async def generate_summary(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat")
+@limiter.limit("40/hour")
+async def chat_medication(
+    request: Request,
+    body: ChatQuery,
+    user_id: str = Depends(verify_token)
+):
+    try:
+        response_text = answer_medication_query(
+            question=body.query,
+            conversation_history=body.history or []
+        )
+        return {
+            "response": response_text
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error in chat_medication: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         
