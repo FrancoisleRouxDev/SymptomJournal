@@ -12,6 +12,10 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser, signOut } from '@/lib/auth';
 
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+
+
 const ACHIEVEMENTS = [
     { title: '7-Day Streak', icon: '🔥', earned: true },
     { title: '50 Entries', icon: '📝', earned: true },
@@ -25,10 +29,6 @@ export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
 
-    useEffect(() => {
-        loadUserProfile();
-    }, []);
-
     const loadUserProfile = async () => {
         try {
             const currentUser = await getCurrentUser();
@@ -37,6 +37,12 @@ export default function ProfileScreen() {
             console.log('Error loading profile:', error);
         }
     };
+
+    useFocusEffect(
+        useCallback(() => {
+            loadUserProfile();
+        }, [])
+    );
 
     const handleSignOut = async () => {
         Alert.alert(
@@ -49,7 +55,7 @@ export default function ProfileScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         await signOut();
-                        router.replace('/onboarding/slide-1');
+                        router.replace('/auth/sign-in' as any);
                     },
                 },
             ]
@@ -58,6 +64,8 @@ export default function ProfileScreen() {
 
     const userName = user?.user_metadata?.name || 'Sarah Mitchell';
     const userEmail = user?.email || 'sarah@example.com';
+    const doctorName = user?.user_metadata?.doctor || 'Dr. Priya Anand';
+    const conditions = user?.user_metadata?.conditions || 'Chronic Migraine, IBS';
     const initial = userName.charAt(0).toUpperCase();
 
     return (
@@ -68,7 +76,11 @@ export default function ProfileScreen() {
                     {/* Header */}
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>Profile</Text>
-                        <TouchableOpacity style={styles.gearBtn}>
+                        <TouchableOpacity
+                            style={styles.gearBtn}
+                            onPress={() => router.push('/settings' as any)}
+                            activeOpacity={0.7}
+                        >
                             <Text style={styles.gearText}>⚙️</Text>
                         </TouchableOpacity>
                     </View>
@@ -82,7 +94,11 @@ export default function ProfileScreen() {
                         <Text style={styles.emailText}>{userEmail}</Text>
                         <Text style={styles.memberSub}>Member since Jan 2026</Text>
 
-                        <TouchableOpacity style={styles.editBtn}>
+                        <TouchableOpacity
+                            style={styles.editBtn}
+                            onPress={() => router.push('/profile/edit' as any)}
+                            activeOpacity={0.8}
+                        >
                             <Text style={styles.editBtnText}>Edit Profile</Text>
                         </TouchableOpacity>
                     </View>
@@ -129,16 +145,16 @@ export default function ProfileScreen() {
                         <Text style={styles.cardTitle}>Health Overview</Text>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Primary Doctor</Text>
-                            <Text style={styles.infoVal}>Dr. Priya Anand</Text>
+                            <Text style={styles.infoVal}>{doctorName}</Text>
                         </View>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Tracked Conditions</Text>
-                            <Text style={styles.infoVal}>Migraine, Chronic Fatigue</Text>
+                            <Text style={styles.infoVal}>{conditions}</Text>
                         </View>
                     </View>
 
                     {/* Sign Out Button */}
-                    <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+                    <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
                         <Text style={styles.signOutBtnText}>Sign Out of Account</Text>
                     </TouchableOpacity>
 
