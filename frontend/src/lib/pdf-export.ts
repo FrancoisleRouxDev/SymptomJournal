@@ -300,30 +300,35 @@ export function generateDoctorReportHtml(data: DoctorReportData): string {
 export async function exportDoctorSummaryToPdf(data: DoctorReportData): Promise<void> {
   try {
     const html = generateDoctorReportHtml(data);
-    
-    // Generate PDF file locally
-    const { uri } = await Print.printToFileAsync({
-      html,
-      base64: false,
-    });
 
     if (Platform.OS === 'web') {
-      // On web, direct print or download
       await Print.printAsync({ html });
-    } else {
+      return;
+    }
+
+    try {
+      // 1. Generate local PDF file
+      const { uri } = await Print.printToFileAsync({ html });
+
+      // 2. Attempt to open native system share dialog
       const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
+      if (isAvailable && uri) {
         await Sharing.shareAsync(uri, {
-          UTI: '.pdf',
           mimeType: 'application/pdf',
           dialogTitle: `Doctor Summary - ${data.patientName}`,
+          UTI: 'com.adobe.pdf',
         });
-      } else {
-        await Print.printAsync({ uri });
+        return;
       }
+    } catch (shareErr: any) {
+      console.log('Sharing failed or restricted on device, falling back to direct system print:', shareErr?.message || shareErr);
     }
-  } catch (error) {
+
+    // 3. Robust fallback: Open system print / "Save as PDF" dialog
+    await Print.printAsync({ html });
+  } catch (error: any) {
     console.error('Error exporting PDF:', error);
-    throw error;
+    throw new Error(error?.message || 'Could not export or print doctor report.');
   }
 }
+
