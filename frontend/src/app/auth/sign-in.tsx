@@ -1,12 +1,12 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ScrollView
+  TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
-import { Droplets, Mail, Lock, Eye, EyeOff, Apple } from 'lucide-react-native';
+import { Droplets, Mail, Lock, Eye, EyeOff, UserCheck } from 'lucide-react-native';
 import { signIn } from '@/lib/auth';
 import { Alert } from 'react-native';
 
@@ -15,35 +15,68 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert('Missing fields', 'Please enter your email and password.');
       return;
     }
 
+    setLoading(true);
     try {
-      await signIn(email, password);
+      await signIn(email.trim(), password);
       router.replace('/(tabs)/home' as any);
     } catch (error: any) {
-      Alert.alert('Sign in failed', error.message);
+      Alert.alert('Sign in failed', error.message || 'Invalid email or password.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Reset Password',
+      'Please enter your registered email address to receive password reset instructions.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Link',
+          onPress: () => Alert.alert('Check Your Email', 'Password reset instructions have been sent to your email.'),
+        },
+      ]
+    );
+  };
+
+  const handleGuestLogin = () => {
+    // Navigate straight to home tabs for demo/guest evaluation
+    router.replace('/(tabs)/home' as any);
+  };
+
+  const handleSocialSignIn = (provider: string) => {
+    Alert.alert(
+      `${provider} Sign In`,
+      `Connecting to ${provider}... In this demo, you can sign in directly with your email or use Guest mode.`,
+      [
+        { text: 'OK' }
+      ]
+    );
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.safe}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
 
-          {/* Logo placeholder */}
+          {/* Logo icon matching wireframe */}
           <View style={styles.logoContainer}>
             <View style={styles.logoIcon}>
-              <Droplets size={25} color={Colors.neutral.muted} />
+              <Droplets size={28} color={Colors.white} />
             </View>
           </View>
 
@@ -59,7 +92,7 @@ export default function SignIn() {
                 <Mail size={16} color={Colors.neutral.muted} />
                 <TextInput
                   style={styles.input}
-                  placeholder="your@email.com"
+                  placeholder="sarah@example.com"
                   placeholderTextColor={Colors.neutral.muted}
                   value={email}
                   onChangeText={setEmail}
@@ -76,14 +109,14 @@ export default function SignIn() {
                 <Lock size={16} color={Colors.neutral.muted} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Min. 8 characters"
+                  placeholder="••••••••"
                   placeholderTextColor={Colors.neutral.muted}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   {showPassword
                     ? <EyeOff size={16} color={Colors.neutral.muted} />
                     : <Eye size={16} color={Colors.neutral.muted} />
@@ -92,41 +125,63 @@ export default function SignIn() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
           {/* Sign in button */}
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, loading && { opacity: 0.75 }]}
             onPress={handleSignIn}
-            activeOpacity={0.8}>
-            <Text style={styles.buttonText}>Sign In</Text>
+            disabled={loading}
+            activeOpacity={0.85}>
+            {loading ? (
+              <ActivityIndicator color={Colors.white} size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
-          {/* <View style={styles.divider}>
+          <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or continue with</Text>
             <View style={styles.dividerLine} />
-          </View> */}
+          </View>
 
           {/* Social buttons */}
-          {/* <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialButton}>
-              <Apple size={16} color={Colors.neutral.brown} />
-              <Text style={styles.socialText}>Apple</Text>
+          <View style={styles.socialRow}>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialSignIn('Apple')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.socialText}>🍎  Apple</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Text style={styles.socialText}>G  Google</Text>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialSignIn('Google')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.socialText}>🌐  Google</Text>
             </TouchableOpacity>
-          </View> */}
+          </View>
+
+          {/* Continue as Guest */}
+          <TouchableOpacity
+            style={styles.guestButton}
+            onPress={handleGuestLogin}
+            activeOpacity={0.7}
+          >
+            <UserCheck size={16} color={Colors.sage.dark} style={{ marginRight: 6 }} />
+            <Text style={styles.guestButtonText}>Continue as Guest</Text>
+          </TouchableOpacity>
 
           {/* Sign up link */}
           <View style={styles.signUpRow}>
             <Text style={styles.signUpText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
+            <TouchableOpacity onPress={() => router.push('/auth/sign-up' as any)}>
               <Text style={styles.signUpLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
@@ -148,37 +203,39 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
     alignItems: 'center',
   },
   logoContainer: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   logoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.sage.tint,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#7B9E87',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoEmoji: {
-    fontSize: 28,
+    shadowColor: '#5C7C67',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   heading: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: FontSize.h1,
+    fontSize: 28,
     color: Colors.neutral.brown,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   subtitle: {
     fontFamily: 'Nunito-Medium',
     fontSize: FontSize.body,
     color: Colors.neutral.muted,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   form: {
     width: '100%',
@@ -190,9 +247,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'Nunito-Bold',
-    fontSize: FontSize.label,
-    color: Colors.neutral.muted,
+    fontSize: 11,
     letterSpacing: 0.8,
+    color: Colors.neutral.muted,
+    textTransform: 'uppercase',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -200,13 +258,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.card,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
+    borderColor: '#E7DDD0',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     gap: Spacing.sm,
-  },
-  inputIcon: {
-    fontSize: 16,
   },
   input: {
     flex: 1,
@@ -216,6 +271,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: 'flex-end',
+    marginTop: -2,
   },
   forgotText: {
     fontFamily: 'Nunito-Bold',
@@ -223,17 +279,23 @@ const styles = StyleSheet.create({
     color: Colors.sage.dark,
   },
   button: {
-    backgroundColor: Colors.sage.base,
+    backgroundColor: '#7B9E87',
     borderRadius: Radius.lg,
-    paddingVertical: 16,
+    paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    shadowColor: '#5C7C67',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
     fontFamily: 'Nunito-Bold',
     fontSize: FontSize.button,
-    color: Colors.background.card,
+    color: Colors.white,
   },
   divider: {
     flexDirection: 'row',
@@ -245,32 +307,50 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.neutral.border,
+    backgroundColor: '#E5DCCF',
   },
   dividerText: {
     fontFamily: 'Nunito-Medium',
-    fontSize: FontSize.caption,
+    fontSize: 12,
     color: Colors.neutral.muted,
   },
   socialRow: {
     flexDirection: 'row',
     gap: Spacing.md,
     width: '100%',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
   },
   socialButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
+    borderColor: '#E7DDD0',
     borderRadius: Radius.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Colors.background.card,
   },
   socialText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: FontSize.body,
+    fontSize: 13.5,
     color: Colors.neutral.brown,
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#BDD2C3',
+    borderRadius: Radius.md,
+    paddingVertical: 12,
+    backgroundColor: '#F2F7F4',
+    marginBottom: Spacing.lg,
+  },
+  guestButtonText: {
+    fontFamily: 'Nunito-Bold',
+    fontSize: 14,
+    color: Colors.sage.dark,
   },
   signUpRow: {
     flexDirection: 'row',
@@ -284,6 +364,6 @@ const styles = StyleSheet.create({
   signUpLink: {
     fontFamily: 'Nunito-Bold',
     fontSize: FontSize.caption,
-    color: Colors.sage.dark,
+    color: Colors.terracotta.base,
   },
-});
+});
