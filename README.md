@@ -21,13 +21,7 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 ---
 
 ## Project Status
-🟢 Active development — Milestone 2 Ready (Ahead of schedule)
-
-### 📲 Download & Live Links
-- **Android APK**: [Download SymptomJournal v1.0.0 APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/download/v1.0.0/SymptomJournal-v1.0.0.apk)
-- **GitHub Release**: [SymptomJournal v1.0.0 Release](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.0)
-- **Live Cloud Backend (Render)**: [https://symptomjournal.onrender.com](https://symptomjournal.onrender.com)
-- **Interactive API Docs**: [https://symptomjournal.onrender.com/docs](https://symptomjournal.onrender.com/docs)
+🟢 Active development — Phase 4 Core features & screens, entering Phase 5
 
 ---
 
