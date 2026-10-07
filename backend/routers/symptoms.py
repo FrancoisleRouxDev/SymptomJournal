@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from models.symptom import SymptomLogCreate, SymptomLogWithTriggers
-from services.auth_service import verify_token
+from services.auth_service import verify_token, ensure_user_profile
 from services.rate_limiter import limiter
 from supabase import create_client
 from dotenv import load_dotenv
@@ -26,6 +26,8 @@ async def log_symptom(
     user_id: str = Depends(verify_token)
 ):
     try:
+        ensure_user_profile(user_id)
+
         log_data = {
             "user_id": user_id,
             "description": symptom.description,
@@ -35,6 +37,7 @@ async def log_symptom(
         }
 
         result = supabase.table("symptom_logs").insert(log_data).execute()
+
 
         if not result.data:
             raise HTTPException(status_code=400, detail="Failed to log symptom")

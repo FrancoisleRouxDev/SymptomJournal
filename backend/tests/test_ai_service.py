@@ -377,3 +377,39 @@ class TestAIService:
         logs = [{"severity": None}, {"severity": None}]
         assert _compute_average_severity(logs) is None
         print("✅ test_compute_average_severity_all_nulls passed")
+
+    def test_answer_medication_query_empty_raises(self):
+        """Test answer_medication_query raises ValueError on empty query"""
+        from services.ai_service import answer_medication_query
+        with pytest.raises(ValueError):
+            answer_medication_query("")
+
+    @patch("services.ai_service.client")
+    def test_answer_medication_query_success(self, mock_client):
+        """Test answer_medication_query calls OpenAI client and returns text"""
+        from services.ai_service import answer_medication_query
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Ibuprofen is an NSAID."))]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        res = answer_medication_query("Can I take ibuprofen?")
+        assert res == "Ibuprofen is an NSAID."
+        mock_client.chat.completions.create.assert_called_once()
+        print("✅ test_answer_medication_query_success passed")
+
+    @patch("services.ai_service.client")
+    def test_chat_endpoint_success(self, mock_client):
+        """Test POST /analysis/chat returns AI answer"""
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Paracetamol maximum dose is 4000mg/day."))]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        response = client.post(
+            "/analysis/chat",
+            json={"query": "How much paracetamol can I take?"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "response" in data
+        assert "4000mg" in data["response"]
+        print("✅ test_chat_endpoint_success passed")

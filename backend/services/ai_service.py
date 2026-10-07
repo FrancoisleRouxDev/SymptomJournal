@@ -224,3 +224,42 @@ Write the summary now:"""
 
     except Exception as e:
         raise Exception(f"Summary generation failed: {str(e)}")
+
+
+def answer_medication_query(question: str, conversation_history: list[dict] = None) -> str:
+    """
+    Answers patient questions regarding medications, common side effects,
+    intake guidance, interactions, and general wellness.
+    Maintains responsible medical guidance and safety guardrails.
+    """
+    if not question or not question.strip():
+        raise ValueError("Question cannot be empty.")
+
+    system_prompt = (
+        "You are an AI Medication & Health Assistant for SymptomJournal. "
+        "You provide factual, empathetic, clear information regarding medications, dosage safety, "
+        "side effects, interactions, and general health tracking tips. "
+        "Always remind the user to consult their doctor or pharmacist for clinical prescriptions, "
+        "and never prescribe or claim definitive medical diagnosis. "
+        "Keep answers concise, direct, and easy to understand for patients."
+    )
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    if conversation_history:
+        for msg in conversation_history[-6:]:
+            role = "user" if msg.get("sender") == "user" else "assistant"
+            messages.append({"role": role, "content": msg.get("text", "")})
+
+    messages.append({"role": "user", "content": question.strip()})
+
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            max_tokens=500,
+            temperature=0.3
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"AI Assistant query failed: {str(e)}")

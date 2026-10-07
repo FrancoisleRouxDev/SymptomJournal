@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 from supabase import create_client
-from routers import symptoms, analysis
+from routers import symptoms, analysis, auth
 from services.rate_limiter import limiter
 from services.logger import get_logger
 import os
@@ -14,7 +14,11 @@ load_dotenv()
 
 logger = get_logger("main")
 
-app = FastAPI(title="SymptomJournal API")
+app = FastAPI(
+    title="SymptomJournal API",
+    description="Interactive API documentation with Supabase Authentication and AI symptom intelligence.",
+    version="1.0.0"
+)
 
 # CORS
 app.add_middleware(
@@ -50,9 +54,10 @@ supabase = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
+app.include_router(auth.router)
 app.include_router(symptoms.router)
 app.include_router(analysis.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Symptom Journal API"}
+    return {"message": "Welcome to the Symptom Journal API"}
