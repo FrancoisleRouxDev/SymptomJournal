@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Alert,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
+import { TimelineScreenSkeleton } from '@/components/SkeletonLoader';
 
 const CATEGORY_FILTERS = ['All', 'Pain', 'Fatigue', 'Mood', 'Digestion', 'Breathing', 'Skin'];
 
@@ -202,10 +202,7 @@ export default function TimelineScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.centerLoading}>
-            <ActivityIndicator size="large" color={Colors.sage.base} />
-            <Text style={styles.loadingText}>Loading timeline...</Text>
-          </View>
+          <TimelineScreenSkeleton />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
