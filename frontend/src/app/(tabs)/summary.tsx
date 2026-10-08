@@ -16,6 +16,7 @@ import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
+import { SummaryScreenSkeleton } from '@/components/SkeletonLoader';
 
 interface SymptomFreq {
   name: string;
@@ -315,10 +316,7 @@ export default function DoctorSummaryScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.centerLoading}>
-            <ActivityIndicator size="large" color={Colors.sage.base} />
-            <Text style={styles.loadingText}>Compiling doctor report...</Text>
-          </View>
+          <SummaryScreenSkeleton />
         ) : totalEntries < 3 ? (
           /* Empty / Insufficient State */
           <ScrollView

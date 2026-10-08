@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { Sparkles, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-r
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import { HomeScreenSkeleton } from '@/components/SkeletonLoader';
 
 const CATEGORY_DOT_COLORS: Record<string, string> = {
   Pain: Colors.terracotta.base,
@@ -225,9 +225,7 @@ export default function HomeScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.centerLoading}>
-            <ActivityIndicator size="large" color={Colors.sage.base} />
-          </View>
+          <HomeScreenSkeleton />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

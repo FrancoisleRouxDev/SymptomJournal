@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Alert,
 } from 'react-native';
@@ -25,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
+import { InsightsScreenSkeleton } from '@/components/SkeletonLoader';
 
 interface Finding {
   id: string;
@@ -344,10 +344,7 @@ export default function InsightsScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.centerLoading}>
-            <ActivityIndicator size="large" color={Colors.sage.base} />
-            <Text style={styles.loadingText}>Analyzing symptom patterns...</Text>
-          </View>
+          <InsightsScreenSkeleton />
         ) : !isReady ? (
           /* Locked State if < 3 symptoms */
           <ScrollView
