@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Share2, Sparkles, RefreshCw, FileText, AlertCircle, PlusCircle } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser } from '@/lib/auth';
@@ -136,6 +136,13 @@ export default function DoctorSummaryScreen() {
       setRefreshing(false);
     }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
 
   const fetchAiPatternsAndSummary = async () => {
     try {
