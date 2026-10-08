@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Sparkles,
   Moon,
@@ -112,9 +112,12 @@ export default function InsightsScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadInsights();
-  }, [loadInsights]);
+  useFocusEffect(
+    useCallback(() => {
+      loadInsights();
+    }, [loadInsights])
+  );
+
 
   const computeLocalStatsAndCharts = (logs: any[]) => {
     // 1. Frequency calculation

@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Sparkles, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { getCurrentUser } from '@/lib/auth';
@@ -156,9 +156,12 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
 
   // Helper to categorize
   const getCategoryFromDesc = (desc: string): string => {

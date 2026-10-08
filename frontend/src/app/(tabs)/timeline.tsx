@@ -10,8 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 
@@ -67,9 +67,34 @@ export default function TimelineScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadSymptoms();
-  }, [loadSymptoms]);
+  useFocusEffect(
+    useCallback(() => {
+      loadSymptoms();
+    }, [loadSymptoms])
+  );
+
+  const handleDeleteLog = (logId: string, description: string) => {
+    Alert.alert(
+      'Delete Symptom Log',
+      `Are you sure you want to remove the entry "${description}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/symptoms/history/${logId}`);
+              loadSymptoms(true);
+            } catch (err: any) {
+              Alert.alert('Delete Failed', err.response?.data?.detail || 'Could not delete entry.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
 
   // Calendar calculations
   const year = calendarDate.getFullYear();
@@ -328,13 +353,26 @@ export default function TimelineScreen() {
                         </View>
 
                         {/* Symptom Card */}
-                        <View style={styles.symptomCard}>
+                        <TouchableOpacity
+                          style={styles.symptomCard}
+                          onLongPress={() => handleDeleteLog(symptom.id, symptom.description || 'Symptom')}
+                          activeOpacity={0.9}
+                        >
                           <View style={styles.symptomCardTop}>
                             <Text style={styles.symptomTitle}>{symptom.description}</Text>
-                            <View style={[styles.categoryBadge, { backgroundColor: badgeStyle.bg }]}>
-                              <Text style={[styles.categoryBadgeText, { color: badgeStyle.text }]}>
-                                {category}
-                              </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <View style={[styles.categoryBadge, { backgroundColor: badgeStyle.bg }]}>
+                                <Text style={[styles.categoryBadgeText, { color: badgeStyle.text }]}>
+                                  {category}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => handleDeleteLog(symptom.id, symptom.description || 'Symptom')}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                style={{ padding: 2 }}
+                              >
+                                <Trash2 size={13} color={Colors.neutral.muted} />
+                              </TouchableOpacity>
                             </View>
                           </View>
 
@@ -352,6 +390,7 @@ export default function TimelineScreen() {
                             )}
                           </View>
 
+
                           {/* Triggers if present */}
                           {symptom.triggers && symptom.triggers.length > 0 && (
                             <View style={styles.triggersWrap}>
@@ -364,7 +403,7 @@ export default function TimelineScreen() {
                               ))}
                             </View>
                           )}
-                        </View>
+                        </TouchableOpacity>
                       </View>
                     );
                   })}

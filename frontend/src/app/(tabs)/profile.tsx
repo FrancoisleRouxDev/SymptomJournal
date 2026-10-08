@@ -16,31 +16,57 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
 
-const ACHIEVEMENTS = [
-    { title: '7-Day Streak', icon: '🔥', earned: true },
-    { title: '50 Entries', icon: '📝', earned: true },
-    { title: 'Pattern Spotter', icon: '🎯', earned: true },
-    { title: '30-Day Streak', icon: '🌿', earned: false },
-    { title: '100 Entries', icon: '🏆', earned: false },
-    { title: 'AI Explorer', icon: '💡', earned: false },
+import api from '@/lib/api';
+
+const DEFAULT_ACHIEVEMENTS = [
+    { id: 'streak_7', title: '7-Day Streak', icon: '🔥', minDays: 7 },
+    { id: 'entries_50', title: '50 Entries', icon: '📝', minEntries: 50 },
+    { id: 'pattern_spotter', title: 'Pattern Spotter', icon: '🎯', minEntries: 3 },
+    { id: 'streak_30', title: '30-Day Streak', icon: '🌿', minDays: 30 },
+    { id: 'entries_100', title: '100 Entries', icon: '🏆', minEntries: 100 },
+    { id: 'ai_explorer', title: 'AI Explorer', icon: '💡', minEntries: 3 },
 ];
 
 export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
+    const [entriesCount, setEntriesCount] = useState(0);
+    const [daysActive, setDaysActive] = useState(0);
+    const [symptomTypesCount, setSymptomTypesCount] = useState(0);
 
-    const loadUserProfile = async () => {
+    const loadUserProfileAndStats = async () => {
         try {
+            // 1. User profile
             const currentUser = await getCurrentUser();
             setUser(currentUser);
+
+            // 2. Fetch history from backend to compute real-time profile stats
+            const res = await api.get('/symptoms/history');
+            const logs: any[] = res.data?.symptoms || [];
+
+            setEntriesCount(logs.length);
+
+            const uniqueDays = new Set<string>();
+            const uniqueTypes = new Set<string>();
+
+            logs.forEach((log) => {
+                if (log.created_at) {
+                    uniqueDays.add(log.created_at.slice(0, 10));
+                }
+                const desc = (log.description || 'General').replace(/\s*\(.*?\)/, '').trim();
+                if (desc) uniqueTypes.add(desc);
+            });
+
+            setDaysActive(uniqueDays.size || (logs.length > 0 ? 1 : 0));
+            setSymptomTypesCount(uniqueTypes.size);
         } catch (error) {
-            console.log('Error loading profile:', error);
+            console.log('Error loading profile & stats:', error);
         }
     };
 
     useFocusEffect(
         useCallback(() => {
-            loadUserProfile();
+            loadUserProfileAndStats();
         }, [])
     );
 
@@ -67,6 +93,16 @@ export default function ProfileScreen() {
     const doctorName = user?.user_metadata?.doctor || 'Dr. Priya Anand';
     const conditions = user?.user_metadata?.conditions || 'Chronic Migraine, IBS';
     const initial = userName.charAt(0).toUpperCase();
+
+    // Dynamically calculate earned achievements
+    const achievementsWithStatus = DEFAULT_ACHIEVEMENTS.map((item) => {
+        let earned = false;
+        if (item.minDays && daysActive >= item.minDays) earned = true;
+        else if (item.minEntries && entriesCount >= item.minEntries) earned = true;
+        return { ...item, earned };
+    });
+
+    const earnedCount = achievementsWithStatus.filter((a) => a.earned).length;
 
     return (
         <View style={styles.container}>
@@ -106,15 +142,15 @@ export default function ProfileScreen() {
                     {/* 3 Stat Boxes Row */}
                     <View style={styles.statsRow}>
                         <View style={styles.statBox}>
-                            <Text style={styles.statNum}>32</Text>
+                            <Text style={styles.statNum}>{entriesCount}</Text>
                             <Text style={styles.statLabel}>Entries</Text>
                         </View>
                         <View style={styles.statBox}>
-                            <Text style={styles.statNum}>18</Text>
+                            <Text style={styles.statNum}>{daysActive}</Text>
                             <Text style={styles.statLabel}>Days Active</Text>
                         </View>
                         <View style={styles.statBox}>
-                            <Text style={styles.statNum}>6</Text>
+                            <Text style={styles.statNum}>{symptomTypesCount}</Text>
                             <Text style={styles.statLabel}>Symptom Types</Text>
                         </View>
                     </View>
@@ -123,11 +159,11 @@ export default function ProfileScreen() {
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <Text style={styles.cardTitle}>Achievements</Text>
-                            <Text style={styles.earnedText}>3 / 6 earned</Text>
+                            <Text style={styles.earnedText}>{earnedCount} / {DEFAULT_ACHIEVEMENTS.length} earned</Text>
                         </View>
 
                         <View style={styles.achievementsGrid}>
-                            {ACHIEVEMENTS.map((item) => (
+                            {achievementsWithStatus.map((item) => (
                                 <View key={item.title} style={[styles.achievementTile, !item.earned && styles.achievementTileLocked]}>
                                     <View style={[styles.badgeIconBox, !item.earned && styles.badgeIconBoxLocked]}>
                                         <Text style={[styles.badgeIconText, !item.earned && { opacity: 0.4 }]}>{item.icon}</Text>
