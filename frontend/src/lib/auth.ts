@@ -33,7 +33,16 @@ export async function getCurrentUser() {
     return user;
 }
 
-export async function getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-}
+export async function updateUserProfile(attributes: {
+    name?: string;
+    phone?: string;
+    dob?: string;
+    doctor?: string;
+    conditions?: string;
+}) {
+    const { data, error } = await supabase.auth.updateUser({
+        data: attributes,
+    });
+    if (error) throw error;
+    return data;
+}
