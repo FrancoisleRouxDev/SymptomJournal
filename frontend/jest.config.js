@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'jest-expo',
   moduleNameMapper: {
+    '\\.css$': '<rootDir>/src/__mocks__/styleMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-native/setup-env$': '<rootDir>/node_modules/react-native/Libraries/Core/setUpGlobals.js',
     '^test-renderer$': 'react-test-renderer',
