@@ -50,9 +50,11 @@ backend/coverage.xml
 backend/*.cover
 backend/tests/test_nvidia.py
 backend/tests/test_openrouter.py
-backend/tests/test_symptoms.py
 backend/tests/test_users.py
-backend/tests/test_auth.py
+
+# ─── Builds & Artifacts ──────────────────────────────────────────────────────
+*.apk
+frontend/coverage/
 
 
 # ─── Database / Supabase ─────────────────────────────────────────────────────
