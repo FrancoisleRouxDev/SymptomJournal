@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { Stethoscope } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height } = Dimensions.get('window');
 
@@ -32,12 +33,18 @@ export default function OnboardingSlide3() {
                 <View style={styles.buttonGroup}>
                     <TouchableOpacity
                         style={styles.button}
-                        onPress={() => router.push('/auth/sign-up')}
+                        onPress={async () => {
+                            await AsyncStorage.setItem('has_onboarded', 'true');
+                            router.push('/auth/sign-up');
+                        }}
                         activeOpacity={0.8}>
                         <Text style={styles.buttonText}>Get Started</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => router.push('/auth/sign-in')}
+                        onPress={async () => {
+                            await AsyncStorage.setItem('has_onboarded', 'true');
+                            router.push('/auth/sign-in');
+                        }}
                         activeOpacity={0.7}>
                         <Text style={styles.linkText}>I already have an account</Text>
                     </TouchableOpacity>
