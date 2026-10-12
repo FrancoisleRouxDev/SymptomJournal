@@ -21,7 +21,13 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 ---
 
 ## Project Status
-🟢 Active development — Phase 4 Core features & screens, entering Phase 5
+🟢 **Milestone 2 Complete** — All must-have features shipped, tested, and deployed.
+
+### 📲 Download & Live Links
+- **Android APK**: [Download SymptomJournal v1.0.0 APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/download/v1.0.0/SymptomJournal-v1.0.0.apk)
+- **GitHub Release**: [SymptomJournal v1.0.0 Release](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.0)
+- **Live Cloud Backend (Render)**: [https://symptomjournal.onrender.com](https://symptomjournal.onrender.com)
+- **Interactive API Docs**: [https://symptomjournal.onrender.com/docs](https://symptomjournal.onrender.com/docs)
 
 ---
 
@@ -57,8 +63,8 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 - [X] Phase 2 — Auth, onboarding, symptom logging (Days 4–7)
 - [X] Phase 3 — AI integration via FastAPI (Days 8–12)
 - [X] Phase 4 — Core features & screens (Days 13–16)
-- [ ] Phase 5 — Polish & testing (Days 17–19)
-- [ ] Phase 6 — Deployment (Days 20–21)
+- [X] Phase 5 — Polish, testing & session persistence (Days 17–19)
+- [X] Phase 6 — Deployment & APK release (Days 20–21)
 
 ---
 
