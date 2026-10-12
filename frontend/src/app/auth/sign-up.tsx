@@ -9,6 +9,7 @@ import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { User, Mail, Lock, ChevronLeft, Calendar, Check } from 'lucide-react-native';
 import { signUp, updateUserProfile } from '@/lib/auth';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SEX_OPTIONS = ['Female', 'Male', 'Prefer not to say'];
 
@@ -72,6 +73,7 @@ export default function SignUp() {
       } catch (e) {
         // Continue even if secondary metadata update fails
       }
+      await AsyncStorage.setItem('has_onboarded', 'true');
       router.replace('/(tabs)/home' as any);
     } catch (error: any) {
       Alert.alert('Sign up failed', error.message || 'Unable to create account.');

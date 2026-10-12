@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -11,4 +12,13 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
         persistSession: true,
         detectSessionInUrl: false,
     },
+});
+
+// Tells Supabase Auth to refresh the session automatically whenever the app is active/opened
+AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+        supabase.auth.startAutoRefresh();
+    } else {
+        supabase.auth.stopAutoRefresh();
+    }
 });
