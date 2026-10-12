@@ -26,8 +26,10 @@ The MVP scope was established during the pitch and frozen for the 2-week check. 
 | **Nice-to-Have**| **Today's Wellness Dynamic Score** | ✅ Completed | Automated algorithm computing a 0–100 wellness score based on frequency, active days, and severities. |
 | **Nice-to-Have**| **Swagger UI Interactive Auth Endpoints** | ✅ Completed | Added `/auth/signup` and `/auth/login` to FastAPI to facilitate live testing in Swagger UI. |
 | **Future Scope**| **Local Push Reminders** | ⏳ Phase 5 | Scheduled check-in reminders ("How are you feeling today?"). |
+| **Nice-to-Have**| **Cloud Render Live Deployment** | ✅ Completed | Production hosting on Render (`https://symptomjournal.onrender.com`) with Swagger UI. |
+| **Nice-to-Have**| **GitHub Release with Standalone APK** | ✅ Completed | Version `v1.0.0` published on GitHub with downloadable `SymptomJournal-v1.0.0.apk`. |
+| **Future Scope**| **Local Push Reminders** | ⏳ Phase 5 | Scheduled check-in reminders ("How are you feeling today?"). |
 | **Future Scope**| **Biometric Face ID / Touch ID Lock** | ⏳ Phase 5 | Optional security layer for sensitive medical notes. |
-| **Future Scope**| **Cloud Cloudflare / Render Deployment** | ⏳ Phase 5 | Public production hosting for final submission. |
 
 ---
 
@@ -83,11 +85,26 @@ During development, several real engineering hurdles were encountered and resolv
 ## 🧪 4. Testing & Usability Log
 
 ### Automated Test Suite (Backend):
-* **Framework**: `pytest`
-* **Coverage**: **40 passing automated tests** across:
+* **Framework**: `pytest` & `pytest-cov`
+* **Coverage**: **40 passing automated tests** (**77% statement coverage**) across:
   * `test_auth.py`: Token verification, validation constraints, and profile sync.
   * `test_symptoms.py`: Symptom creation, severity bounds (1–10), time-of-day constraints, trigger schemas, and history retrieval.
   * `test_ai_service.py`: LLM mocking, JSON fence stripping, fallback recovery, and chat completions.
+
+### Automated Test Suite (Frontend):
+* **Framework**: `Jest` & `@react-native/jest-preset`
+* **Coverage**: **54 passing automated tests** (**94.7% statement coverage**) across:
+  * `auth.test.ts`: Supabase session recovery, sign-up, sign-in, and profile metadata updates.
+  * `api.test.ts`: Bearer token attachment, 429 rate limit formatting, and 401 expiration handling.
+  * `pdf-export.test.ts`: Clinical report HTML generation, system share dialog, and print fallback.
+  * `SkeletonLoader.test.tsx`: Shimmer skeleton loading components across all 5 tab layouts.
+  * `theme.test.ts`: Brand design tokens, dark/light mode palettes, and semantic category colors.
+  * `symptom-validation.test.ts`: Form bounds checking (1–10 severity), categories, and time presets.
+  * `components.test.tsx`: Themed typography, layout views, and helper rows.
+
+### End-to-End Live Subsystem Verification:
+* **Script**: `backend/tests/e2e_healthcheck.py`
+* **Subsystems Verified**: Supabase PostgreSQL tables (`users`, `symptom_logs`), live NVIDIA Llama-3.2 AI completions, FastAPI route security guards, and Render cloud hosting (`200 OK`).
 
 ### Informal Usability Test:
 * **Participant**: Independent tester / peer.
