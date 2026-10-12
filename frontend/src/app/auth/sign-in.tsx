@@ -9,6 +9,7 @@ import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { Droplets, Mail, Lock, Eye, EyeOff, UserCheck } from 'lucide-react-native';
 import { signIn } from '@/lib/auth';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignIn() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function SignIn() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      await AsyncStorage.setItem('has_onboarded', 'true');
       router.replace('/(tabs)/home' as any);
     } catch (error: any) {
       Alert.alert('Sign in failed', error.message || 'Invalid email or password.');
