@@ -144,3 +144,5 @@ temp/
 *.tmp
 *.bak
 *.orig
+# APK build artifacts (too large for GitHub, use Releases instead)
+*.apk
