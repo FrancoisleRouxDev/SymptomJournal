@@ -24,8 +24,8 @@ replacing the anxiety of Googling symptoms with calm, structured self-awareness.
 🟢 **Milestone 2 Complete** — All must-have features shipped, tested, and deployed.
 
 ### 📲 Download & Live Links
-- **Android APK**: [Download SymptomJournal v1.0.0 APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/download/v1.0.0/SymptomJournal-v1.0.0.apk)
-- **GitHub Release**: [SymptomJournal v1.0.0 Release](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.0)
+- **Android APK (Latest v1.0.1)**: [Download SymptomJournal v1.0.1 APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/download/v1.0.1/SymptomJournal-v1.0.1.apk)
+- **GitHub Releases**: [SymptomJournal Releases (v1.0.1)](https://github.com/FrancoisleRouxDev/SymptomJournal/releases)
 - **Live Cloud Backend (Render)**: [https://symptomjournal.onrender.com](https://symptomjournal.onrender.com)
 - **Interactive API Docs**: [https://symptomjournal.onrender.com/docs](https://symptomjournal.onrender.com/docs)
 
