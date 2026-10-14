@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
-import { Colors } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 
 export default function Index() {
   const router = useRouter();
@@ -60,7 +60,12 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.sage.base} />
+      <Image
+        source={require('@/assets/images/splash-icon.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <ActivityIndicator size="small" color={Colors.sage.base} style={styles.loader} />
     </View>
   );
 }
@@ -71,5 +76,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.canvas,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  logo: {
+    width: 220,
+    height: 220,
+  },
+  loader: {
+    marginTop: Spacing.lg,
   },
 });
