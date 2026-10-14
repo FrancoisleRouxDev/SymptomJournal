@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,6 +23,7 @@ import {
   Sparkles,
   ChevronLeft,
   CheckCircle2,
+  Check,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
@@ -77,16 +80,63 @@ const TRIGGER_OPTIONS: TriggerOption[] = [
 
 export default function LogScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  // Form states
-  const [selectedCategory, setSelectedCategory] = useState<string>('pain');
-  const [selectedBodyArea, setSelectedBodyArea] = useState<string>('Head');
+  // Form states with multi-select support
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['pain']);
+  const [selectedBodyAreas, setSelectedBodyAreas] = useState<string[]>(['Head']);
   const [severity, setSeverity] = useState<number>(5);
   const [timePreset, setTimePreset] = useState<TimePreset>('now');
   const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [loggedSuccess, setLoggedSuccess] = useState<boolean>(false);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  // Listen to keyboard show/hide to smoothly expand scroll padding
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Toggle category multi-selection
+  const toggleCategory = (catId: string) => {
+    setSelectedCategories((prev) => {
+      if (prev.includes(catId)) {
+        if (prev.length === 1) return prev; // Keep at least one selected
+        return prev.filter((id) => id !== catId);
+      } else {
+        return [...prev, catId];
+      }
+    });
+  };
+
+  // Toggle body area multi-selection
+  const toggleBodyArea = (area: string) => {
+    setSelectedBodyAreas((prev) => {
+      if (prev.includes(area)) {
+        if (prev.length === 1) return prev; // Keep at least one selected
+        return prev.filter((a) => a !== area);
+      } else {
+        return [...prev, area];
+      }
+    });
+  };
 
   // Toggle trigger selection
   const toggleTrigger = (triggerId: string) => {
@@ -119,19 +169,28 @@ export default function LogScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory) {
-      Alert.alert('Missing Category', 'Please select a symptom category.');
+    if (selectedCategories.length === 0) {
+      Alert.alert('Missing Category', 'Please select at least one symptom category.');
+      return;
+    }
+
+    if (selectedBodyAreas.length === 0) {
+      Alert.alert('Missing Body Area', 'Please select at least one body area.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const activeCat = CATEGORIES.find((c) => c.id === selectedCategory);
-      const categoryName = activeCat ? activeCat.name : 'General Symptom';
+      const categoryNames = selectedCategories
+        .map((cId) => CATEGORIES.find((c) => c.id === cId)?.name)
+        .filter(Boolean)
+        .join(', ');
 
-      // Build description format: "Category - Body Area" or custom
-      const description = `${categoryName} (${selectedBodyArea})`;
+      const bodyAreaNames = selectedBodyAreas.join(', ');
+
+      // Build description format: "Category1, Category2 (Area1, Area2)"
+      const description = `${categoryNames} (${bodyAreaNames})`;
 
       // Format triggers according to backend TriggerCreate schema
       const triggersPayload = selectedTriggers.map((tId) => {
@@ -158,6 +217,8 @@ export default function LogScreen() {
         // Reset form to defaults
         setNotes('');
         setSelectedTriggers([]);
+        setSelectedCategories(['pain']);
+        setSelectedBodyAreas(['Head']);
         // Navigate to Timeline to see the new entry
         router.push('/(tabs)/timeline' as any);
       }, 1200);
@@ -173,7 +234,11 @@ export default function LogScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+    >
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
@@ -188,29 +253,49 @@ export default function LogScreen() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          contentContainerStyle={[
+            styles.scrollContent,
+            keyboardHeight > 0 && { paddingBottom: keyboardHeight + 80 },
+          ]}
         >
-          {/* CATEGORY SECTION */}
-          <Text style={styles.sectionHeader}>CATEGORY</Text>
+          {/* CATEGORY SECTION (Multi-Select) */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow]}>CATEGORY</Text>
+            <Text style={styles.sectionHeaderSub}>Select all that apply</Text>
+          </View>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
+              const isSelected = selectedCategories.includes(cat.id);
               const IconComp = cat.icon;
               return (
                 <TouchableOpacity
                   key={cat.id}
                   style={[
                     styles.categoryCard,
-                    isSelected && { backgroundColor: cat.accentColor, borderColor: cat.accentColor },
+                    isSelected && {
+                      backgroundColor: cat.accentColor,
+                      borderColor: cat.accentColor,
+                      shadowColor: cat.accentColor,
+                      shadowOpacity: 0.35,
+                      elevation: 3,
+                    },
                   ]}
-                  onPress={() => setSelectedCategory(cat.id)}
+                  onPress={() => toggleCategory(cat.id)}
                   activeOpacity={0.85}
                 >
-                  <IconComp
-                    size={22}
-                    color={isSelected ? Colors.white : cat.accentColor}
-                  />
+                  <View style={styles.categoryCardTop}>
+                    <IconComp
+                      size={20}
+                      color={isSelected ? Colors.white : cat.accentColor}
+                    />
+                    {isSelected && (
+                      <Check size={14} color={Colors.white} strokeWidth={3} />
+                    )}
+                  </View>
                   <Text
                     style={[
                       styles.categoryText,
@@ -224,11 +309,14 @@ export default function LogScreen() {
             })}
           </View>
 
-          {/* BODY AREA SECTION */}
-          <Text style={styles.sectionHeader}>BODY AREA</Text>
+          {/* BODY AREA SECTION (Multi-Select) */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow]}>BODY AREA</Text>
+            <Text style={styles.sectionHeaderSub}>Select all that apply</Text>
+          </View>
           <View style={styles.pillContainer}>
             {BODY_AREAS.map((area) => {
-              const isSelected = selectedBodyArea === area;
+              const isSelected = selectedBodyAreas.includes(area);
               return (
                 <TouchableOpacity
                   key={area}
@@ -236,7 +324,7 @@ export default function LogScreen() {
                     styles.areaPill,
                     isSelected && styles.areaPillSelected,
                   ]}
-                  onPress={() => setSelectedBodyArea(area)}
+                  onPress={() => toggleBodyArea(area)}
                   activeOpacity={0.8}
                 >
                   <Text
@@ -245,6 +333,7 @@ export default function LogScreen() {
                       isSelected && styles.areaPillTextSelected,
                     ]}
                   >
+                    {isSelected ? '✓ ' : '+ '}
                     {area}
                   </Text>
                 </TouchableOpacity>
@@ -370,7 +459,7 @@ export default function LogScreen() {
             })}
           </View>
 
-          {/* NOTES (OPTIONAL) */}
+          {/* NOTES (OPTIONAL) - Smooth Auto-scroll on focus */}
           <Text style={styles.sectionHeader}>NOTES (OPTIONAL)</Text>
           <View style={styles.notesContainer}>
             <TextInput
@@ -382,6 +471,14 @@ export default function LogScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 300);
+              }}
             />
           </View>
 
@@ -404,10 +501,10 @@ export default function LogScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={{ height: 40 }} />
+          <View style={{ height: 60 }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -453,6 +550,22 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  sectionHeaderInRow: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  sectionHeaderSub: {
+    fontFamily: 'Nunito-Medium',
+    fontSize: 11,
+    color: Colors.neutral.muted,
+  },
 
   /* 3x2 Category Grid */
   categoryGrid: {
@@ -476,6 +589,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
+  },
+  categoryCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   categoryText: {
     fontFamily: 'Nunito-Bold',
