@@ -117,7 +117,14 @@ During development, several real engineering hurdles were encountered and resolv
 * **Participant**: Independent tester / peer.
 * **Task 1 (Logging)**: Log a headache with severity 6, trigger "Poor Sleep", and time "now".
   * *Feedback*: Category icons and severity slider were intuitive; logging completed in $< 15$ seconds.
-* **Task 2 (Reviewing & Exporting)**: View Timeline and tap "Export PDF" on the Doctor Summary screen.
+* **Task 2 (Multi-Symptom & Notes Ergonomics)**:
+  * *Peer Feedback*: *"Make an option for multiple choices on the logging screen for the Category section and Body area. When the Notes section is clicked on, the keyboard moves the screen up."*
+  * *Action Taken*:
+    1. Upgraded Category selection to multi-select with checkmark overlays and active states.
+    2. Upgraded Body Area selection to multi-select chips with toggle state.
+    3. Wrapped screen in dynamic `KeyboardAvoidingView` with active keyboard height listeners and dual-tier auto-scrolling on Notes focus (`scrollToEnd`) so input and action buttons are never obscured.
+    4. Enhanced Timeline screen to recognize all categories within logged symptoms for filtering and display multiple category badges simultaneously.
+* **Task 3 (Reviewing & Exporting)**: View Timeline and tap "Export PDF" on the Doctor Summary screen.
   * *Feedback*: Liked the calendar indicators on the Timeline and the formatted PDF report layout.
 * **Action Taken**: Adjusted bottom navigation safe-area insets to ensure buttons are never obscured by Android navigation bars.
 
