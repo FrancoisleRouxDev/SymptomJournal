@@ -137,16 +137,17 @@ export default function TimelineScreen() {
     }
   };
 
-  // Helper to detect category from description
-  const getCategoryFromDesc = (desc: string): string => {
+  // Helper to detect all categories from description (multi-category aware)
+  const getCategoriesFromDesc = (desc: string): string[] => {
     const lower = (desc || '').toLowerCase();
-    if (lower.includes('pain') || lower.includes('headache') || lower.includes('cramp')) return 'Pain';
-    if (lower.includes('fatigue') || lower.includes('energy') || lower.includes('tired')) return 'Fatigue';
-    if (lower.includes('mood') || lower.includes('anxiety') || lower.includes('depress') || lower.includes('stress')) return 'Mood';
-    if (lower.includes('digest') || lower.includes('stomach') || lower.includes('nausea') || lower.includes('bloat')) return 'Digestion';
-    if (lower.includes('breath') || lower.includes('cough') || lower.includes('chest')) return 'Breathing';
-    if (lower.includes('skin') || lower.includes('rash') || lower.includes('itch')) return 'Skin';
-    return 'General';
+    const found: string[] = [];
+    if (lower.includes('pain') || lower.includes('headache') || lower.includes('cramp')) found.push('Pain');
+    if (lower.includes('fatigue') || lower.includes('energy') || lower.includes('tired')) found.push('Fatigue');
+    if (lower.includes('mood') || lower.includes('anxiety') || lower.includes('depress') || lower.includes('stress')) found.push('Mood');
+    if (lower.includes('digest') || lower.includes('stomach') || lower.includes('nausea') || lower.includes('bloat')) found.push('Digestion');
+    if (lower.includes('breath') || lower.includes('cough') || lower.includes('chest')) found.push('Breathing');
+    if (lower.includes('skin') || lower.includes('rash') || lower.includes('itch')) found.push('Skin');
+    return found.length > 0 ? found : ['General'];
   };
 
   // Group symptoms by date
@@ -154,7 +155,7 @@ export default function TimelineScreen() {
     // 1. Filter by category
     let list = symptoms;
     if (selectedCategory !== 'All') {
-      list = list.filter((s) => getCategoryFromDesc(s.description) === selectedCategory);
+      list = list.filter((s) => getCategoriesFromDesc(s.description).includes(selectedCategory));
     }
 
     // 2. Filter by selected calendar date if active
@@ -329,9 +330,9 @@ export default function TimelineScreen() {
                   <Text style={styles.groupHeader}>{groupTitle}</Text>
 
                   {logs.map((symptom) => {
-                    const category = getCategoryFromDesc(symptom.description);
-                    const badgeStyle = CATEGORY_BADGE_STYLES[category] || CATEGORY_BADGE_STYLES.General;
-                    const dotColor = CATEGORY_DOT_COLORS[category] || CATEGORY_DOT_COLORS.General;
+                    const categories = getCategoriesFromDesc(symptom.description);
+                    const primaryCategory = categories[0] || 'General';
+                    const dotColor = CATEGORY_DOT_COLORS[primaryCategory] || CATEGORY_DOT_COLORS.General;
 
                     // Format time
                     const timeFormatted = symptom.created_at
@@ -357,12 +358,17 @@ export default function TimelineScreen() {
                         >
                           <View style={styles.symptomCardTop}>
                             <Text style={styles.symptomTitle}>{symptom.description}</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                              <View style={[styles.categoryBadge, { backgroundColor: badgeStyle.bg }]}>
-                                <Text style={[styles.categoryBadgeText, { color: badgeStyle.text }]}>
-                                  {category}
-                                </Text>
-                              </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {categories.map((catName) => {
+                                const badgeStyle = CATEGORY_BADGE_STYLES[catName] || CATEGORY_BADGE_STYLES.General;
+                                return (
+                                  <View key={catName} style={[styles.categoryBadge, { backgroundColor: badgeStyle.bg }]}>
+                                    <Text style={[styles.categoryBadgeText, { color: badgeStyle.text }]}>
+                                      {catName}
+                                    </Text>
+                                  </View>
+                                );
+                              })}
                               <TouchableOpacity
                                 onPress={() => handleDeleteLog(symptom.id, symptom.description || 'Symptom')}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
