@@ -17,7 +17,7 @@ The MVP scope was established during the pitch and frozen for the 2-week check. 
 
 | Priority | Feature | Status | Description / Reason |
 | :--- | :--- | :---: | :--- |
-| **Must-Have** | **User Authentication & Session Management** | ✅ Completed | Supabase JWT authentication (sign-up, sign-in, session recovery, ES256/HS256 support). |
+| **Must-Have** | **User Authentication & Session Management** | ✅ Completed | Supabase JWT authentication (sign-up, sign-in, session recovery, ES256/HS256 support, persistent login across closures). |
 | **Must-Have** | **Structured Symptom Logging** | ✅ Completed | 3×2 category grid (Pain, Fatigue, Mood, Digestion, Breathing, Skin), 1–10 severity slider, body areas, onset presets, triggers, and notes. |
 | **Must-Have** | **Chronological Symptom Timeline** | ✅ Completed | Calendar view with date indicators, category filter tabs, and relative date grouping. |
 | **Must-Have** | **AI Pattern Recognition Engine** | ✅ Completed | Identifies time-of-day clusters, trigger correlations, and frequency patterns with 3-entry minimum lock. |
@@ -25,11 +25,10 @@ The MVP scope was established during the pitch and frozen for the 2-week check. 
 | **Must-Have** | **AI Medication & Health Assistant** | ✅ Completed | Real LLM conversational chat with clinical prompt guardrails and floating quick-access button. |
 | **Nice-to-Have**| **Today's Wellness Dynamic Score** | ✅ Completed | Automated algorithm computing a 0–100 wellness score based on frequency, active days, and severities. |
 | **Nice-to-Have**| **Swagger UI Interactive Auth Endpoints** | ✅ Completed | Added `/auth/signup` and `/auth/login` to FastAPI to facilitate live testing in Swagger UI. |
-| **Future Scope**| **Local Push Reminders** | ⏳ Phase 5 | Scheduled check-in reminders ("How are you feeling today?"). |
 | **Nice-to-Have**| **Cloud Render Live Deployment** | ✅ Completed | Production hosting on Render (`https://symptomjournal.onrender.com`) with Swagger UI. |
-| **Nice-to-Have**| **GitHub Release with Standalone APK** | ✅ Completed | Version `v1.0.0` published on GitHub with downloadable `SymptomJournal-v1.0.0.apk`. |
-| **Future Scope**| **Local Push Reminders** | ⏳ Phase 5 | Scheduled check-in reminders ("How are you feeling today?"). |
-| **Future Scope**| **Biometric Face ID / Touch ID Lock** | ⏳ Phase 5 | Optional security layer for sensitive medical notes. |
+| **Nice-to-Have**| **GitHub Release with Standalone APK** | ✅ Completed | Version `v1.0.1` published on GitHub with downloadable `SymptomJournal-v1.0.1.apk` and custom brand assets. |
+| **Future Scope**| **Local Push Reminders** | ⏳ Phase 7 | Scheduled check-in reminders ("How are you feeling today?"). |
+| **Future Scope**| **Biometric Face ID / Touch ID Lock** | ⏳ Phase 7 | Optional security layer for sensitive medical notes. |
 
 ---
 
@@ -49,13 +48,21 @@ During development, several real engineering hurdles were encountered and resolv
 * **The Challenge**: On Android devices (particularly within Expo Go), invoking `ExpoSharing.shareAsync` on cached PDF files threw: `Not allowed to read file under given URL` due to Android's strict scoped storage security policies.
 * **How It Was Solved**: Re-engineered [`pdf-export.ts`](file:///c:/Users/flr21/Desktop/SymptomJournal/frontend/src/lib/pdf-export.ts) with a dual-execution strategy. It attempts native file sharing with proper MIME/UTI configurations (`com.adobe.pdf`), and automatically falls back to `Print.printAsync({ html })`, which opens Android's native Print / "Save as PDF" service without requiring broad storage permissions.
 
-### 4. Preventing Medical AI Hallucinations & Prescriptions
+### 4. EAS Build Dependency Conflicts (`npm ci` & React 19)
+* **The Challenge**: When compiling production APKs via EAS cloud runners, `npm ci --include=dev` failed due to strict upstream peer dependency checks between `jest-expo` and React 19.
+* **How It Was Solved**: Configured a local `.npmrc` file with `legacy-peer-deps=true` committed to the repository, enabling clean automated dependency installation during EAS cloud CI workflows.
+
+### 5. Git 100MB Binary Limit & APK Distribution
+* **The Challenge**: The compiled standalone Android APK is ~107.7MB. Committing raw APK binaries directly to Git triggered GitHub's `pre-receive hook declined` rule violation (`File exceeds GitHub's file size limit of 100.00 MB`).
+* **How It Was Solved**: Purged APK binaries from Git index tracking using `git-filter-repo`, added `*.apk` to `.gitignore`, and established a release distribution workflow publishing standalone APKs via official **GitHub Releases**.
+
+### 6. Session Persistence Across App Terminations
+* **The Challenge**: Users were previously routed back to the onboarding or sign-in screen every time the application was completely closed and relaunched.
+* **How It Was Solved**: Integrated `@react-native-async-storage/async-storage` with Supabase Auth session caching and wired up a React Native `AppState` event listener in [`supabase.ts`](file:///c:/Users/flr21/Desktop/SymptomJournal/frontend/src/lib/supabase.ts) to automatically refresh JWT tokens whenever the app returns from background to foreground.
+
+### 7. Preventing Medical AI Hallucinations & Prescriptions
 * **The Challenge**: LLMs are prone to offering speculative medical diagnoses or recommending unverified medication dosages if unconstrained.
 * **How It Was Solved**: Implemented strict prompt engineering and data guards in [`ai_service.py`](file:///c:/Users/flr21/Desktop/SymptomJournal/backend/services/ai_service.py). The prompt mandates third-person phrasing, prohibits definitive diagnostic claims, requires calm educational language, and enforces a mandatory clinical disclaimer. Furthermore, numerical metrics (e.g. average severities and frequencies) are computed deterministically in Python/SQL rather than by the LLM.
-
-### 5. LAN vs. Tunnel IP Dynamic Reachability
-* **The Challenge**: Mobile devices running Expo Go over local Wi-Fi lost connection (`AxiosError: Network Error`) whenever the development host computer was assigned a new local DHCP IP address upon reconnecting.
-* **How It Was Solved**: Standardized `.env` configuration workflows and verified endpoint accessibility across LAN and Expo tunnels (`--tunnel`), ensuring quick IP updates and cache invalidation.
 
 ---
 
@@ -122,19 +129,21 @@ During development, several real engineering hurdles were encountered and resolv
 gantt
     title Weeks 3-4 Sprint Plan (14 Oct - 28 Oct 2026)
     dateFormat  YYYY-MM-DD
-    section Milestone Check
-    Milestone 2 Presentation & Feedback       :done, 2026-10-14, 2d
-    section Phase 5: Polish & Settings
-    Profile & Settings Screen Completion      :active, 2026-10-16, 4d
-    Local Notification Reminders              :2026-10-20, 3d
-    section Quality Assurance
-    Cross-Device Testing & Dark Mode Audit    :2026-10-22, 3d
-    Cloud Hosting / Deployment (Render/Vercel):2026-10-24, 2d
+    section Milestone 2 Delivery
+    Milestone 2 Check & Presentation (14 Oct) :done, 2026-10-14, 1d
+    section Phase 7: Qualitative User Testing
+    Conduct 5 User Feedback Sessions (Logging/PDF) :active, 2026-10-15, 5d
+    Synthesize Usability Feedback & UI Tweaks     :2026-10-20, 3d
+    section Polish & Ergonomics
+    Notification Reminders & Accessibility Audit  :2026-10-22, 3d
+    Final End-to-End Regression Verification      :2026-10-25, 2d
     section Final Hand-in
-    Final Documentation & Video Demonstration :2026-10-26, 2d
-    Final Project Submission (28 Oct)         :crit, 2026-10-28, 1d
+    Final Pitch Documentation & Video Walkthrough :2026-10-26, 2d
+    Final Project Submission (28 Oct)             :crit, 2026-10-28, 1d
 ```
 
 ### Detailed Deliverables for Weeks 3–4:
-1. **Week 3 (15–21 Oct)**: Complete Profile settings (edit profile, notification preferences), implement local push check-in reminders, and incorporate feedback from the Milestone 2 check.
-2. **Week 4 (22–28 Oct)**: Cloud deployment of FastAPI backend (Render / Railway), final end-to-end regression testing, final pitch slide polish, and video demo recording for submission on 28 October.
+* **Ahead of Schedule Status**: All core features (Authentication, Symptom Logging, Chronological Timeline, AI Pattern Recognition, AI Medication Chatbot, Clinical Doctor Summary PDF Export, and Cloud Backend Deployment) are already 100% complete and deployed on Render and GitHub Releases (v1.0.1 APK).
+* **Week 3 Focus (15–21 Oct)**: Execute qualitative user testing sessions with 3–5 independent peers. Measure task completion times for logging symptoms and exporting doctor summaries, identifying any friction points in form inputs or report readability.
+* **Week 4 Focus (22–28 Oct)**: Implement ergonomic refinements derived from user feedback, run full cross-platform regression checks, finalize documentation, and record the final submission video demonstration for hand-in on 28 October 2026.
+

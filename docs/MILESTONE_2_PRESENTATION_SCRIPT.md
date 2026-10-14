@@ -25,7 +25,7 @@ Follow this exact sequence on your phone or emulator while speaking:
 ### 1. Launch & Authentication (30 seconds)
 * **What you do:** Open the app.
 * **What you say:**
-  > *"When a user opens the app for the first time, they are welcomed by our brand onboarding sequence explaining privacy and purpose. Our auth system connects to Supabase with JWT token verification. We also implemented persistent sessions via AsyncStorage and AppState listeners, meaning when the app closes and reopens, the user remains securely logged in without re-authenticating."*
+  > *"When a user opens the app for the first time, they are welcomed by our brand onboarding sequence and new visual identity — our custom Sage droplet emblem and warm canvas splash screen. Our auth system connects to Supabase with JWT token verification. We also implemented persistent sessions via AsyncStorage and AppState listeners, meaning when the app closes and reopens, the user remains securely logged in without re-authenticating."*
 
 ### 2. Home Dashboard & Quick Log (30 seconds)
 * **What you do:** Tap into the **Home** tab, then tap **+ Log Symptom**.
@@ -136,5 +136,5 @@ git status
 ## 🏆 Presentation Quick Cheat Sheet (Fold & Keep on Desk)
 1. **GitHub Link:** [https://github.com/FrancoisleRouxDev/SymptomJournal](https://github.com/FrancoisleRouxDev/SymptomJournal)
 2. **API Docs (Swagger):** [https://symptomjournal.onrender.com/docs](https://symptomjournal.onrender.com/docs)
-3. **APK Release:** [https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.0](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.0)
-4. **Key Metrics to Quote:** 67 commits | 94 tests total (54 frontend + 40 backend) | 7 navigable tabs | 100% MVP complete.
+3. **APK Release:** [https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.1](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.1)
+4. **Key Metrics to Quote:** 71+ commits | 94 tests total (54 frontend + 40 backend) | 7 navigable tabs | 100% MVP complete | APK v1.0.1 Released.
