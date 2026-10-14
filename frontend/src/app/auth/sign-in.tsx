@@ -145,14 +145,14 @@ export default function SignIn() {
             )}
           </TouchableOpacity>
 
-          {/* Divider */}
+          {/* Social buttons commented out pending OAuth configuration */}
+          {/*
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or continue with</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Social buttons */}
           <View style={styles.socialRow}>
             <TouchableOpacity
               style={styles.socialButton}
@@ -169,6 +169,7 @@ export default function SignIn() {
               <Text style={styles.socialText}>🌐  Google</Text>
             </TouchableOpacity>
           </View>
+          */}
 
           {/* Continue as Guest */}
           <TouchableOpacity
