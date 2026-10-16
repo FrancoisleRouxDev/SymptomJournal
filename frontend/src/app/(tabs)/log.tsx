@@ -12,9 +12,11 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   PanResponder,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Zap,
   Moon,
@@ -26,8 +28,10 @@ import {
   CheckCircle2,
   Check,
   Plus,
+  X,
+  MapPin,
 } from 'lucide-react-native';
-import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { Colors, Spacing, Radius } from '@/constants/theme';
 import api from '@/lib/api';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -48,8 +52,8 @@ const CATEGORIES: CategoryItem[] = [
   { id: 'skin', name: 'Skin', icon: Sparkles, accentColor: '#E8A0A0' },
 ];
 
-// ── Body Areas ────────────────────────────────────────────────
-const BODY_AREAS = [
+// ── Base Body Areas ───────────────────────────────────────────
+const BASE_BODY_AREAS = [
   'Head',
   'Neck',
   'Chest',
@@ -68,10 +72,10 @@ const TIME_PRESETS: TimePreset[] = ['now', '1h ago', '3h ago', 'earlier'];
 interface TriggerOption {
   id: string;
   label: string;
-  type: 'sleep' | 'stress' | 'food' | 'exercise' | 'weather' | 'other';
+  type: 'sleep' | 'stress' | 'food' | 'exercise' | 'weather' | 'other' | 'custom';
 }
 
-const TRIGGER_OPTIONS: TriggerOption[] = [
+const BASE_TRIGGER_OPTIONS: TriggerOption[] = [
   { id: 'stress', label: 'Stress', type: 'stress' },
   { id: 'poor_sleep', label: 'Poor Sleep', type: 'sleep' },
   { id: 'food', label: 'Diet / Food', type: 'food' },
@@ -80,6 +84,9 @@ const TRIGGER_OPTIONS: TriggerOption[] = [
   { id: 'exercise', label: 'Exertion', type: 'exercise' },
   { id: 'caffeine', label: 'Caffeine', type: 'food' },
 ];
+
+const STORAGE_CUSTOM_AREAS = '@symptomjournal_custom_body_areas';
+const STORAGE_CUSTOM_TRIGGERS = '@symptomjournal_custom_triggers';
 
 export default function LogScreen() {
   const router = useRouter();
@@ -96,6 +103,18 @@ export default function LogScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const [loggedSuccess, setLoggedSuccess] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  // Custom Areas & Triggers State
+  const [customBodyAreas, setCustomBodyAreas] = useState<string[]>([]);
+  const [customTriggers, setCustomTriggers] = useState<string[]>([]);
+
+  // Modals
+  const [isAreaModalVisible, setIsAreaModalVisible] = useState(false);
+  const [selectedParentRegion, setSelectedParentRegion] = useState<string>('Head');
+  const [customAreaInput, setCustomAreaInput] = useState('');
+
+  const [isTriggerModalVisible, setIsTriggerModalVisible] = useState(false);
+  const [customTriggerInput, setCustomTriggerInput] = useState('');
 
   // Slider gesture support
   const sliderContainerWidth = useRef<number>(0);
@@ -125,6 +144,24 @@ export default function LogScreen() {
     })
   ).current;
 
+  // Load custom body areas and triggers from AsyncStorage on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedAreas = await AsyncStorage.getItem(STORAGE_CUSTOM_AREAS);
+        if (savedAreas) {
+          setCustomBodyAreas(JSON.parse(savedAreas));
+        }
+        const savedTriggers = await AsyncStorage.getItem(STORAGE_CUSTOM_TRIGGERS);
+        if (savedTriggers) {
+          setCustomTriggers(JSON.parse(savedTriggers));
+        }
+      } catch (err) {
+        console.log('Error loading custom areas/triggers:', err);
+      }
+    })();
+  }, []);
+
   // Listen to keyboard show/hide to smoothly expand scroll padding
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -139,44 +176,88 @@ export default function LogScreen() {
         setKeyboardHeight(0);
       }
     );
-
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
 
-  // Toggle category multi-selection
+  // Multi-select toggle helpers
   const toggleCategory = (catId: string) => {
-    setSelectedCategories((prev) => {
-      if (prev.includes(catId)) {
-        if (prev.length === 1) return prev; // Keep at least one selected
-        return prev.filter((id) => id !== catId);
-      } else {
-        return [...prev, catId];
-      }
-    });
-  };
-
-  // Toggle body area multi-selection
-  const toggleBodyArea = (area: string) => {
-    setSelectedBodyAreas((prev) => {
-      if (prev.includes(area)) {
-        if (prev.length === 1) return prev; // Keep at least one selected
-        return prev.filter((a) => a !== area);
-      } else {
-        return [...prev, area];
-      }
-    });
-  };
-
-  // Toggle trigger selection
-  const toggleTrigger = (triggerId: string) => {
-    setSelectedTriggers((prev) =>
-      prev.includes(triggerId)
-        ? prev.filter((id) => id !== triggerId)
-        : [...prev, triggerId]
+    setSelectedCategories((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
     );
+  };
+
+  const toggleBodyArea = (area: string) => {
+    setSelectedBodyAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+    );
+  };
+
+  const toggleTrigger = (trigId: string) => {
+    setSelectedTriggers((prev) =>
+      prev.includes(trigId) ? prev.filter((t) => t !== trigId) : [...prev, trigId]
+    );
+  };
+
+  // Add Custom Body Area
+  const handleAddCustomArea = async () => {
+    const trimmed = customAreaInput.trim();
+    if (!trimmed) {
+      Alert.alert('Missing Detail', 'Please enter a specific body area or part.');
+      return;
+    }
+
+    const finalName =
+      selectedParentRegion && selectedParentRegion !== 'None'
+        ? `${selectedParentRegion}: ${trimmed}`
+        : trimmed;
+
+    if (!customBodyAreas.includes(finalName) && !BASE_BODY_AREAS.includes(finalName)) {
+      const updated = [...customBodyAreas, finalName];
+      setCustomBodyAreas(updated);
+      try {
+        await AsyncStorage.setItem(STORAGE_CUSTOM_AREAS, JSON.stringify(updated));
+      } catch (err) {
+        console.log('Error saving custom area:', err);
+      }
+    }
+
+    // Auto-select
+    if (!selectedBodyAreas.includes(finalName)) {
+      setSelectedBodyAreas((prev) => [...prev, finalName]);
+    }
+
+    setCustomAreaInput('');
+    setIsAreaModalVisible(false);
+  };
+
+  // Add Custom Trigger
+  const handleAddCustomTrigger = async () => {
+    const trimmed = customTriggerInput.trim();
+    if (!trimmed) {
+      Alert.alert('Missing Trigger', 'Please enter a trigger name.');
+      return;
+    }
+
+    if (!customTriggers.includes(trimmed)) {
+      const updated = [...customTriggers, trimmed];
+      setCustomTriggers(updated);
+      try {
+        await AsyncStorage.setItem(STORAGE_CUSTOM_TRIGGERS, JSON.stringify(updated));
+      } catch (err) {
+        console.log('Error saving custom trigger:', err);
+      }
+    }
+
+    // Auto-select
+    if (!selectedTriggers.includes(trimmed)) {
+      setSelectedTriggers((prev) => [...prev, trimmed]);
+    }
+
+    setCustomTriggerInput('');
+    setIsTriggerModalVisible(false);
   };
 
   // Convert time preset to backend-valid time_of_day ('morning' | 'afternoon' | 'evening' | 'night')
@@ -195,9 +276,9 @@ export default function LogScreen() {
 
   // Severity color helper
   const getSeverityColor = (val: number) => {
-    if (val <= 3) return Colors.sage.base;
+    if (val <= 3) return colors.sage.base;
     if (val <= 7) return '#E8B87A';
-    return Colors.terracotta.base;
+    return colors.terracotta.base;
   };
 
   const handleSubmit = async () => {
@@ -220,16 +301,20 @@ export default function LogScreen() {
         .join(', ');
 
       const bodyAreaNames = selectedBodyAreas.join(', ');
-
-      // Build description format: "Category1, Category2 (Area1, Area2)"
       const description = `${categoryNames} (${bodyAreaNames})`;
 
-      // Format triggers according to backend TriggerCreate schema
+      // Format triggers (base + custom)
       const triggersPayload = selectedTriggers.map((tId) => {
-        const trig = TRIGGER_OPTIONS.find((o) => o.id === tId);
+        const baseTrig = BASE_TRIGGER_OPTIONS.find((o) => o.id === tId);
+        if (baseTrig) {
+          return {
+            trigger_type: baseTrig.type,
+            trigger_value: baseTrig.label,
+          };
+        }
         return {
-          trigger_type: trig ? trig.type : 'other',
-          trigger_value: trig ? trig.label : tId,
+          trigger_type: 'custom',
+          trigger_value: tId,
         };
       });
 
@@ -246,12 +331,10 @@ export default function LogScreen() {
       setLoggedSuccess(true);
       setTimeout(() => {
         setLoggedSuccess(false);
-        // Reset form to defaults
         setNotes('');
         setSelectedTriggers([]);
         setSelectedCategories(['pain']);
         setSelectedBodyAreas(['Head']);
-        // Navigate to Timeline to see the new entry
         router.push('/(tabs)/timeline' as any);
       }, 1200);
     } catch (error: any) {
@@ -329,11 +412,9 @@ export default function LogScreen() {
                   <View style={styles.categoryCardTop}>
                     <IconComp
                       size={scaled(20)}
-                      color={isSelected ? Colors.white : cat.accentColor}
+                      color={isSelected ? '#FFFFFF' : cat.accentColor}
                     />
-                    {isSelected && (
-                      <Check size={scaled(14)} color={Colors.white} strokeWidth={3} />
-                    )}
+                    {isSelected && <Check size={scaled(14)} color="#FFFFFF" strokeWidth={3} />}
                   </View>
                   <Text
                     style={[
@@ -349,17 +430,18 @@ export default function LogScreen() {
             })}
           </View>
 
-          {/* BODY AREA SECTION (Multi-Select) */}
+          {/* BODY AREA SECTION (Multi-Select + Custom Specific Areas) */}
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionHeader, styles.sectionHeaderInRow, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
               BODY AREA
             </Text>
             <Text style={[styles.sectionHeaderSub, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
-              Select all that apply
+              Select regions or add specific locations
             </Text>
           </View>
           <View style={styles.pillContainer}>
-            {BODY_AREAS.map((area) => {
+            {/* Base areas */}
+            {BASE_BODY_AREAS.map((area) => {
               const isSelected = selectedBodyAreas.includes(area);
               return (
                 <TouchableOpacity
@@ -373,9 +455,11 @@ export default function LogScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={styles.areaPillIconRow}>
-                    {isSelected
-                      ? <Check size={scaled(12)} color={Colors.white} strokeWidth={3} />
-                      : <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />}
+                    {isSelected ? (
+                      <Check size={scaled(12)} color="#FFFFFF" strokeWidth={3} />
+                    ) : (
+                      <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />
+                    )}
                     <Text
                       style={[
                         styles.areaPillText,
@@ -389,6 +473,63 @@ export default function LogScreen() {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Custom Added Specific Areas */}
+            {customBodyAreas.map((customArea) => {
+              const isSelected = selectedBodyAreas.includes(customArea);
+              return (
+                <TouchableOpacity
+                  key={customArea}
+                  style={[
+                    styles.areaPill,
+                    {
+                      backgroundColor: colors.background.card,
+                      borderColor: colors.sage.base,
+                      borderStyle: 'dashed',
+                    },
+                    isSelected && {
+                      backgroundColor: colors.sage.dark,
+                      borderColor: colors.sage.dark,
+                      borderStyle: 'solid',
+                    },
+                  ]}
+                  onPress={() => toggleBodyArea(customArea)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.areaPillIconRow}>
+                    {isSelected ? (
+                      <Check size={scaled(12)} color="#FFFFFF" strokeWidth={3} />
+                    ) : (
+                      <MapPin size={scaled(12)} color={colors.sage.dark} />
+                    )}
+                    <Text
+                      style={[
+                        styles.areaPillText,
+                        { color: colors.neutral.brown, fontSize: scaled(13) },
+                        isSelected && styles.areaPillTextSelected,
+                      ]}
+                    >
+                      {customArea}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Button: + Add Specific / Custom Area */}
+            <TouchableOpacity
+              style={[
+                styles.addCustomPill,
+                { backgroundColor: colors.sage.tint, borderColor: colors.sage.base },
+              ]}
+              onPress={() => setIsAreaModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Plus size={scaled(13)} color={colors.sage.dark} style={{ marginRight: 4 }} />
+              <Text style={[styles.addCustomText, { color: colors.sage.dark, fontSize: scaled(12.5) }]}>
+                Specific Area...
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* SEVERITY CARD */}
@@ -410,10 +551,12 @@ export default function LogScreen() {
             {/* Drag-able + tappable severity track */}
             <View
               style={styles.stepTrackContainer}
-              onLayout={(e) => { sliderContainerWidth.current = e.nativeEvent.layout.width; }}
+              onLayout={(e) => {
+                sliderContainerWidth.current = e.nativeEvent.layout.width;
+              }}
               {...panResponder.panHandlers}
             >
-              {/* Step buttons — tap to set exact value */}
+              {/* Step buttons */}
               <View style={styles.steppedNumbersRow} pointerEvents="box-none">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
                   const isCurrent = severity === num;
@@ -433,7 +576,7 @@ export default function LogScreen() {
                         style={[
                           styles.stepButtonText,
                           { color: colors.neutral.brownMid, fontSize: scaled(11) },
-                          isCurrent && { color: Colors.white, fontWeight: '800' },
+                          isCurrent && { color: '#FFFFFF', fontWeight: '800' },
                         ]}
                       >
                         {num}
@@ -443,7 +586,7 @@ export default function LogScreen() {
                 })}
               </View>
 
-              {/* Visual Gradient Progress Bar */}
+              {/* Progress Track */}
               <View style={[styles.progressTrackBg, { backgroundColor: isDarkMode ? '#332D28' : '#EDE5D8' }]}>
                 <View
                   style={[
@@ -500,12 +643,18 @@ export default function LogScreen() {
             })}
           </View>
 
-          {/* POTENTIAL TRIGGERS (OPTIONAL) */}
-          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
-            POTENTIAL TRIGGERS (OPTIONAL)
-          </Text>
+          {/* POTENTIAL TRIGGERS (OPTIONAL + CUSTOM TRIGGERS) */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              POTENTIAL TRIGGERS (OPTIONAL)
+            </Text>
+            <Text style={[styles.sectionHeaderSub, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              Select or add triggers
+            </Text>
+          </View>
           <View style={styles.pillContainer}>
-            {TRIGGER_OPTIONS.map((trig) => {
+            {/* Base triggers */}
+            {BASE_TRIGGER_OPTIONS.map((trig) => {
               const isSelected = selectedTriggers.includes(trig.id);
               return (
                 <TouchableOpacity
@@ -522,9 +671,11 @@ export default function LogScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={styles.areaPillIconRow}>
-                    {isSelected
-                      ? <Check size={scaled(12)} color={colors.terracotta.dark} strokeWidth={3} />
-                      : <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />}
+                    {isSelected ? (
+                      <Check size={scaled(12)} color={colors.terracotta.dark} strokeWidth={3} />
+                    ) : (
+                      <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />
+                    )}
                     <Text
                       style={[
                         styles.triggerPillText,
@@ -538,9 +689,66 @@ export default function LogScreen() {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Custom Triggers */}
+            {customTriggers.map((cTrig) => {
+              const isSelected = selectedTriggers.includes(cTrig);
+              return (
+                <TouchableOpacity
+                  key={cTrig}
+                  style={[
+                    styles.triggerPill,
+                    {
+                      backgroundColor: colors.background.card,
+                      borderColor: colors.terracotta.base,
+                      borderStyle: 'dashed',
+                    },
+                    isSelected && {
+                      backgroundColor: isDarkMode ? '#3D251C' : colors.terracotta.tint,
+                      borderColor: colors.terracotta.light,
+                      borderStyle: 'solid',
+                    },
+                  ]}
+                  onPress={() => toggleTrigger(cTrig)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.areaPillIconRow}>
+                    {isSelected ? (
+                      <Check size={scaled(12)} color={colors.terracotta.dark} strokeWidth={3} />
+                    ) : (
+                      <Sparkles size={scaled(11)} color={colors.terracotta.base} />
+                    )}
+                    <Text
+                      style={[
+                        styles.triggerPillText,
+                        { color: colors.neutral.brownMid, fontSize: scaled(12) },
+                        isSelected && { color: colors.terracotta.dark },
+                      ]}
+                    >
+                      {cTrig}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Button: + Custom Trigger */}
+            <TouchableOpacity
+              style={[
+                styles.addCustomPill,
+                { backgroundColor: colors.terracotta.tint, borderColor: colors.terracotta.base },
+              ]}
+              onPress={() => setIsTriggerModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Plus size={scaled(13)} color={colors.terracotta.dark} style={{ marginRight: 4 }} />
+              <Text style={[styles.addCustomText, { color: colors.terracotta.dark, fontSize: scaled(12.5) }]}>
+                Add Trigger...
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* NOTES (OPTIONAL) - Smooth Auto-scroll on focus */}
+          {/* NOTES (OPTIONAL) */}
           <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
             NOTES (OPTIONAL)
           </Text>
@@ -577,10 +785,10 @@ export default function LogScreen() {
             activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : loggedSuccess ? (
               <View style={styles.successRow}>
-                <CheckCircle2 size={scaled(18)} color={Colors.white} style={{ marginRight: 6 }} />
+                <CheckCircle2 size={scaled(18)} color="#FFFFFF" style={{ marginRight: 6 }} />
                 <Text style={[styles.submitButtonText, { fontSize: scaled(16) }]}>Symptom Logged!</Text>
               </View>
             ) : (
@@ -591,6 +799,162 @@ export default function LogScreen() {
           <View style={{ height: 60 }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* MODAL: ADD SPECIFIC BODY AREA */}
+      <Modal
+        visible={isAreaModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAreaModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(18) }]}>
+                Add Specific Body Area
+              </Text>
+              <TouchableOpacity onPress={() => setIsAreaModalVisible(false)} style={{ padding: 4 }}>
+                <X size={scaled(20)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Region Chip Picker */}
+            <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              SELECT PARENT REGION (OPTIONAL):
+            </Text>
+            <View style={styles.regionChipContainer}>
+              {['Head', 'Neck', 'Chest', 'Abdomen', 'Back', 'Arms', 'Legs', 'None'].map((region) => {
+                const isSelected = selectedParentRegion === region;
+                return (
+                  <TouchableOpacity
+                    key={region}
+                    style={[
+                      styles.regionChip,
+                      { backgroundColor: colors.background.cream, borderColor: colors.neutral.border },
+                      isSelected && { backgroundColor: colors.sage.dark, borderColor: colors.sage.dark },
+                    ]}
+                    onPress={() => setSelectedParentRegion(region)}
+                  >
+                    <Text
+                      style={[
+                        styles.regionChipText,
+                        { color: colors.neutral.brown, fontSize: scaled(11.5) },
+                        isSelected && { color: '#FFFFFF', fontFamily: 'Nunito-Bold' },
+                      ]}
+                    >
+                      {region}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Specific sub-location input */}
+            <View style={styles.modalFieldGroup}>
+              <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                SPECIFIC LOCATION / PART:
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: isDarkMode ? '#1E1A17' : '#FBF8F3',
+                    borderColor: colors.neutral.border,
+                    color: colors.neutral.brown,
+                    fontSize: scaled(14),
+                  },
+                ]}
+                value={customAreaInput}
+                onChangeText={setCustomAreaInput}
+                placeholder="e.g. Temples, Lower Right, Behind Eye, Knee"
+                placeholderTextColor={colors.neutral.muted}
+                autoFocus
+              />
+              <Text style={[styles.previewHint, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                Preview: {selectedParentRegion !== 'None' ? `${selectedParentRegion}: ` : ''}
+                {customAreaInput.trim() || '...'}
+              </Text>
+            </View>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.neutral.border }]}
+                onPress={() => setIsAreaModalVisible(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.neutral.muted, fontSize: scaled(14) }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, { backgroundColor: colors.sage.dark }]}
+                onPress={handleAddCustomArea}
+              >
+                <Text style={[styles.modalSaveText, { fontSize: scaled(14) }]}>Add Area</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL: ADD CUSTOM TRIGGER */}
+      <Modal
+        visible={isTriggerModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsTriggerModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(18) }]}>
+                Add Custom Trigger
+              </Text>
+              <TouchableOpacity onPress={() => setIsTriggerModalVisible(false)} style={{ padding: 4 }}>
+                <X size={scaled(20)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalFieldGroup}>
+              <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                TRIGGER NAME:
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: isDarkMode ? '#1E1A17' : '#FBF8F3',
+                    borderColor: colors.neutral.border,
+                    color: colors.neutral.brown,
+                    fontSize: scaled(14),
+                  },
+                ]}
+                value={customTriggerInput}
+                onChangeText={setCustomTriggerInput}
+                placeholder="e.g. Dairy, Gluten, Loud Music, Dehydration"
+                placeholderTextColor={colors.neutral.muted}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.neutral.border }]}
+                onPress={() => setIsTriggerModalVisible(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.neutral.muted, fontSize: scaled(14) }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, { backgroundColor: colors.terracotta.base }]}
+                onPress={handleAddCustomTrigger}
+              >
+                <Text style={[styles.modalSaveText, { fontSize: scaled(14) }]}>Add Trigger</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -598,7 +962,6 @@ export default function LogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.canvas,
   },
   safe: {
     flex: 1,
@@ -615,14 +978,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#EAE1D5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 26,
-    color: Colors.neutral.brown,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -630,8 +990,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
-    color: Colors.neutral.muted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginTop: Spacing.md,
@@ -650,11 +1008,7 @@ const styles = StyleSheet.create({
   },
   sectionHeaderSub: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 11,
-    color: Colors.neutral.muted,
   },
-
-  /* 3x2 Category Grid */
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -663,14 +1017,12 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '31%',
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -685,14 +1037,10 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.neutral.brown,
   },
   categoryTextSelected: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
-
-  /* Body Area & Trigger Pills */
   pillContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -700,21 +1048,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   areaPill: {
-    backgroundColor: Colors.background.card,
-    paddingHorizontal: 16,
+    paddingHorizontal: 15,
     paddingVertical: 9,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
-  },
-  areaPillSelected: {
-    backgroundColor: Colors.sage.base,
-    borderColor: Colors.sage.base,
   },
   areaPillIconRow: {
     flexDirection: 'row',
@@ -723,43 +1065,37 @@ const styles = StyleSheet.create({
   },
   areaPillText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.neutral.brown,
   },
   areaPillTextSelected: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
-
+  addCustomPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  addCustomText: {
+    fontFamily: 'Nunito-Bold',
+  },
   triggerPill: {
-    backgroundColor: Colors.background.card,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
-  },
-  triggerPillSelected: {
-    backgroundColor: Colors.terracotta.tint,
-    borderColor: Colors.terracotta.light,
   },
   triggerPillText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 12,
-    color: Colors.neutral.brownMid,
   },
-  triggerPillTextSelected: {
-    color: Colors.terracotta.dark,
-  },
-
-  /* Severity Card */
   severityCard: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -774,8 +1110,6 @@ const styles = StyleSheet.create({
   },
   severityLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
-    color: Colors.neutral.muted,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -793,18 +1127,14 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#EDE5D8',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepButtonText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
-    color: Colors.neutral.brownMid,
   },
   progressTrackBg: {
     height: 8,
-    backgroundColor: '#EDE5D8',
     borderRadius: 4,
     overflow: 'hidden',
     width: '100%',
@@ -819,10 +1149,7 @@ const styles = StyleSheet.create({
   },
   severitySubLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
   },
-
-  /* Time Preset Pills */
   timePillRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -831,53 +1158,32 @@ const styles = StyleSheet.create({
   },
   timePill: {
     flex: 1,
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.md,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#EDE5D8',
-  },
-  timePillSelected: {
-    backgroundColor: '#3E2D1E',
-    borderColor: '#3E2D1E',
   },
   timePillText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.neutral.brown,
   },
   timePillTextSelected: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
-
-  /* Notes Input */
   notesContainer: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     padding: Spacing.md,
     marginBottom: Spacing.lg,
   },
   notesInput: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 14,
-    color: Colors.neutral.brown,
     minHeight: 70,
   },
-
-  /* Submit Button */
   submitButton: {
-    backgroundColor: Colors.terracotta.base,
     borderRadius: Radius.lg,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.terracotta.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
     elevation: 3,
   },
   submitButtonDisabled: {
@@ -885,11 +1191,98 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: FontSize.button,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   successRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  /* Modals */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontFamily: 'DMSerifDisplay-Regular',
+  },
+  modalLabel: {
+    fontFamily: 'Nunito-Bold',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  regionChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  regionChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  regionChipText: {
+    fontFamily: 'Nunito-Medium',
+  },
+  modalFieldGroup: {
+    marginBottom: Spacing.md,
+  },
+  modalInput: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    fontFamily: 'Nunito-Medium',
+  },
+  previewHint: {
+    fontFamily: 'Nunito-Medium',
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: Spacing.sm,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontFamily: 'Nunito-Bold',
+  },
+  modalSaveBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontFamily: 'Nunito-Bold',
+    color: '#FFFFFF',
   },
 });

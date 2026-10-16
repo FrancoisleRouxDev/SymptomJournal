@@ -7,29 +7,22 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ChevronLeft,
   ChevronRight,
-  Bell,
-  Moon,
-  Shield,
-  Download,
   LogOut,
-  Info,
-  Type,
 } from 'lucide-react-native';
-import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { isDarkMode, toggleDarkMode, textSize, setTextSize, colors } = useTheme();
+  const { isDarkMode, toggleDarkMode, textSize, setTextSize, colors, scaled } = useTheme();
 
   // Notification toggles
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -56,26 +49,10 @@ export default function SettingsScreen() {
         // Optional
       }
 
-      const exportPayload = {
-        exported_at: new Date().toISOString(),
-        user: {
-          id: user?.id,
-          email: user?.email,
-          name: user?.user_metadata?.name || 'User',
-          doctor: user?.user_metadata?.doctor,
-          conditions: user?.user_metadata?.conditions,
-        },
-        total_logs: logs.length,
-        symptoms: logs,
-        ai_insights: patternData,
-      };
-
       Alert.alert(
         'Data Export Ready',
         `Successfully compiled ${logs.length} symptom logs and user health records. Export format: JSON.`,
-        [
-          { text: 'Done', style: 'default' }
-        ]
+        [{ text: 'Done', style: 'default' }]
       );
     } catch (err: any) {
       Alert.alert('Export Notice', 'Could not compile export data: ' + (err.message || 'Network error'));
@@ -83,7 +60,6 @@ export default function SettingsScreen() {
       setExporting(false);
     }
   };
-
 
   const handleSignOut = () => {
     Alert.alert(
@@ -103,79 +79,44 @@ export default function SettingsScreen() {
     );
   };
 
+  const cardGroupStyle = [
+    styles.cardGroup,
+    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+  ];
+  const dividerStyle = [styles.divider, { backgroundColor: colors.neutral.border }];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.background.cream }]}
+            style={[styles.backButton, { backgroundColor: isDarkMode ? colors.neutral.border : '#EAE1D5' }]}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={22} color={colors.neutral.brown} />
+            <ChevronLeft size={scaled(22)} color={colors.neutral.brown} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.neutral.brown }]}>Settings</Text>
+          <Text style={[styles.headerTitle, { color: colors.neutral.brown, fontSize: scaled(26) }]}>
+            Settings
+          </Text>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* SECTION: NOTIFICATIONS */}
-          <Text style={styles.sectionHeader}>NOTIFICATIONS</Text>
-          <View style={[styles.cardGroup, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Push Notifications</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>Daily symptom reminders</Text>
-              </View>
-              <Switch
-                value={pushEnabled}
-                onValueChange={setPushEnabled}
-                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
-                thumbColor={colors.white}
-              />
-            </View>
-
-            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Log Reminders</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>Nudges to log how you feel</Text>
-              </View>
-              <Switch
-                value={remindersEnabled}
-                onValueChange={setRemindersEnabled}
-                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
-                thumbColor={colors.white}
-              />
-            </View>
-
-            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>AI Insight Alerts</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>When new patterns are found</Text>
-              </View>
-              <Switch
-                value={insightAlertsEnabled}
-                onValueChange={setInsightAlertsEnabled}
-                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
-                thumbColor={colors.white}
-              />
-            </View>
-          </View>
-
           {/* SECTION: APPEARANCE */}
-          <Text style={styles.sectionHeader}>APPEARANCE</Text>
-          <View style={[styles.cardGroup, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            APPEARANCE &amp; ACCESSIBILITY
+          </Text>
+          <View style={cardGroupStyle}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Dark Mode</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Dark Mode
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
                   {isDarkMode ? 'Dark warm palette active' : 'Warm canvas palette active'}
                 </Text>
               </View>
@@ -187,16 +128,26 @@ export default function SettingsScreen() {
               />
             </View>
 
-            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
+            <View style={dividerStyle} />
 
             <View style={styles.textSizeBlock}>
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Text Size</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Text Size
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
                   Scales fonts across all screens ({textSize === 'small' ? '90%' : textSize === 'medium' ? '100%' : '115%'})
                 </Text>
               </View>
-              <View style={[styles.textSizeSegmented, { backgroundColor: isDarkMode ? '#1E1A18' : '#EFE8DE', borderColor: colors.neutral.border }]}>
+              <View
+                style={[
+                  styles.textSizeSegmented,
+                  {
+                    backgroundColor: isDarkMode ? '#1E1A18' : '#EFE8DE',
+                    borderColor: colors.neutral.border,
+                  },
+                ]}
+              >
                 {(['small', 'medium', 'large'] as const).map((size) => {
                   const isSelected = textSize === size;
                   const label = size === 'small' ? 'Small' : size === 'medium' ? 'Default' : 'Large';
@@ -222,6 +173,7 @@ export default function SettingsScreen() {
                           {
                             color: isSelected ? colors.sage.dark : colors.neutral.muted,
                             fontFamily: isSelected ? 'Nunito-Bold' : 'Nunito-Medium',
+                            fontSize: scaled(12.5),
                           },
                         ]}
                       >
@@ -234,38 +186,109 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* SECTION: PRIVACY & SECURITY */}
-          <Text style={styles.sectionHeader}>PRIVACY &amp; SECURITY</Text>
-          <View style={styles.cardGroup}>
+          {/* SECTION: NOTIFICATIONS */}
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            NOTIFICATIONS
+          </Text>
+          <View style={cardGroupStyle}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Biometric Lock</Text>
-                <Text style={styles.settingSubtitle}>Face ID / Touch ID</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Push Notifications
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Daily symptom reminders
+                </Text>
+              </View>
+              <Switch
+                value={pushEnabled}
+                onValueChange={setPushEnabled}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
+              />
+            </View>
+
+            <View style={dividerStyle} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Log Reminders
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Nudges to log how you feel
+                </Text>
+              </View>
+              <Switch
+                value={remindersEnabled}
+                onValueChange={setRemindersEnabled}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
+              />
+            </View>
+
+            <View style={dividerStyle} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  AI Insight Alerts
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  When new patterns are found
+                </Text>
+              </View>
+              <Switch
+                value={insightAlertsEnabled}
+                onValueChange={setInsightAlertsEnabled}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
+              />
+            </View>
+          </View>
+
+          {/* SECTION: PRIVACY & SECURITY */}
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            PRIVACY &amp; SECURITY
+          </Text>
+          <View style={cardGroupStyle}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Biometric Lock
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Face ID / Fingerprint protection
+                </Text>
               </View>
               <Switch
                 value={biometricsEnabled}
                 onValueChange={setBiometricsEnabled}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={dividerStyle} />
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Share Anonymous Data</Text>
-                <Text style={styles.settingSubtitle}>Help improve SymptomJournal</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Share Anonymous Data
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Help improve SymptomJournal accuracy
+                </Text>
               </View>
               <Switch
                 value={shareAnonymous}
                 onValueChange={setShareAnonymous}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={dividerStyle} />
 
             <TouchableOpacity
               style={styles.settingRow}
@@ -273,31 +296,39 @@ export default function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Export My Data</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Export My Data (JSON)
+                </Text>
               </View>
-              <ChevronRight size={16} color={Colors.neutral.muted} />
+              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
             </TouchableOpacity>
           </View>
 
           {/* SECTION: ABOUT */}
-          <Text style={styles.sectionHeader}>ABOUT</Text>
-          <View style={styles.cardGroup}>
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            ABOUT
+          </Text>
+          <View style={cardGroupStyle}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Version</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Version
+                </Text>
               </View>
-              <Text style={styles.rightNavText}>1.0.0 (Build 42)</Text>
+              <Text style={[styles.rightNavText, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                1.0.3 (Build 43)
+              </Text>
             </View>
           </View>
 
           {/* SIGN OUT BUTTON */}
           <TouchableOpacity
-            style={styles.signOutButton}
+            style={[styles.signOutButton, { backgroundColor: colors.terracotta.base }]}
             onPress={handleSignOut}
             activeOpacity={0.85}
           >
-            <LogOut size={18} color={Colors.white} style={{ marginRight: 6 }} />
-            <Text style={styles.signOutButtonText}>Sign Out of Account</Text>
+            <LogOut size={scaled(18)} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={[styles.signOutButtonText, { fontSize: scaled(16) }]}>Sign Out of Account</Text>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
@@ -310,7 +341,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.canvas,
   },
   safe: {
     flex: 1,
@@ -327,14 +357,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#EAE1D5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 26,
-    color: Colors.neutral.brown,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -342,20 +369,16 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
-    color: Colors.neutral.muted,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
   },
   cardGroup: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     marginBottom: Spacing.sm,
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
@@ -375,18 +398,13 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 14.5,
-    color: Colors.neutral.brown,
   },
   settingSubtitle: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 12,
-    color: Colors.neutral.muted,
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0E8DC',
   },
   textSizeBlock: {
     paddingVertical: 12,
@@ -406,20 +424,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   textSizeOptionText: {
-    fontSize: 12.5,
-  },
-  rightNavRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    fontFamily: 'Nunito-Bold',
   },
   rightNavText: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 13,
-    color: Colors.neutral.muted,
   },
   signOutButton: {
-    backgroundColor: Colors.terracotta.base,
     borderRadius: Radius.lg,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -427,15 +437,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Spacing.lg,
     marginBottom: Spacing.xl,
-    shadowColor: Colors.terracotta.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
     elevation: 3,
   },
   signOutButtonText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: FontSize.button,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 });
