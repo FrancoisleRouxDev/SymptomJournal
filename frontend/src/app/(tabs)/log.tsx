@@ -83,7 +83,7 @@ const TRIGGER_OPTIONS: TriggerOption[] = [
 
 export default function LogScreen() {
   const router = useRouter();
-  const { scaled } = useTheme();
+  const { colors, isDarkMode, scaled } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Form states with multi-select support
@@ -267,7 +267,7 @@ export default function LogScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background.canvas }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
     >
@@ -275,13 +275,15 @@ export default function LogScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: isDarkMode ? colors.neutral.border : '#EAE1D5' }]}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={22} color={Colors.neutral.brown} />
+            <ChevronLeft size={scaled(22)} color={colors.neutral.brown} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Log a Symptom</Text>
+          <Text style={[styles.headerTitle, { color: colors.neutral.brown, fontSize: scaled(26) }]}>
+            Log a Symptom
+          </Text>
         </View>
 
         <ScrollView
@@ -296,8 +298,12 @@ export default function LogScreen() {
         >
           {/* CATEGORY SECTION (Multi-Select) */}
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow]}>CATEGORY</Text>
-            <Text style={styles.sectionHeaderSub}>Select all that apply</Text>
+            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              CATEGORY
+            </Text>
+            <Text style={[styles.sectionHeaderSub, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              Select all that apply
+            </Text>
           </View>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => {
@@ -308,6 +314,7 @@ export default function LogScreen() {
                   key={cat.id}
                   style={[
                     styles.categoryCard,
+                    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
                     isSelected && {
                       backgroundColor: cat.accentColor,
                       borderColor: cat.accentColor,
@@ -321,16 +328,17 @@ export default function LogScreen() {
                 >
                   <View style={styles.categoryCardTop}>
                     <IconComp
-                      size={20}
+                      size={scaled(20)}
                       color={isSelected ? Colors.white : cat.accentColor}
                     />
                     {isSelected && (
-                      <Check size={14} color={Colors.white} strokeWidth={3} />
+                      <Check size={scaled(14)} color={Colors.white} strokeWidth={3} />
                     )}
                   </View>
                   <Text
                     style={[
                       styles.categoryText,
+                      { color: colors.neutral.brown, fontSize: scaled(13) },
                       isSelected && styles.categoryTextSelected,
                     ]}
                   >
@@ -343,8 +351,12 @@ export default function LogScreen() {
 
           {/* BODY AREA SECTION (Multi-Select) */}
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow]}>BODY AREA</Text>
-            <Text style={styles.sectionHeaderSub}>Select all that apply</Text>
+            <Text style={[styles.sectionHeader, styles.sectionHeaderInRow, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              BODY AREA
+            </Text>
+            <Text style={[styles.sectionHeaderSub, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              Select all that apply
+            </Text>
           </View>
           <View style={styles.pillContainer}>
             {BODY_AREAS.map((area) => {
@@ -354,7 +366,8 @@ export default function LogScreen() {
                   key={area}
                   style={[
                     styles.areaPill,
-                    isSelected && styles.areaPillSelected,
+                    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+                    isSelected && { backgroundColor: colors.sage.dark, borderColor: colors.sage.dark },
                   ]}
                   onPress={() => toggleBodyArea(area)}
                   activeOpacity={0.8}
@@ -362,21 +375,35 @@ export default function LogScreen() {
                   <View style={styles.areaPillIconRow}>
                     {isSelected
                       ? <Check size={scaled(12)} color={Colors.white} strokeWidth={3} />
-                      : <Plus size={scaled(12)} color={Colors.neutral.brownMid} strokeWidth={2} />}
-                    <Text style={[styles.areaPillText, isSelected && styles.areaPillTextSelected]}>{area}</Text>
+                      : <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />}
+                    <Text
+                      style={[
+                        styles.areaPillText,
+                        { color: colors.neutral.brown, fontSize: scaled(13) },
+                        isSelected && styles.areaPillTextSelected,
+                      ]}
+                    >
+                      {area}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-            {/* SEVERITY CARD */}
-          <View style={styles.severityCard}>
+          {/* SEVERITY CARD */}
+          <View style={[styles.severityCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
             <View style={styles.severityHeaderRow}>
-              <Text style={styles.severityLabel}>SEVERITY</Text>
+              <Text style={[styles.severityLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                SEVERITY
+              </Text>
               <Text style={styles.severityValueText}>
-                <Text style={{ color: getSeverityColor(severity), fontSize: 18 }}>{severity}</Text>
-                <Text style={{ color: Colors.neutral.muted, fontSize: 14 }}>/10</Text>
+                <Text style={{ color: getSeverityColor(severity), fontSize: scaled(18), fontFamily: 'Nunito-Bold' }}>
+                  {severity}
+                </Text>
+                <Text style={{ color: colors.neutral.muted, fontSize: scaled(14), fontFamily: 'Nunito-Bold' }}>
+                  /10
+                </Text>
               </Text>
             </View>
 
@@ -396,6 +423,7 @@ export default function LogScreen() {
                       key={num}
                       style={[
                         styles.stepButton,
+                        { backgroundColor: isDarkMode ? '#332D28' : '#EDE5D8' },
                         isCurrent && { backgroundColor: stepColor, borderColor: stepColor },
                       ]}
                       onPress={() => setSeverity(num)}
@@ -404,6 +432,7 @@ export default function LogScreen() {
                       <Text
                         style={[
                           styles.stepButtonText,
+                          { color: colors.neutral.brownMid, fontSize: scaled(11) },
                           isCurrent && { color: Colors.white, fontWeight: '800' },
                         ]}
                       >
@@ -415,7 +444,7 @@ export default function LogScreen() {
               </View>
 
               {/* Visual Gradient Progress Bar */}
-              <View style={styles.progressTrackBg}>
+              <View style={[styles.progressTrackBg, { backgroundColor: isDarkMode ? '#332D28' : '#EDE5D8' }]}>
                 <View
                   style={[
                     styles.progressTrackFill,
@@ -429,15 +458,17 @@ export default function LogScreen() {
 
               {/* Labels below slider */}
               <View style={styles.severityLabelsRow}>
-                <Text style={[styles.severitySubLabel, { color: Colors.sage.base }]}>Mild</Text>
-                <Text style={[styles.severitySubLabel, { color: '#E8B87A' }]}>Moderate</Text>
-                <Text style={[styles.severitySubLabel, { color: Colors.terracotta.base }]}>Severe</Text>
+                <Text style={[styles.severitySubLabel, { color: colors.sage.base, fontSize: scaled(11) }]}>Mild</Text>
+                <Text style={[styles.severitySubLabel, { color: '#E8B87A', fontSize: scaled(11) }]}>Moderate</Text>
+                <Text style={[styles.severitySubLabel, { color: colors.terracotta.base, fontSize: scaled(11) }]}>Severe</Text>
               </View>
             </View>
           </View>
 
           {/* WHEN DID IT START? */}
-          <Text style={styles.sectionHeader}>WHEN DID IT START?</Text>
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            WHEN DID IT START?
+          </Text>
           <View style={styles.timePillRow}>
             {TIME_PRESETS.map((preset) => {
               const isSelected = timePreset === preset;
@@ -446,7 +477,11 @@ export default function LogScreen() {
                   key={preset}
                   style={[
                     styles.timePill,
-                    isSelected && styles.timePillSelected,
+                    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+                    isSelected && {
+                      backgroundColor: isDarkMode ? colors.terracotta.base : '#3E2D1E',
+                      borderColor: isDarkMode ? colors.terracotta.base : '#3E2D1E',
+                    },
                   ]}
                   onPress={() => setTimePreset(preset)}
                   activeOpacity={0.8}
@@ -454,6 +489,7 @@ export default function LogScreen() {
                   <Text
                     style={[
                       styles.timePillText,
+                      { color: colors.neutral.brown, fontSize: scaled(13) },
                       isSelected && styles.timePillTextSelected,
                     ]}
                   >
@@ -465,7 +501,9 @@ export default function LogScreen() {
           </View>
 
           {/* POTENTIAL TRIGGERS (OPTIONAL) */}
-          <Text style={styles.sectionHeader}>POTENTIAL TRIGGERS (OPTIONAL)</Text>
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            POTENTIAL TRIGGERS (OPTIONAL)
+          </Text>
           <View style={styles.pillContainer}>
             {TRIGGER_OPTIONS.map((trig) => {
               const isSelected = selectedTriggers.includes(trig.id);
@@ -474,16 +512,28 @@ export default function LogScreen() {
                   key={trig.id}
                   style={[
                     styles.triggerPill,
-                    isSelected && styles.triggerPillSelected,
+                    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+                    isSelected && {
+                      backgroundColor: isDarkMode ? '#3D251C' : colors.terracotta.tint,
+                      borderColor: colors.terracotta.light,
+                    },
                   ]}
                   onPress={() => toggleTrigger(trig.id)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.areaPillIconRow}>
                     {isSelected
-                      ? <Check size={scaled(12)} color={Colors.terracotta.dark} strokeWidth={3} />
-                      : <Plus size={scaled(12)} color={Colors.neutral.brownMid} strokeWidth={2} />}
-                    <Text style={[styles.triggerPillText, isSelected && styles.triggerPillTextSelected]}>{trig.label}</Text>
+                      ? <Check size={scaled(12)} color={colors.terracotta.dark} strokeWidth={3} />
+                      : <Plus size={scaled(12)} color={colors.neutral.brownMid} strokeWidth={2} />}
+                    <Text
+                      style={[
+                        styles.triggerPillText,
+                        { color: colors.neutral.brownMid, fontSize: scaled(12) },
+                        isSelected && { color: colors.terracotta.dark },
+                      ]}
+                    >
+                      {trig.label}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -491,12 +541,14 @@ export default function LogScreen() {
           </View>
 
           {/* NOTES (OPTIONAL) - Smooth Auto-scroll on focus */}
-          <Text style={styles.sectionHeader}>NOTES (OPTIONAL)</Text>
-          <View style={styles.notesContainer}>
+          <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+            NOTES (OPTIONAL)
+          </Text>
+          <View style={[styles.notesContainer, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
             <TextInput
-              style={styles.notesInput}
+              style={[styles.notesInput, { color: colors.neutral.brown, fontSize: scaled(14) }]}
               placeholder="Describe how you feel, any triggers you noticed..."
-              placeholderTextColor={Colors.neutral.muted}
+              placeholderTextColor={colors.neutral.muted}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -515,7 +567,11 @@ export default function LogScreen() {
 
           {/* SUBMIT BUTTON */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: colors.terracotta.base },
+              loading && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={loading || loggedSuccess}
             activeOpacity={0.85}
@@ -524,11 +580,11 @@ export default function LogScreen() {
               <ActivityIndicator size="small" color={Colors.white} />
             ) : loggedSuccess ? (
               <View style={styles.successRow}>
-                <CheckCircle2 size={18} color={Colors.white} style={{ marginRight: 6 }} />
-                <Text style={styles.submitButtonText}>Symptom Logged!</Text>
+                <CheckCircle2 size={scaled(18)} color={Colors.white} style={{ marginRight: 6 }} />
+                <Text style={[styles.submitButtonText, { fontSize: scaled(16) }]}>Symptom Logged!</Text>
               </View>
             ) : (
-              <Text style={styles.submitButtonText}>Log Symptom</Text>
+              <Text style={[styles.submitButtonText, { fontSize: scaled(16) }]}>Log Symptom</Text>
             )}
           </TouchableOpacity>
 

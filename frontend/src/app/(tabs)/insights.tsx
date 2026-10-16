@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Sparkles,
   Moon,
@@ -21,10 +22,13 @@ import {
   PlusCircle,
   RefreshCw,
   Brain,
-  AlertCircle,
+  Share2,
 } from 'lucide-react-native';
-import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { Spacing, Radius } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { InsightsScreenSkeleton } from '@/components/SkeletonLoader';
 
 interface Finding {
@@ -37,16 +41,22 @@ interface Finding {
 }
 
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const STORAGE_KEY_DOCTOR = '@symptomjournal_doctor';
+const STORAGE_KEY_CONDITIONS = '@symptomjournal_conditions';
 
 export default function InsightsScreen() {
   const router = useRouter();
+  const { colors, isDarkMode, scaled } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [entriesCount, setEntriesCount] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [refreshingAi, setRefreshingAi] = useState(false);
+  const [exportingReport, setExportingReport] = useState(false);
 
+  const [rawLogs, setRawLogs] = useState<any[]>([]);
+  const [userName, setUserName] = useState('Patient');
   const [mostFrequentSymptom, setMostFrequentSymptom] = useState('N/A');
   const [mostFrequentCount, setMostFrequentCount] = useState(0);
   const [avgSeverity, setAvgSeverity] = useState('0.0');
@@ -82,9 +92,14 @@ export default function InsightsScreen() {
     else setLoading(true);
 
     try {
+      const user = await getCurrentUser();
+      const rawName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Patient';
+      setUserName(rawName);
+
       // 1. Fetch symptom history for stats & chart aggregation
       const historyRes = await api.get('/symptoms/history');
       const logs: any[] = historyRes.data.symptoms || [];
+      setRawLogs(logs);
       setEntriesCount(logs.length);
 
       if (logs.length >= 3) {
@@ -119,9 +134,7 @@ export default function InsightsScreen() {
     }, [loadInsights])
   );
 
-
   const computeLocalStatsAndCharts = (logs: any[]) => {
-    // 1. Frequency calculation
     const counts: Record<string, number> = {};
     let totalSev = 0;
     let validSevCount = 0;
@@ -147,15 +160,15 @@ export default function InsightsScreen() {
       setAvgSeverity((totalSev / validSevCount).toFixed(1));
     }
 
-    // 2. Weekly Bar Chart Data (Mon to Sun)
+    // Weekly Bar Chart Data (Mon to Sun)
     const dayMap: Record<number, { pain: number; fatigue: number }> = {
-      1: { pain: 0, fatigue: 0 }, // Mon
-      2: { pain: 0, fatigue: 0 }, // Tue
-      3: { pain: 0, fatigue: 0 }, // Wed
-      4: { pain: 0, fatigue: 0 }, // Thu
-      5: { pain: 0, fatigue: 0 }, // Fri
-      6: { pain: 0, fatigue: 0 }, // Sat
-      0: { pain: 0, fatigue: 0 }, // Sun
+      1: { pain: 0, fatigue: 0 },
+      2: { pain: 0, fatigue: 0 },
+      3: { pain: 0, fatigue: 0 },
+      4: { pain: 0, fatigue: 0 },
+      5: { pain: 0, fatigue: 0 },
+      6: { pain: 0, fatigue: 0 },
+      0: { pain: 0, fatigue: 0 },
     };
 
     logs.forEach((log) => {
@@ -169,13 +182,11 @@ export default function InsightsScreen() {
         } else if (desc.includes('fatigue') || desc.includes('energy') || desc.includes('tired')) {
           dayMap[dayIdx].fatigue += 1;
         } else {
-          // Default to pain/general
           dayMap[dayIdx].pain += 1;
         }
       }
     });
 
-    // Reorder Mon(1) -> Sun(0)
     const orderedKeys = [1, 2, 3, 4, 5, 6, 0];
     const chart = orderedKeys.map((k, idx) => {
       const p = dayMap[k].pain;
@@ -201,28 +212,28 @@ export default function InsightsScreen() {
         const lower = `${title} ${desc}`.toLowerCase();
 
         let iconType: Finding['iconType'] = 'moon';
-        let iconBg = '#FBF7EA';
+        let iconBg = isDarkMode ? '#2D2817' : '#FAF4DE';
         let iconColor = '#D4A437';
 
         if (lower.includes('sleep') || lower.includes('night') || lower.includes('rest')) {
           iconType = 'moon';
-          iconBg = '#FAF4DE';
+          iconBg = isDarkMode ? '#2D2817' : '#FAF4DE';
           iconColor = '#C8972E';
         } else if (lower.includes('time') || lower.includes('afternoon') || lower.includes('morning') || lower.includes('pm')) {
           iconType = 'clock';
-          iconBg = '#FCEAE7';
+          iconBg = isDarkMode ? '#331F1B' : '#FCEAE7';
           iconColor = '#C4714F';
         } else if (lower.includes('week') || lower.includes('trend') || lower.includes('month') || lower.includes('day')) {
           iconType = 'calendar';
-          iconBg = '#EAF3ED';
+          iconBg = isDarkMode ? '#1E2B23' : '#EAF3ED';
           iconColor = '#5A7D66';
         } else if (lower.includes('trigger') || lower.includes('stress') || lower.includes('food')) {
           iconType = 'leaf';
-          iconBg = '#EBF4FA';
+          iconBg = isDarkMode ? '#1A2936' : '#EBF4FA';
           iconColor = '#4A8DBF';
         } else {
           iconType = 'sparkles';
-          iconBg = '#F3EDF9';
+          iconBg = isDarkMode ? '#271F33' : '#F3EDF9';
           iconColor = '#8A68B0';
         }
 
@@ -243,7 +254,7 @@ export default function InsightsScreen() {
         title: 'Time Distribution',
         description: analysis.time_pattern,
         iconType: 'clock',
-        iconBg: '#FCEAE7',
+        iconBg: isDarkMode ? '#331F1B' : '#FCEAE7',
         iconColor: '#C4714F',
       });
     }
@@ -254,7 +265,7 @@ export default function InsightsScreen() {
         title: 'Actionable Advice',
         description: analysis.suggestion,
         iconType: 'calendar',
-        iconBg: '#EAF3ED',
+        iconBg: isDarkMode ? '#1E2B23' : '#EAF3ED',
         iconColor: '#5A7D66',
       });
     }
@@ -274,7 +285,7 @@ export default function InsightsScreen() {
         description:
           'Headaches and fatigue occur 82% more often after fewer than 6 hours of sleep. Try maintaining a consistent sleep routine this week.',
         iconType: 'moon',
-        iconBg: '#FAF4DE',
+        iconBg: isDarkMode ? '#2D2817' : '#FAF4DE',
         iconColor: '#C8972E',
       },
       {
@@ -283,7 +294,7 @@ export default function InsightsScreen() {
         description:
           'Most pain symptoms appear between 1–4 PM. Consider a midday hydration break or short rest during this window.',
         iconType: 'clock',
-        iconBg: '#FCEAE7',
+        iconBg: isDarkMode ? '#331F1B' : '#FCEAE7',
         iconColor: '#C4714F',
       },
       {
@@ -292,7 +303,7 @@ export default function InsightsScreen() {
         description:
           'Overall symptom frequency shows gradual stabilization compared to earlier logs. Continue logging triggers to track correlations.',
         iconType: 'calendar',
-        iconBg: '#EAF3ED',
+        iconBg: isDarkMode ? '#1E2B23' : '#EAF3ED',
         iconColor: '#5A7D66',
       },
     ]);
@@ -310,38 +321,138 @@ export default function InsightsScreen() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (entriesCount === 0) {
+      Alert.alert('No Logs', 'Log symptoms before downloading a clinical report.');
+      return;
+    }
+
+    setExportingReport(true);
+    try {
+      const storedDoc = await AsyncStorage.getItem(STORAGE_KEY_DOCTOR);
+      const storedCond = await AsyncStorage.getItem(STORAGE_KEY_CONDITIONS);
+
+      const counts: Record<string, number> = {};
+      rawLogs.forEach((log) => {
+        const d = (log.description || 'Symptom').trim();
+        const cap = d.charAt(0).toUpperCase() + d.slice(1);
+        counts[cap] = (counts[cap] || 0) + 1;
+      });
+
+      const sortedFreqs = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count], i) => ({
+          name,
+          count,
+          percentage: Math.max(20, Math.round((count / (rawLogs.length || 1)) * 100)),
+        }));
+
+      const notes = findings.map((f) => `${f.title}: ${f.description}`);
+      const questions = [
+        'Discuss pattern correlations observed in weekly frequency.',
+        'Review trigger relationships and potential lifestyle adjustments.',
+      ];
+
+      const formattedRecent = rawLogs.slice(0, 10).map((log) => {
+        const d = log.created_at ? new Date(log.created_at) : new Date();
+        const triggersList = Array.isArray(log.triggers)
+          ? log.triggers.map((t: any) => t.name || t).join(', ')
+          : '';
+        return {
+          date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          timeOfDay: log.time_of_day ? log.time_of_day.charAt(0).toUpperCase() + log.time_of_day.slice(1) : undefined,
+          description: log.description || 'Symptom',
+          severity: log.severity !== undefined ? log.severity : 'N/A',
+          triggers: triggersList || undefined,
+          notes: log.mood || log.notes || undefined,
+        };
+      });
+
+      const reportData: DoctorReportData = {
+        patientName: userName,
+        doctorName: storedDoc || undefined,
+        conditions: storedCond || undefined,
+        dateRange: weekDateRange,
+        daysTracked: Math.max(1, Math.min(rawLogs.length, 30)),
+        totalEntries: entriesCount,
+        symptomTypesCount: Object.keys(counts).length,
+        avgSeverity: avgSeverity,
+        frequentSymptoms: sortedFreqs,
+        patternsNotes: notes,
+        questionsToDiscuss: questions,
+        recentLogs: formattedRecent,
+      };
+
+      await exportDoctorSummaryToPdf(reportData);
+    } catch (err: any) {
+      Alert.alert('Report Error', err?.message || 'Could not export insights document.');
+    } finally {
+      setExportingReport(false);
+    }
+  };
+
   const renderFindingIcon = (type: Finding['iconType'], color: string) => {
     switch (type) {
       case 'moon':
-        return <Moon size={20} color={color} />;
+        return <Moon size={scaled(20)} color={color} />;
       case 'clock':
-        return <Clock size={20} color={color} />;
+        return <Clock size={scaled(20)} color={color} />;
       case 'calendar':
-        return <CalendarIcon size={20} color={color} />;
+        return <CalendarIcon size={scaled(20)} color={color} />;
       case 'leaf':
-        return <Leaf size={20} color={color} />;
+        return <Leaf size={scaled(20)} color={color} />;
       case 'zap':
-        return <Zap size={20} color={color} />;
+        return <Zap size={scaled(20)} color={color} />;
       default:
-        return <Sparkles size={20} color={color} />;
+        return <Sparkles size={scaled(20)} color={color} />;
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header Bar */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerSubtitle}>{weekDateRange}</Text>
-            <Text style={styles.headerTitle}>AI Insights</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+              {weekDateRange}
+            </Text>
+            <Text style={[styles.headerTitle, { color: colors.neutral.brown, fontSize: scaled(26) }]}>
+              AI Insights
+            </Text>
           </View>
-          {isReady && (
-            <View style={styles.updatedBadge}>
-              <View style={styles.updatedDot} />
-              <Text style={styles.updatedText}>Updated</Text>
-            </View>
-          )}
+          <View style={styles.headerRightActions}>
+            {isReady && (
+              <TouchableOpacity
+                style={[
+                  styles.downloadDocBtn,
+                  { backgroundColor: isDarkMode ? colors.terracotta.base : '#3E2D1E' },
+                  exportingReport && { opacity: 0.7 },
+                ]}
+                onPress={handleDownloadReport}
+                disabled={exportingReport}
+                activeOpacity={0.8}
+              >
+                {exportingReport ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Share2 size={scaled(13)} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    <Text style={[styles.downloadDocText, { fontSize: scaled(11.5) }]}>Export Doc</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+            {isReady && (
+              <View style={[styles.updatedBadge, { backgroundColor: isDarkMode ? '#1E2B23' : '#D4E7DC' }]}>
+                <View style={[styles.updatedDot, { backgroundColor: colors.sage.dark }]} />
+                <Text style={[styles.updatedText, { color: colors.sage.dark, fontSize: scaled(11) }]}>
+                  Updated
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {loading ? (
@@ -352,36 +463,40 @@ export default function InsightsScreen() {
             contentContainerStyle={styles.emptyContainer}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadInsights(true)} />}
           >
-            <View style={styles.lockCard}>
-              <View style={styles.lockIconCircle}>
-                <Brain size={38} color={Colors.sage.dark} />
+            <View style={[styles.lockCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+              <View style={[styles.lockIconCircle, { backgroundColor: colors.sage.tint }]}>
+                <Brain size={scaled(38)} color={colors.sage.dark} />
               </View>
-              <Text style={styles.lockTitle}>AI Insights Locked</Text>
-              <Text style={styles.lockSubtitle}>
-                Log at least 3 symptoms to unlock AI pattern intelligence, weekly frequency charts, and
-                trigger correlation analysis.
+              <Text style={[styles.lockTitle, { color: colors.neutral.brown, fontSize: scaled(22) }]}>
+                AI Insights Locked
+              </Text>
+              <Text style={[styles.lockSubtitle, { color: colors.neutral.brownMid, fontSize: scaled(13.5) }]}>
+                Log at least 3 symptoms to unlock AI pattern intelligence, weekly frequency charts, and trigger correlation analysis.
               </Text>
 
               {/* Progress */}
-              <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarBg, { backgroundColor: colors.background.cream }]}>
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${Math.min(100, Math.round((entriesCount / 3) * 100))}%` },
+                    {
+                      width: `${Math.min(100, Math.round((entriesCount / 3) * 100))}%`,
+                      backgroundColor: colors.sage.base,
+                    },
                   ]}
                 />
               </View>
-              <Text style={styles.progressLabel}>
+              <Text style={[styles.progressLabel, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
                 {entriesCount} of 3 entries logged ({3 - entriesCount} remaining)
               </Text>
 
               <TouchableOpacity
-                style={styles.logShortcutBtn}
+                style={[styles.logShortcutBtn, { backgroundColor: colors.sage.dark }]}
                 onPress={() => router.push('/(tabs)/log' as any)}
                 activeOpacity={0.85}
               >
-                <PlusCircle size={18} color={Colors.white} style={{ marginRight: 6 }} />
-                <Text style={styles.logShortcutText}>Log a Symptom</Text>
+                <PlusCircle size={scaled(18)} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.logShortcutText, { fontSize: scaled(14) }]}>Log a Symptom</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -393,17 +508,23 @@ export default function InsightsScreen() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadInsights(true)} />}
           >
             {/* WEEKLY OVERVIEW BAR CHART CARD */}
-            <View style={styles.chartCard}>
+            <View style={[styles.chartCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
               <View style={styles.chartHeaderRow}>
-                <Text style={styles.chartTitle}>Weekly Overview</Text>
+                <Text style={[styles.chartTitle, { color: colors.neutral.brown, fontSize: scaled(15) }]}>
+                  Weekly Overview
+                </Text>
                 <View style={styles.legendRow}>
                   <View style={styles.legendItem}>
-                    <View style={[styles.legendBox, { backgroundColor: Colors.terracotta.base }]} />
-                    <Text style={styles.legendText}>Pain</Text>
+                    <View style={[styles.legendBox, { backgroundColor: colors.terracotta.base }]} />
+                    <Text style={[styles.legendText, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                      Pain
+                    </Text>
                   </View>
                   <View style={styles.legendItem}>
-                    <View style={[styles.legendBox, { backgroundColor: Colors.sage.base }]} />
-                    <Text style={styles.legendText}>Fatigue</Text>
+                    <View style={[styles.legendBox, { backgroundColor: colors.sage.base }]} />
+                    <Text style={[styles.legendText, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                      Fatigue
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -423,8 +544,8 @@ export default function InsightsScreen() {
                             styles.singleBar,
                             {
                               height: painHeight,
-                              backgroundColor: Colors.terracotta.base,
-                              opacity: item.painCount > 0 ? 1 : 0.45,
+                              backgroundColor: colors.terracotta.base,
+                              opacity: item.painCount > 0 ? 1 : 0.35,
                             },
                           ]}
                         />
@@ -434,13 +555,15 @@ export default function InsightsScreen() {
                             styles.singleBar,
                             {
                               height: fatigueHeight,
-                              backgroundColor: Colors.sage.base,
-                              opacity: item.fatigueCount > 0 ? 1 : 0.45,
+                              backgroundColor: colors.sage.base,
+                              opacity: item.fatigueCount > 0 ? 1 : 0.35,
                             },
                           ]}
                         />
                       </View>
-                      <Text style={styles.dayBarLabel}>{item.day}</Text>
+                      <Text style={[styles.dayBarLabel, { color: colors.neutral.muted, fontSize: scaled(10.5) }]}>
+                        {item.day}
+                      </Text>
                     </View>
                   );
                 })}
@@ -450,33 +573,52 @@ export default function InsightsScreen() {
             {/* 2 STAT CARDS ROW */}
             <View style={styles.statsRow}>
               {/* Left: Most Frequent */}
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>MOST FREQUENT</Text>
-                <Text style={styles.statValueLarge}>
+              <View style={[styles.statCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                <Text style={[styles.statLabel, { color: colors.neutral.muted, fontSize: scaled(10.5) }]}>
+                  MOST FREQUENT
+                </Text>
+                <Text style={[styles.statValueLarge, { color: colors.terracotta.base, fontSize: scaled(28) }]}>
                   {mostFrequentCount > 0 ? `${mostFrequentCount}×` : '—'}
                 </Text>
-                <Text style={styles.statSub}>{mostFrequentSymptom}</Text>
+                <Text style={[styles.statSub, { color: colors.neutral.brownMid, fontSize: scaled(12.5) }]}>
+                  {mostFrequentSymptom}
+                </Text>
               </View>
 
               {/* Right: Avg Severity */}
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>AVG SEVERITY</Text>
-                <Text style={[styles.statValueLarge, { color: '#E8A080' }]}>{avgSeverity}</Text>
-                <Text style={styles.statSub}>This week</Text>
+              <View style={[styles.statCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                <Text style={[styles.statLabel, { color: colors.neutral.muted, fontSize: scaled(10.5) }]}>
+                  AVG SEVERITY
+                </Text>
+                <Text style={[styles.statValueLarge, { color: colors.terracotta.light || '#E8A080', fontSize: scaled(28) }]}>
+                  {avgSeverity}
+                </Text>
+                <Text style={[styles.statSub, { color: colors.neutral.brownMid, fontSize: scaled(12.5) }]}>
+                  This week
+                </Text>
               </View>
             </View>
 
             {/* KEY FINDINGS SECTION */}
-            <Text style={styles.sectionTitle}>KEY FINDINGS</Text>
+            <Text style={[styles.sectionTitle, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+              KEY FINDINGS
+            </Text>
 
             {findings.map((finding) => (
-              <View key={finding.id} style={styles.findingCard}>
+              <View
+                key={finding.id}
+                style={[styles.findingCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
+              >
                 <View style={[styles.findingIconBox, { backgroundColor: finding.iconBg }]}>
                   {renderFindingIcon(finding.iconType, finding.iconColor)}
                 </View>
                 <View style={styles.findingContent}>
-                  <Text style={styles.findingTitle}>{finding.title}</Text>
-                  <Text style={styles.findingDesc}>{finding.description}</Text>
+                  <Text style={[styles.findingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                    {finding.title}
+                  </Text>
+                  <Text style={[styles.findingDesc, { color: colors.neutral.brownMid, fontSize: scaled(12.5) }]}>
+                    {finding.description}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -484,17 +626,19 @@ export default function InsightsScreen() {
             {/* REFRESH AI PATTERNS BUTTON */}
             <View style={styles.actionsWrapper}>
               <TouchableOpacity
-                style={styles.refreshBtn}
+                style={[styles.refreshBtn, { backgroundColor: colors.sage.tint }]}
                 onPress={handleRefreshAi}
                 disabled={refreshingAi}
                 activeOpacity={0.8}
               >
                 {refreshingAi ? (
-                  <ActivityIndicator size="small" color={Colors.sage.dark} />
+                  <ActivityIndicator size="small" color={colors.sage.dark} />
                 ) : (
                   <>
-                    <RefreshCw size={14} color={Colors.sage.dark} style={{ marginRight: 6 }} />
-                    <Text style={styles.refreshBtnText}>Recalculate AI Findings</Text>
+                    <RefreshCw size={scaled(14)} color={colors.sage.dark} style={{ marginRight: 6 }} />
+                    <Text style={[styles.refreshBtnText, { color: colors.sage.dark, fontSize: scaled(12.5) }]}>
+                      Recalculate AI Findings
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -511,7 +655,6 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.canvas,
   },
   safe: {
     flex: 1,
@@ -524,64 +667,57 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
   },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  downloadDocBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  downloadDocText: {
+    fontFamily: 'Nunito-Bold',
+    color: '#FFFFFF',
+  },
   headerSubtitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11.5,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: Colors.neutral.muted,
     marginBottom: 2,
   },
   headerTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 26,
-    color: Colors.neutral.brown,
   },
   updatedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D4E7DC',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.full,
-    marginTop: 4,
   },
   updatedDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#5A7D66',
     marginRight: 6,
   },
   updatedText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
-    color: '#5A7D66',
-  },
-  centerLoading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontFamily: 'Nunito-Medium',
-    fontSize: FontSize.body,
-    color: Colors.neutral.brownMid,
-    marginTop: Spacing.md,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
-
-  /* Weekly Chart Card */
   chartCard: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -596,8 +732,6 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 15,
-    color: Colors.neutral.brown,
   },
   legendRow: {
     flexDirection: 'row',
@@ -615,8 +749,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11.5,
-    color: Colors.neutral.muted,
   },
   barsContainer: {
     flexDirection: 'row',
@@ -643,11 +775,7 @@ const styles = StyleSheet.create({
   },
   dayBarLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 10.5,
-    color: Colors.neutral.muted,
   },
-
-  /* 2 Stat Cards */
   statsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -655,11 +783,9 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -668,40 +794,28 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 10.5,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    color: Colors.neutral.muted,
     marginBottom: 4,
   },
   statValueLarge: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 28,
-    color: Colors.terracotta.base,
     marginBottom: 2,
   },
   statSub: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 12.5,
-    color: Colors.neutral.brownMid,
   },
-
-  /* Key Findings */
   sectionTitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
-    color: Colors.neutral.muted,
     marginBottom: Spacing.sm,
   },
   findingCard: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#EDE5D8',
     flexDirection: 'row',
     alignItems: 'flex-start',
     shadowColor: '#3E2D1E',
@@ -723,18 +837,12 @@ const styles = StyleSheet.create({
   },
   findingTitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 14.5,
-    color: Colors.neutral.brown,
     marginBottom: 3,
   },
   findingDesc: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 12.5,
-    color: Colors.neutral.brownMid,
     lineHeight: 18,
   },
-
-  /* Actions */
   actionsWrapper: {
     alignItems: 'center',
     marginTop: Spacing.sm,
@@ -742,51 +850,39 @@ const styles = StyleSheet.create({
   refreshBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.sage.tint,
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: Radius.full,
   },
   refreshBtnText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 12.5,
-    color: Colors.sage.dark,
   },
-
-  /* Locked State */
   emptyContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: Spacing.lg,
   },
   lockCard: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
   },
   lockIconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.sage.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
   lockTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 22,
-    color: Colors.neutral.brown,
     marginBottom: Spacing.xs,
     textAlign: 'center',
   },
   lockSubtitle: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 13.5,
-    color: Colors.neutral.brownMid,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: Spacing.lg,
@@ -794,26 +890,21 @@ const styles = StyleSheet.create({
   progressBarBg: {
     width: '100%',
     height: 8,
-    backgroundColor: '#EDE5D8',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: Spacing.xs,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.sage.base,
     borderRadius: 4,
   },
   progressLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 12,
-    color: Colors.neutral.muted,
     marginBottom: Spacing.lg,
   },
   logShortcutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.terracotta.base,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: Radius.lg,
@@ -822,7 +913,6 @@ const styles = StyleSheet.create({
   },
   logShortcutText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 14,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 });

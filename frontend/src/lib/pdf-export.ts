@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 
 export interface DoctorReportData {
   patientName: string;
+  doctorName?: string;
+  conditions?: string;
   dateRange: string;
   daysTracked: number;
   totalEntries: number;
@@ -13,58 +15,128 @@ export interface DoctorReportData {
   patternsNotes: string[];
   questionsToDiscuss: string[];
   fullSummaryText?: string;
+  recentLogs?: Array<{
+    date: string;
+    description: string;
+    severity: number | string;
+    timeOfDay?: string;
+    triggers?: string;
+    notes?: string;
+  }>;
   generatedDate?: string;
 }
 
-const PALETTE = ['#C4714F', '#7B9E87', '#E8B87A', '#B8A0D0', '#7AAED0', '#E8A0A0'];
+const PALETTE = ['#C4714F', '#5A7D66', '#D4A437', '#7B5E99', '#3D7EAA', '#B85D5D'];
 
 export function generateDoctorReportHtml(data: DoctorReportData): string {
-  const generatedOn = data.generatedDate || new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const generatedOn =
+    data.generatedDate ||
+    new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
 
-  const symptomRowsHtml = data.frequentSymptoms
-    .map((item, index) => {
-      const barColor = item.color || PALETTE[index % PALETTE.length];
-      return `
-        <div style="margin-bottom: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span style="font-weight: 600; font-size: 14px; color: #3E2D1E;">${item.name}</span>
-            <span style="font-weight: 700; font-size: 13px; color: #6A5A4E;">${item.count}×</span>
-          </div>
-          <div style="background-color: #EDE5D8; height: 8px; border-radius: 4px; overflow: hidden; width: 100%;">
-            <div style="background-color: ${barColor}; height: 100%; width: ${Math.min(item.percentage, 100)}%; border-radius: 4px;"></div>
-          </div>
-        </div>
-      `;
-    })
-    .join('');
+  const symptomRowsHtml =
+    data.frequentSymptoms.length > 0
+      ? data.frequentSymptoms
+          .map((item, index) => {
+            const barColor = item.color || PALETTE[index % PALETTE.length];
+            return `
+            <tr>
+              <td style="padding: 10px 14px; font-weight: 700; color: #1E293B; font-size: 14px; border-bottom: 1px solid #E2E8F0;">
+                ${item.name}
+              </td>
+              <td style="padding: 10px 14px; font-weight: 700; color: #475569; font-size: 14px; text-align: center; border-bottom: 1px solid #E2E8F0;">
+                ${item.count}×
+              </td>
+              <td style="padding: 10px 14px; width: 45%; border-bottom: 1px solid #E2E8F0;">
+                <div style="background-color: #F1F5F9; height: 10px; border-radius: 5px; overflow: hidden; width: 100%;">
+                  <div style="background-color: ${barColor}; height: 100%; width: ${Math.min(
+              item.percentage,
+              100
+            )}%; border-radius: 5px;"></div>
+                </div>
+              </td>
+            </tr>
+          `;
+          })
+          .join('')
+      : `<tr><td colspan="3" style="padding: 14px; color: #64748B; text-align: center; font-size: 14px;">No symptom frequency records found.</td></tr>`;
 
-  const notesHtml = data.patternsNotes.length > 0
-    ? data.patternsNotes
-        .map(
-          (note) => `
-          <li style="margin-bottom: 8px; line-height: 1.5; color: #3E2D1E; font-size: 13.5px;">
-            ${note.replace(/^[-*•]\s*/, '')}
-          </li>
-        `
-        )
-        .join('')
-    : '<li style="color: #9A9088; font-size: 13.5px;">No specific patterns noted yet.</li>';
+  const notesHtml =
+    data.patternsNotes.length > 0
+      ? data.patternsNotes
+          .map(
+            (note) => `
+            <li style="margin-bottom: 10px; line-height: 1.6; color: #1E293B; font-size: 14px;">
+              ${note.replace(/^[-*•]\s*/, '')}
+            </li>
+          `
+          )
+          .join('')
+      : '<li style="color: #64748B; font-size: 14px;">No significant clinical patterns noted yet.</li>';
 
-  const questionsHtml = data.questionsToDiscuss.length > 0
-    ? data.questionsToDiscuss
-        .map(
-          (q) => `
-          <li style="margin-bottom: 8px; line-height: 1.5; color: #3E2D1E; font-size: 13.5px;">
-            ${q.replace(/^[-*•\d.]\s*/, '')}
-          </li>
-        `
-        )
-        .join('')
-    : '<li style="color: #9A9088; font-size: 13.5px;">Speak to your doctor regarding any persistent symptoms.</li>';
+  const questionsHtml =
+    data.questionsToDiscuss.length > 0
+      ? data.questionsToDiscuss
+          .map(
+            (q) => `
+            <li style="margin-bottom: 10px; line-height: 1.6; color: #1E293B; font-size: 14px;">
+              ${q.replace(/^[-*•\d.]\s*/, '')}
+            </li>
+          `
+          )
+          .join('')
+      : '<li style="color: #64748B; font-size: 14px;">Review any recurring discomfort, sleep disruptions, or medication timings.</li>';
+
+  const recentLogsHtml =
+    data.recentLogs && data.recentLogs.length > 0
+      ? `
+      <div class="section-card">
+        <div class="section-title">RECENT LOG HISTORY (LAST ${data.recentLogs.length} ENTRIES)</div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+          <thead>
+            <tr style="background-color: #F8FAFC; text-align: left;">
+              <th style="padding: 9px 12px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; border-bottom: 2px solid #CBD5E1;">Date & Time</th>
+              <th style="padding: 9px 12px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; border-bottom: 2px solid #CBD5E1;">Symptom</th>
+              <th style="padding: 9px 12px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; border-bottom: 2px solid #CBD5E1; text-align: center;">Severity</th>
+              <th style="padding: 9px 12px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; border-bottom: 2px solid #CBD5E1;">Triggers / Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.recentLogs
+              .map((log) => {
+                const sevNum = Number(log.severity) || 0;
+                const badgeBg = sevNum >= 7 ? '#FEE2E2' : sevNum >= 4 ? '#FEF3C7' : '#DCFCE7';
+                const badgeColor = sevNum >= 7 ? '#991B1B' : sevNum >= 4 ? '#92400E' : '#166534';
+                return `
+                <tr>
+                  <td style="padding: 10px 12px; font-size: 13px; color: #334155; border-bottom: 1px solid #E2E8F0; white-space: nowrap;">
+                    <strong>${log.date}</strong><br/>
+                    <span style="font-size: 11px; color: #64748B;">${log.timeOfDay || ''}</span>
+                  </td>
+                  <td style="padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: #0F172A; border-bottom: 1px solid #E2E8F0;">
+                    ${log.description}
+                  </td>
+                  <td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center;">
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 800; background-color: ${badgeBg}; color: ${badgeColor};">
+                      ${log.severity}/10
+                    </span>
+                  </td>
+                  <td style="padding: 10px 12px; font-size: 12.5px; color: #475569; border-bottom: 1px solid #E2E8F0; line-height: 1.4;">
+                    ${log.triggers ? `<strong>Triggers:</strong> ${log.triggers}<br/>` : ''}
+                    ${log.notes ? `<span>${log.notes}</span>` : '—'}
+                  </td>
+                </tr>
+              `;
+              })
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+      : '';
 
   return `
     <!DOCTYPE html>
@@ -72,9 +144,9 @@ export function generateDoctorReportHtml(data: DoctorReportData): string {
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Doctor Summary - ${data.patientName}</title>
+      <title>Clinical Health Summary - ${data.patientName}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Nunito:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Nunito:wght@400;600;700;800;900&display=swap');
         
         * {
           box-sizing: border-box;
@@ -83,214 +155,315 @@ export function generateDoctorReportHtml(data: DoctorReportData): string {
         }
 
         body {
-          font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background-color: #FDFAF5;
-          color: #3E2D1E;
-          padding: 32px 40px;
-          max-width: 800px;
+          font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          background-color: #F8FAFC;
+          color: #0F172A;
+          padding: 28px 36px;
+          max-width: 820px;
           margin: 0 auto;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
-        .header {
+        .header-container {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          border-bottom: 2px solid #EDE5D8;
-          padding-bottom: 20px;
-          margin-bottom: 24px;
+          border-bottom: 3px solid #0F172A;
+          padding-bottom: 16px;
+          margin-bottom: 20px;
         }
 
-        .app-brand {
+        .brand-title {
           font-family: 'DM Serif Display', Georgia, serif;
-          font-size: 26px;
-          color: #7B9E87;
-          letter-spacing: -0.5px;
+          font-size: 28px;
+          color: #0F172A;
+          line-height: 1.1;
         }
 
-        .report-badge {
-          background-color: #D4E7DC;
-          color: #5A7D66;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.8px;
-          text-transform: uppercase;
-          padding: 4px 10px;
-          border-radius: 6px;
-          display: inline-block;
-          margin-top: 4px;
-        }
-
-        .meta-right {
-          text-align: right;
+        .brand-subtitle {
           font-size: 12px;
-          color: #9A9088;
-        }
-
-        .meta-right strong {
-          color: #6A5A4E;
-        }
-
-        .patient-card {
-          background-color: #3E2D1E;
-          color: #FFFFFF;
-          border-radius: 16px;
-          padding: 22px 24px;
-          margin-bottom: 24px;
-        }
-
-        .patient-label {
-          font-size: 11px;
-          letter-spacing: 1.2px;
-          font-weight: 800;
+          font-weight: 700;
+          color: #475569;
+          letter-spacing: 0.6px;
           text-transform: uppercase;
-          color: #D4E7DC;
-          margin-bottom: 4px;
+          margin-top: 3px;
+        }
+
+        .badge-clinical {
+          display: inline-block;
+          background-color: #E2E8F0;
+          color: #1E293B;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          margin-top: 6px;
+          letter-spacing: 0.8px;
+        }
+
+        .meta-box {
+          text-align: right;
+          font-size: 12.5px;
+          color: #475569;
+          line-height: 1.6;
+        }
+
+        .meta-box strong {
+          color: #0F172A;
+          font-weight: 800;
+        }
+
+        /* Patient Banner */
+        .patient-banner {
+          background-color: #1E293B;
+          color: #FFFFFF;
+          border-radius: 12px;
+          padding: 20px 24px;
+          margin-bottom: 20px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .patient-banner-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 16px;
         }
 
         .patient-name {
           font-family: 'DM Serif Display', Georgia, serif;
-          font-size: 24px;
-          margin-bottom: 4px;
-        }
-
-        .patient-range {
-          font-size: 13px;
-          color: #D8CFC4;
-          margin-bottom: 18px;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-        }
-
-        .stat-box {
-          background-color: rgba(255, 255, 255, 0.12);
-          border-radius: 10px;
-          padding: 12px 14px;
-        }
-
-        .stat-val {
-          font-size: 22px;
-          font-weight: 800;
+          font-size: 26px;
           color: #FFFFFF;
+          line-height: 1.1;
         }
 
-        .stat-name {
-          font-size: 10.5px;
-          font-weight: 700;
+        .patient-sub {
+          font-size: 13px;
+          color: #94A3B8;
+          font-weight: 600;
+          margin-top: 4px;
+        }
+
+        .physician-tag {
+          text-align: right;
+          font-size: 12px;
+          color: #CBD5E1;
+          line-height: 1.4;
+        }
+
+        .physician-tag strong {
+          color: #38BDF8;
+          font-size: 13px;
+        }
+
+        /* 4 Key Metrics Grid */
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+        }
+
+        .metric-card {
+          background-color: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 8px;
+          padding: 10px 12px;
+          text-align: center;
+        }
+
+        .metric-value {
+          font-size: 22px;
+          font-weight: 900;
+          color: #FFFFFF;
+          line-height: 1.1;
+        }
+
+        .metric-label {
+          font-size: 10px;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.6px;
-          color: #D8CFC4;
-          margin-top: 2px;
+          letter-spacing: 0.5px;
+          color: #CBD5E1;
+          margin-top: 4px;
         }
 
+        /* Section Cards */
         .section-card {
           background-color: #FFFFFF;
-          border: 1px solid #EDE5D8;
-          border-radius: 14px;
-          padding: 20px 22px;
-          margin-bottom: 20px;
-          box-shadow: 0 1px 3px rgba(62, 45, 30, 0.04);
+          border: 1px solid #CBD5E1;
+          border-radius: 10px;
+          padding: 18px 20px;
+          margin-bottom: 18px;
+          page-break-inside: avoid;
         }
 
         .section-title {
-          font-size: 11.5px;
+          font-size: 12px;
           font-weight: 800;
-          letter-spacing: 1px;
+          letter-spacing: 0.9px;
           text-transform: uppercase;
-          color: #9A9088;
-          margin-bottom: 16px;
+          color: #334155;
+          border-bottom: 2px solid #F1F5F9;
+          padding-bottom: 8px;
+          margin-bottom: 12px;
         }
 
         ul {
-          padding-left: 20px;
+          padding-left: 22px;
         }
 
-        .disclaimer-card {
-          background-color: #F6F0E8;
-          border-left: 4px solid #7B9E87;
-          border-radius: 6px;
+        .disclaimer-box {
+          background-color: #F8FAFC;
+          border-left: 4px solid #64748B;
+          border-radius: 4px;
           padding: 12px 16px;
-          margin-top: 30px;
-          font-size: 11px;
-          line-height: 1.4;
-          color: #6A5A4E;
+          margin-top: 24px;
+          font-size: 11.5px;
+          line-height: 1.5;
+          color: #475569;
+          page-break-inside: avoid;
+        }
+
+        .sign-off-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-top: 28px;
+          padding-top: 14px;
+          border-top: 1px dashed #CBD5E1;
+          font-size: 12px;
+          color: #475569;
+          page-break-inside: avoid;
+        }
+
+        .signature-line {
+          width: 220px;
+          border-bottom: 1px solid #334155;
+          margin-top: 36px;
         }
 
         @media print {
           body {
-            padding: 15px 20px;
-            background: #FFFFFF;
+            background-color: #FFFFFF;
+            padding: 12px 16px;
+          }
+          .patient-banner {
+            box-shadow: none;
+            border: 1px solid #0F172A;
           }
           .section-card {
             box-shadow: none;
-            border-color: #DDD;
           }
         }
       </style>
     </head>
     <body>
-      <div class="header">
+      <!-- Document Header -->
+      <div class="header-container">
         <div>
-          <div class="app-brand">SymptomJournal</div>
-          <div class="report-badge">Clinical Appointment Summary</div>
+          <div class="brand-title">SymptomJournal</div>
+          <div class="brand-subtitle">Clinical Health Summary &amp; Appointment Prep</div>
+          <div class="badge-clinical">Confidential Medical Review</div>
         </div>
-        <div class="meta-right">
-          <div>Generated: <strong>${generatedOn}</strong></div>
+        <div class="meta-box">
+          <div>Report Date: <strong>${generatedOn}</strong></div>
+          <div>Period: <strong>${data.dateRange}</strong></div>
           <div>Tracking Span: <strong>${data.daysTracked} days</strong></div>
         </div>
       </div>
 
-      <div class="patient-card">
-        <div class="patient-label">PATIENT REPORT</div>
-        <div class="patient-name">${data.patientName}</div>
-        <div class="patient-range">${data.dateRange} · ${data.daysTracked} days tracked</div>
-        
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-val">${data.totalEntries}</div>
-            <div class="stat-name">Entries Logged</div>
+      <!-- Patient & Clinical Details -->
+      <div class="patient-banner">
+        <div class="patient-banner-header">
+          <div>
+            <div class="patient-name">${data.patientName}</div>
+            <div class="patient-sub">
+              ${data.conditions ? `Conditions: <strong style="color: #E2E8F0;">${data.conditions}</strong>` : 'General Patient Log'}
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-val">${data.symptomTypesCount}</div>
-            <div class="stat-name">Symptom Types</div>
+          <div class="physician-tag">
+            Physician / Clinic:<br/>
+            <strong>${data.doctorName || 'Attending Physician'}</strong>
           </div>
-          <div class="stat-box">
-            <div class="stat-val">${data.avgSeverity}</div>
-            <div class="stat-name">Avg Severity</div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value">${data.totalEntries}</div>
+            <div class="metric-label">Total Entries</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${data.symptomTypesCount}</div>
+            <div class="metric-label">Symptom Types</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${data.avgSeverity}/10</div>
+            <div class="metric-label">Avg Severity</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${data.daysTracked}d</div>
+            <div class="metric-label">Days Tracked</div>
           </div>
         </div>
       </div>
 
+      <!-- Frequency Breakdown -->
       <div class="section-card">
         <div class="section-title">MOST FREQUENT SYMPTOMS</div>
-        ${symptomRowsHtml || '<p style="color: #9A9088; font-size: 13px;">No symptoms logged in this period.</p>'}
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="text-align: left; font-size: 11px; text-transform: uppercase; color: #64748B;">
+              <th style="padding: 6px 14px; font-weight: 800;">Symptom</th>
+              <th style="padding: 6px 14px; font-weight: 800; text-align: center;">Frequency</th>
+              <th style="padding: 6px 14px; font-weight: 800;">Relative Distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${symptomRowsHtml}
+          </tbody>
+        </table>
       </div>
 
+      <!-- Clinical Patterns -->
       <div class="section-card">
-        <div class="section-title">PATTERNS &amp; CLINICAL NOTES</div>
+        <div class="section-title">CLINICAL PATTERNS &amp; CORRELATIONS</div>
         <ul>
           ${notesHtml}
         </ul>
       </div>
 
+      <!-- Questions to Discuss -->
       ${
         data.questionsToDiscuss.length > 0
           ? `
       <div class="section-card">
-        <div class="section-title">QUESTIONS &amp; TOPICS TO DISCUSS</div>
-        <ul>
+        <div class="section-title">QUESTIONS &amp; TOPICS FOR CLINICAL CONSULTATION</div>
+        <ol style="padding-left: 20px;">
           ${questionsHtml}
-        </ul>
+        </ol>
       </div>
       `
           : ''
       }
 
-      <div class="disclaimer-card">
-        <strong>Confidential Patient Summary:</strong> This report is generated from personal symptom logs recorded in SymptomJournal to aid your healthcare provider during clinical consultations. It is not an automated medical diagnosis or prescription.
+      <!-- Detailed Recent History Table -->
+      ${recentLogsHtml}
+
+      <!-- Medical Disclaimer & Sign-off -->
+      <div class="disclaimer-box">
+        <strong>Notice for Healthcare Professionals:</strong> This document compiles patient-recorded symptom logs, intensity ratings, and self-reported triggers captured via the SymptomJournal mobile platform. It is prepared specifically to assist clinical interviews and should be interpreted alongside formal diagnostic evaluations.
+      </div>
+
+      <div class="sign-off-row">
+        <div>
+          <span>Physician Reviewer: _________________________</span><br/>
+          <span style="font-size: 10.5px; color: #64748B; margin-top: 4px; display: inline-block;">Date: ________________</span>
+        </div>
+        <div>
+          <span>Patient Signature: _________________________</span>
+        </div>
       </div>
     </body>
     </html>
@@ -307,28 +480,27 @@ export async function exportDoctorSummaryToPdf(data: DoctorReportData): Promise<
     }
 
     try {
-      // 1. Generate local PDF file
       const { uri } = await Print.printToFileAsync({ html });
 
-      // 2. Attempt to open native system share dialog
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable && uri) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: `Doctor Summary - ${data.patientName}`,
+          dialogTitle: `Clinical Summary - ${data.patientName}`,
           UTI: 'com.adobe.pdf',
         });
         return;
       }
     } catch (shareErr: any) {
-      console.log('Sharing failed or restricted on device, falling back to direct system print:', shareErr?.message || shareErr);
+      console.log(
+        'Sharing failed or restricted on device, falling back to direct system print:',
+        shareErr?.message || shareErr
+      );
     }
 
-    // 3. Robust fallback: Open system print / "Save as PDF" dialog
     await Print.printAsync({ html });
   } catch (error: any) {
     console.error('Error exporting PDF:', error);
     throw new Error(error?.message || 'Could not export or print doctor report.');
   }
 }
-

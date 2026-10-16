@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Share2, Sparkles, RefreshCw, FileText, AlertCircle, PlusCircle } from 'lucide-react-native';
-import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Share2, RefreshCw, FileText, AlertCircle, PlusCircle, UserCheck } from 'lucide-react-native';
+import { Spacing, Radius } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
@@ -26,9 +28,12 @@ interface SymptomFreq {
 }
 
 const SYMPTOM_BAR_COLORS = ['#C4714F', '#7B9E87', '#E8B87A', '#B8A0D0', '#7AAED0', '#E8A0A0'];
+const STORAGE_KEY_DOCTOR = '@symptomjournal_doctor';
+const STORAGE_KEY_CONDITIONS = '@symptomjournal_conditions';
 
 export default function DoctorSummaryScreen() {
   const router = useRouter();
+  const { colors, isDarkMode, scaled } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,6 +41,8 @@ export default function DoctorSummaryScreen() {
   const [generatingAi, setGeneratingAi] = useState(false);
 
   const [userName, setUserName] = useState('Patient');
+  const [doctorName, setDoctorName] = useState('Dr. Smith (Primary Care)');
+  const [conditions, setConditions] = useState('Migraine, Fatigue');
   const [symptomLogs, setSymptomLogs] = useState<any[]>([]);
   const [totalEntries, setTotalEntries] = useState(0);
   const [symptomTypesCount, setSymptomTypesCount] = useState(0);
@@ -53,10 +60,16 @@ export default function DoctorSummaryScreen() {
     else setLoading(true);
 
     try {
-      // 1. Get user profile
+      // 1. Get user profile and stored doctor / conditions
       const user = await getCurrentUser();
       const rawName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Patient';
       setUserName(rawName);
+
+      const storedDoc = await AsyncStorage.getItem(STORAGE_KEY_DOCTOR);
+      if (storedDoc) setDoctorName(storedDoc);
+
+      const storedCond = await AsyncStorage.getItem(STORAGE_KEY_CONDITIONS);
+      if (storedCond) setConditions(storedCond);
 
       // 2. Fetch history
       const historyRes = await api.get('/symptoms/history');
@@ -144,10 +157,8 @@ export default function DoctorSummaryScreen() {
     }, [loadData])
   );
 
-
   const fetchAiPatternsAndSummary = async () => {
     try {
-      // First try fetching patterns to populate Patterns & Notes
       const patternRes = await api.get('/analysis/patterns');
       if (patternRes.data?.ready && patternRes.data?.analysis) {
         const ana = patternRes.data.analysis;
@@ -185,7 +196,6 @@ export default function DoctorSummaryScreen() {
       }
     } catch (err: any) {
       console.log('AI analysis not ready or rate-limited:', err?.message || err);
-      // Fallback local patterns if AI rate-limited
       populateFallbackNotes();
     }
   };
@@ -267,8 +277,26 @@ export default function DoctorSummaryScreen() {
 
     setExportingPdf(true);
     try {
+      // Map recent logs for clean printable table
+      const formattedRecent = symptomLogs.slice(0, 10).map((log) => {
+        const d = log.created_at ? new Date(log.created_at) : new Date();
+        const triggersList = Array.isArray(log.triggers)
+          ? log.triggers.map((t: any) => t.name || t).join(', ')
+          : '';
+        return {
+          date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          timeOfDay: log.time_of_day ? log.time_of_day.charAt(0).toUpperCase() + log.time_of_day.slice(1) : undefined,
+          description: log.description || 'Symptom',
+          severity: log.severity !== undefined ? log.severity : 'N/A',
+          triggers: triggersList || undefined,
+          notes: log.mood || log.notes || undefined,
+        };
+      });
+
       const reportData: DoctorReportData = {
         patientName: userName,
+        doctorName: doctorName,
+        conditions: conditions,
         dateRange: dateRangeText,
         daysTracked,
         totalEntries,
@@ -278,6 +306,7 @@ export default function DoctorSummaryScreen() {
         patternsNotes,
         questionsToDiscuss,
         fullSummaryText: aiSummary,
+        recentLogs: formattedRecent,
       };
 
       await exportDoctorSummaryToPdf(reportData);
@@ -293,23 +322,29 @@ export default function DoctorSummaryScreen() {
   }, [loadData]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header Bar */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Doctor Summary</Text>
+          <Text style={[styles.headerTitle, { color: colors.neutral.brown, fontSize: scaled(26) }]}>
+            Doctor Summary
+          </Text>
           <TouchableOpacity
-            style={[styles.exportButton, exportingPdf && styles.exportButtonDisabled]}
+            style={[
+              styles.exportButton,
+              { backgroundColor: isDarkMode ? colors.terracotta.base : '#3E2D1E' },
+              exportingPdf && styles.exportButtonDisabled,
+            ]}
             onPress={handleExportPdf}
             disabled={exportingPdf || loading}
             activeOpacity={0.8}
           >
             {exportingPdf ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Share2 size={15} color={Colors.white} style={{ marginRight: 6 }} />
-                <Text style={styles.exportButtonText}>Export PDF</Text>
+                <Share2 size={scaled(15)} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.exportButtonText, { fontSize: scaled(13) }]}>Export PDF</Text>
               </>
             )}
           </TouchableOpacity>
@@ -318,41 +353,45 @@ export default function DoctorSummaryScreen() {
         {loading ? (
           <SummaryScreenSkeleton />
         ) : totalEntries < 3 ? (
-          /* Empty / Insufficient State */
+          /* Locked State */
           <ScrollView
             contentContainerStyle={styles.emptyContainer}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
           >
-            <View style={styles.lockCard}>
-              <View style={styles.lockIconContainer}>
-                <FileText size={36} color={Colors.terracotta.base} />
+            <View style={[styles.lockCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+              <View style={[styles.lockIconContainer, { backgroundColor: colors.terracotta.tint }]}>
+                <FileText size={scaled(36)} color={colors.terracotta.base} />
               </View>
-              <Text style={styles.lockTitle}>Clinical Report Locked</Text>
-              <Text style={styles.lockSubtitle}>
-                Log at least 3 symptoms to generate a comprehensive, clinic-ready Doctor Summary with
-                frequency breakdowns and pattern analysis.
+              <Text style={[styles.lockTitle, { color: colors.neutral.brown, fontSize: scaled(22) }]}>
+                Clinical Report Locked
+              </Text>
+              <Text style={[styles.lockSubtitle, { color: colors.neutral.brownMid, fontSize: scaled(13.5) }]}>
+                Log at least 3 symptoms to generate a comprehensive, clinic-ready Doctor Summary with frequency breakdowns and pattern analysis.
               </Text>
 
               {/* Progress */}
-              <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarBg, { backgroundColor: colors.background.cream }]}>
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${Math.min(100, Math.round((totalEntries / 3) * 100))}%` },
+                    {
+                      width: `${Math.min(100, Math.round((totalEntries / 3) * 100))}%`,
+                      backgroundColor: colors.terracotta.base,
+                    },
                   ]}
                 />
               </View>
-              <Text style={styles.progressLabel}>
+              <Text style={[styles.progressLabel, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
                 {totalEntries} of 3 entries logged ({3 - totalEntries} remaining)
               </Text>
 
               <TouchableOpacity
-                style={styles.logShortcutBtn}
+                style={[styles.logShortcutBtn, { backgroundColor: colors.terracotta.base }]}
                 onPress={() => router.push('/(tabs)/log' as any)}
                 activeOpacity={0.8}
               >
-                <PlusCircle size={18} color={Colors.white} style={{ marginRight: 6 }} />
-                <Text style={styles.logShortcutText}>Log a Symptom Now</Text>
+                <PlusCircle size={scaled(18)} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.logShortcutText, { fontSize: scaled(14) }]}>Log a Symptom Now</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -363,44 +402,64 @@ export default function DoctorSummaryScreen() {
             contentContainerStyle={styles.scrollContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
           >
-            {/* Top Dark Patient Report Card */}
-            <View style={styles.patientCard}>
-              <Text style={styles.patientLabel}>PATIENT REPORT</Text>
-              <Text style={styles.patientName}>{userName}</Text>
-              <Text style={styles.patientMeta}>
-                {dateRangeText} · {daysTracked} {daysTracked === 1 ? 'day' : 'days'} tracked
-              </Text>
+            {/* Top Patient Report Card */}
+            <View style={[styles.patientCard, { backgroundColor: isDarkMode ? '#241E1A' : '#3E2D1E', borderColor: colors.neutral.border }]}>
+              <View style={styles.patientCardHeaderRow}>
+                <View>
+                  <Text style={[styles.patientLabel, { fontSize: scaled(11) }]}>PATIENT REPORT</Text>
+                  <Text style={[styles.patientName, { fontSize: scaled(24) }]}>{userName}</Text>
+                  <Text style={[styles.patientMeta, { fontSize: scaled(13) }]}>
+                    {dateRangeText} · {daysTracked} {daysTracked === 1 ? 'day' : 'days'} tracked
+                  </Text>
+                </View>
+              </View>
+
+              {/* Doctor / Condition Tag */}
+              <View style={styles.doctorInfoRow}>
+                <UserCheck size={scaled(13)} color="#A8C4B0" style={{ marginRight: 5 }} />
+                <Text style={[styles.doctorInfoText, { fontSize: scaled(12) }]}>
+                  {doctorName} · {conditions}
+                </Text>
+              </View>
 
               {/* 3 Metric Grid */}
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
-                  <Text style={styles.statNumber}>{totalEntries}</Text>
-                  <Text style={styles.statTitle}>ENTRIES LOGGED</Text>
+                  <Text style={[styles.statNumber, { fontSize: scaled(20) }]}>{totalEntries}</Text>
+                  <Text style={[styles.statTitle, { fontSize: scaled(9.5) }]}>ENTRIES LOGGED</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statNumber}>{symptomTypesCount}</Text>
-                  <Text style={styles.statTitle}>SYMPTOM TYPES</Text>
+                  <Text style={[styles.statNumber, { fontSize: scaled(20) }]}>{symptomTypesCount}</Text>
+                  <Text style={[styles.statTitle, { fontSize: scaled(9.5) }]}>SYMPTOM TYPES</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statNumber}>{avgSeverity}</Text>
-                  <Text style={styles.statTitle}>AVG SEVERITY</Text>
+                  <Text style={[styles.statNumber, { fontSize: scaled(20) }]}>{avgSeverity}</Text>
+                  <Text style={[styles.statTitle, { fontSize: scaled(9.5) }]}>AVG SEVERITY</Text>
                 </View>
               </View>
             </View>
 
             {/* Most Frequent Symptoms Card */}
-            <View style={styles.card}>
-              <Text style={styles.cardSectionHeader}>MOST FREQUENT SYMPTOMS</Text>
+            <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+              <Text style={[styles.cardSectionHeader, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                MOST FREQUENT SYMPTOMS
+              </Text>
               {frequentSymptoms.length === 0 ? (
-                <Text style={styles.emptyNote}>No symptom data to display.</Text>
+                <Text style={[styles.emptyNote, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                  No symptom data to display.
+                </Text>
               ) : (
                 frequentSymptoms.map((item, index) => (
                   <View key={index} style={styles.symptomRow}>
                     <View style={styles.symptomRowHeader}>
-                      <Text style={styles.symptomName}>{item.name}</Text>
-                      <Text style={styles.symptomCount}>{item.count}×</Text>
+                      <Text style={[styles.symptomName, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
+                        ${item.name}
+                      </Text>
+                      <Text style={[styles.symptomCount, { color: colors.neutral.brownMid, fontSize: scaled(13) }]}>
+                        {item.count}×
+                      </Text>
                     </View>
-                    <View style={styles.barTrack}>
+                    <View style={[styles.barTrack, { backgroundColor: colors.background.cream }]}>
                       <View
                         style={[
                           styles.barFill,
@@ -417,15 +476,21 @@ export default function DoctorSummaryScreen() {
             </View>
 
             {/* Patterns & Notes Card */}
-            <View style={styles.card}>
-              <Text style={styles.cardSectionHeader}>PATTERNS &amp; NOTES</Text>
+            <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+              <Text style={[styles.cardSectionHeader, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                PATTERNS &amp; NOTES
+              </Text>
               {patternsNotes.length === 0 ? (
-                <Text style={styles.emptyNote}>Analyzing patterns from your logs...</Text>
+                <Text style={[styles.emptyNote, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                  Analyzing patterns from your logs...
+                </Text>
               ) : (
                 patternsNotes.map((note, index) => (
                   <View key={index} style={styles.bulletRow}>
-                    <View style={styles.bulletDot} />
-                    <Text style={styles.bulletText}>{note.replace(/^[-*•]\s*/, '')}</Text>
+                    <View style={[styles.bulletDot, { backgroundColor: colors.sage.base }]} />
+                    <Text style={[styles.bulletText, { color: colors.neutral.brown, fontSize: scaled(13.5) }]}>
+                      {note.replace(/^[-*•]\s*/, '')}
+                    </Text>
                   </View>
                 ))
               )}
@@ -433,12 +498,16 @@ export default function DoctorSummaryScreen() {
 
             {/* Questions to Discuss Card */}
             {questionsToDiscuss.length > 0 && (
-              <View style={styles.card}>
-                <Text style={styles.cardSectionHeader}>QUESTIONS TO DISCUSS WITH DOCTOR</Text>
+              <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                <Text style={[styles.cardSectionHeader, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
+                  QUESTIONS TO DISCUSS WITH DOCTOR
+                </Text>
                 {questionsToDiscuss.map((question, index) => (
                   <View key={index} style={styles.bulletRow}>
-                    <View style={[styles.bulletDot, { backgroundColor: Colors.terracotta.base }]} />
-                    <Text style={styles.bulletText}>{question.replace(/^[-*•\d.]\s*/, '')}</Text>
+                    <View style={[styles.bulletDot, { backgroundColor: colors.terracotta.base }]} />
+                    <Text style={[styles.bulletText, { color: colors.neutral.brown, fontSize: scaled(13.5) }]}>
+                      {question.replace(/^[-*•\d.]\s*/, '')}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -447,28 +516,29 @@ export default function DoctorSummaryScreen() {
             {/* Regenerate AI Summary Card Action */}
             <View style={styles.actionsContainer}>
               <TouchableOpacity
-                style={styles.regenerateBtn}
+                style={[styles.regenerateBtn, { backgroundColor: colors.sage.tint }]}
                 onPress={handleRegenerateSummary}
                 disabled={generatingAi}
                 activeOpacity={0.8}
               >
                 {generatingAi ? (
-                  <ActivityIndicator size="small" color={Colors.sage.dark} />
+                  <ActivityIndicator size="small" color={colors.sage.dark} />
                 ) : (
                   <>
-                    <RefreshCw size={15} color={Colors.sage.dark} style={{ marginRight: 6 }} />
-                    <Text style={styles.regenerateBtnText}>Refresh Clinical Insights</Text>
+                    <RefreshCw size={scaled(15)} color={colors.sage.dark} style={{ marginRight: 6 }} />
+                    <Text style={[styles.regenerateBtnText, { color: colors.sage.dark, fontSize: scaled(13) }]}>
+                      Refresh Clinical Insights
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
 
             {/* Medical Disclaimer */}
-            <View style={styles.disclaimerContainer}>
-              <AlertCircle size={14} color={Colors.neutral.muted} style={{ marginRight: 6, marginTop: 1 }} />
-              <Text style={styles.disclaimerText}>
-                This report is compiled to facilitate your doctor's clinical review. It does not replace
-                professional medical advice or clinical diagnoses.
+            <View style={[styles.disclaimerContainer, { backgroundColor: isDarkMode ? '#1E1A17' : '#F3ECE2' }]}>
+              <AlertCircle size={scaled(14)} color={colors.neutral.muted} style={{ marginRight: 6, marginTop: 1 }} />
+              <Text style={[styles.disclaimerText, { color: colors.neutral.brownMid, fontSize: scaled(11.5) }]}>
+                This report is compiled to facilitate your doctor's clinical review. It does not replace professional medical advice or clinical diagnoses.
               </Text>
             </View>
 
@@ -483,7 +553,6 @@ export default function DoctorSummaryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.canvas,
   },
   safe: {
     flex: 1,
@@ -498,13 +567,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 26,
-    color: Colors.neutral.brown,
   },
   exportButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3E2D1E',
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: Radius.full,
@@ -514,35 +580,26 @@ const styles = StyleSheet.create({
   },
   exportButtonText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.white,
-  },
-  centerLoading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  loadingText: {
-    fontFamily: 'Nunito-Medium',
-    fontSize: FontSize.body,
-    color: Colors.neutral.brownMid,
-    marginTop: Spacing.md,
+    color: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
-  /* Top Dark Patient Card */
+  /* Patient Card */
   patientCard: {
-    backgroundColor: '#3E2D1E',
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
+    borderWidth: 1,
+  },
+  patientCardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   patientLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11,
     color: '#D4E7DC',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -550,15 +607,22 @@ const styles = StyleSheet.create({
   },
   patientName: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 24,
-    color: Colors.white,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   patientMeta: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 13,
     color: '#D8CFC4',
+    marginBottom: 8,
+  },
+  doctorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  doctorInfoText: {
+    fontFamily: 'Nunito-Bold',
+    color: '#A8C4B0',
   },
   statsRow: {
     flexDirection: 'row',
@@ -574,24 +638,20 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 20,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   statTitle: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 9.5,
     color: '#D8CFC4',
     letterSpacing: 0.4,
     marginTop: 2,
   },
   /* Section Cards */
   card: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: '#EFE7DC',
     shadowColor: '#3E2D1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -600,13 +660,10 @@ const styles = StyleSheet.create({
   },
   cardSectionHeader: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 11.5,
-    color: Colors.neutral.muted,
     letterSpacing: 0.9,
     textTransform: 'uppercase',
     marginBottom: Spacing.md,
   },
-  /* Symptom Bar Rows */
   symptomRow: {
     marginBottom: Spacing.md,
   },
@@ -618,17 +675,12 @@ const styles = StyleSheet.create({
   },
   symptomName: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 14,
-    color: Colors.neutral.brown,
   },
   symptomCount: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.neutral.brownMid,
   },
   barTrack: {
     height: 8,
-    backgroundColor: '#EDE5D8',
     borderRadius: 4,
     overflow: 'hidden',
     width: '100%',
@@ -637,7 +689,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  /* Bullet Rows */
   bulletRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -647,23 +698,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.sage.base,
     marginTop: 6,
     marginRight: 10,
   },
   bulletText: {
     flex: 1,
     fontFamily: 'Nunito-Medium',
-    fontSize: 13.5,
-    color: Colors.neutral.brown,
     lineHeight: 19,
   },
   emptyNote: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 13,
-    color: Colors.neutral.muted,
   },
-  /* Action Buttons */
   actionsContainer: {
     alignItems: 'center',
     marginVertical: Spacing.sm,
@@ -671,21 +716,16 @@ const styles = StyleSheet.create({
   regenerateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.sage.tint,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: Radius.full,
   },
   regenerateBtnText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 13,
-    color: Colors.sage.dark,
   },
-  /* Disclaimer */
   disclaimerContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F3ECE2',
     padding: Spacing.md,
     borderRadius: Radius.md,
     marginTop: Spacing.sm,
@@ -693,44 +733,34 @@ const styles = StyleSheet.create({
   disclaimerText: {
     flex: 1,
     fontFamily: 'Nunito-Medium',
-    fontSize: 11.5,
-    color: Colors.neutral.brownMid,
     lineHeight: 16,
   },
-  /* Empty State / Lock Screen */
   emptyContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: Spacing.lg,
   },
   lockCard: {
-    backgroundColor: Colors.background.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
   },
   lockIconContainer: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.terracotta.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
   lockTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
-    fontSize: 22,
-    color: Colors.neutral.brown,
     marginBottom: Spacing.xs,
     textAlign: 'center',
   },
   lockSubtitle: {
     fontFamily: 'Nunito-Medium',
-    fontSize: 13.5,
-    color: Colors.neutral.brownMid,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: Spacing.lg,
@@ -738,26 +768,21 @@ const styles = StyleSheet.create({
   progressBarBg: {
     width: '100%',
     height: 8,
-    backgroundColor: '#EDE5D8',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: Spacing.xs,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.terracotta.base,
     borderRadius: 4,
   },
   progressLabel: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 12,
-    color: Colors.neutral.muted,
     marginBottom: Spacing.lg,
   },
   logShortcutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.terracotta.base,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: Radius.lg,
@@ -766,7 +791,6 @@ const styles = StyleSheet.create({
   },
   logShortcutText: {
     fontFamily: 'Nunito-Bold',
-    fontSize: 14,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 });
