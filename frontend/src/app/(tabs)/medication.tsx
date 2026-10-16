@@ -33,7 +33,7 @@ const QUICK_QUESTIONS = [
 
 export default function MedicationAssistantScreen() {
     const router = useRouter();
-    const { colors, isDarkMode } = useTheme();
+    const { colors, isDarkMode, scaled } = useTheme();
 
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -107,16 +107,25 @@ export default function MedicationAssistantScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
-            <SafeAreaView style={styles.safe}>
+            <SafeAreaView style={styles.safe} edges={['top']}>
                 
                 {/* Header with Back Button */}
-                <View style={styles.header}>
-                    <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.background.cream }]} onPress={() => router.back()}>
+                <View style={[styles.header, { borderBottomColor: colors.neutral.border }]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.backBtn,
+                            {
+                                backgroundColor: isDarkMode ? '#24201D' : '#F6F0E8',
+                                borderColor: colors.neutral.border,
+                            },
+                        ]}
+                        onPress={() => router.back()}
+                    >
                         <ChevronLeft size={16} color={colors.neutral.brown} />
                         <Text style={[styles.backBtnText, { color: colors.neutral.brown }]}>Back</Text>
                     </TouchableOpacity>
-                    <Text style={[styles.title, { color: colors.neutral.brown }]}>Medication Assistant</Text>
-                    <Text style={[styles.subtitle, { color: colors.neutral.muted }]}>AI-powered medication info & general health guidance</Text>
+                    <Text style={[styles.title, { color: colors.neutral.brown, fontSize: scaled(24) }]}>Medication Assistant</Text>
+                    <Text style={[styles.subtitle, { color: colors.neutral.muted, fontSize: scaled(13) }]}>AI-powered medication info & general health guidance</Text>
                 </View>
 
                 {/* Quick Prompts */}
@@ -202,18 +211,24 @@ const styles = StyleSheet.create({
     safe: { flex: 1 },
     header: {
         paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.md,
+        paddingTop: Spacing.sm,
         paddingBottom: Spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.border,
     },
     backBtn: {
-        marginBottom: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: Radius.full,
+        borderWidth: 1,
+        marginBottom: 8,
+        gap: 4,
     },
     backBtnText: {
         fontFamily: 'Nunito-Bold',
-        fontSize: FontSize.body,
-        color: Colors.sage.dark,
+        fontSize: FontSize.caption,
     },
     title: {
         fontFamily: 'DMSerifDisplay-Regular',
@@ -298,10 +313,11 @@ const styles = StyleSheet.create({
 
     inputContainer: {
         flexDirection: 'row',
-        padding: Spacing.md,
-        backgroundColor: Colors.background.card,
+        alignItems: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 8 : 4,
         borderTopWidth: 1,
-        borderTopColor: Colors.neutral.border,
         gap: 8,
     },
     textInput: {

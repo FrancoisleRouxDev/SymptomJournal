@@ -16,7 +16,7 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 
 ---
 
-## 📲 Quick Links & Live Deployments
+## Quick Links & Live Deployments
 
 | Resource | Link | Description |
 |:---|:---|:---|
@@ -30,7 +30,7 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -65,37 +65,37 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 
 ---
 
-## ✨ Core Feature Highlights
+## Core Feature Highlights
 
-### 1. 📝 Granular Symptom Logging & Customization
+### 1. Granular Symptom Logging & Customization
 * **Rapid 15-second entry:** 6 core categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specialized subcategories and emoji cues.
 * **1–10 Severity & Onset:** Precise sliders with visual color transitions and time presets (*Morning, Afternoon, Evening, Night*).
 * **Custom Anatomical Areas:** Add custom body areas grouped under intuitive parent regions (*Head, Neck, Torso, Back, Arms, Legs, Other*).
 * **Custom Lifestyle Triggers:** Create and save personal triggers (*e.g., "Screen Glare", "Dehydration", "Late Coffee"*) with local persistence.
 
-### 2. 🌓 Complete Dark & Light Mode System
+### 2. Complete Dark & Light Mode System
 * **Bespoke Palette:** Calming Deep Slate dark canvas (`#121614`), warm element cards (`#1A211D`), sage accents (`#8BAE97`), and crisp contrast text (`#EBE3D7`).
 * **Instant Toggle:** Accessible via the Quick Switch on the Profile screen or inside Settings, automatically updating all tabs, modals, and navigation stacks.
 
-### 3. 🔍 Accessibility & Dynamic Text Scaling
+### 3. Accessibility & Dynamic Text Scaling
 * **User-Selectable Sizing:** Choose between *Small (85%)*, *Medium (100%)*, *Large (115%)*, and *Extra Large (130%)*.
 * **Global Font Scaling:** Scales headings, body text, badges, and button labels dynamically for maximum legibility.
 
-### 4. 🧠 AI Pattern Recognition & Insights
+### 4. AI Pattern Recognition & Insights
 * **Multi-Entry Synthesis:** Automatically evaluates trends once $\ge 3$ logs are recorded.
 * **Correlations Detected:** Temporal clustering (*"Headaches frequently occur between 3 PM – 6 PM"*), trigger associations (*"Poor sleep correlates with 75% of fatigue spikes"*), and calm lifestyle recommendations.
 * **Zero Jitter:** Shimmer skeleton loaders provide smooth transitions during inference.
 
-### 5. 💬 AI Medication & Health Assistant
+### 5. AI Medication & Health Assistant
 * **Safe Clinical Guardrails:** Conversational assistant answering questions regarding over-the-counter medications, interactions, and symptom management.
 * **Strict Non-Diagnostic Disclaimer:** Explicit reminders ensuring users consult their physician or pharmacist for medical treatment.
 
-### 6. 📄 Clinical Doctor Summary & PDF Export
+### 6. Clinical Doctor Summary & PDF Export
 * **SBAR Format:** Formats logged history into a physician-aligned brief (*Situation, Background, Assessment, Recommendation*).
 * **Publication-Grade Print Layout:** High-contrast typography, distribution tables, symptom frequency percentages, patient details, and physician sign-off line.
 * **Native System Share & Print:** One-tap export via `expo-print` and `expo-sharing` on iOS, Android, and Web.
 
-### 7. 🩺 Physician Profile Management
+### 7. Physician Profile Management
 * **Editable Doctor Details:** Track your attending physician's name, primary clinic, and tracked chronic conditions with quick modal editing.
 * **Dual-Sync:** Instant local caching via `AsyncStorage` paired with cloud backup to Supabase `user_metadata`.
 
@@ -117,7 +117,7 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 
 ---
 
-## 🎨 Design System & Brand Identity
+## Design System & Brand Identity
 
 The interface balances medical clarity with calming organic aesthetics:
 
@@ -133,7 +133,7 @@ The interface balances medical clarity with calming organic aesthetics:
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
 SymptomJournal enforces automated test coverage across both frontend and backend layers:
 
@@ -166,7 +166,7 @@ cd backend
 
 ---
 
-## 💻 Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 * **Node.js** $\ge 18$
@@ -210,7 +210,7 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ---
 
-## 🗺️ Project Roadmap & Status
+## Project Roadmap & Status
 
 - [X] **Phase 1 — Setup & Scaffolding** (Brand design tokens, typography, navigation skeleton)
 - [X] **Phase 2 — Auth & Symptom Logging** (Supabase Auth, category grid, severity sliders)
@@ -223,7 +223,7 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ---
 
-## 🎓 Academic Module
+## Academic Module
 **Module:** Interactive Development 300 (DV300) – Theme 4: AI-Driven Application  
 **Institution:** The Open Window Institute  
 **Student:** Francois le Roux (231256)  
