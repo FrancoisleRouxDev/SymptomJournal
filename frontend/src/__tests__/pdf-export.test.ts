@@ -50,7 +50,7 @@ describe('PDF Export Utility (src/lib/pdf-export.ts)', () => {
     it('should generate complete HTML document with patient header, stats, and symptom breakdown', () => {
       const html = generateDoctorReportHtml(sampleReportData);
 
-      expect(html).toContain('Doctor Summary - Jane Doe');
+      expect(html).toContain('Clinical Health Summary - Jane Doe');
       expect(html).toContain('Jane Doe');
       expect(html).toContain('Oct 1, 2026 – Oct 8, 2026');
       expect(html).toContain('5.2');
@@ -66,7 +66,7 @@ describe('PDF Export Utility (src/lib/pdf-export.ts)', () => {
 
       expect(html).toContain('Headaches frequently cluster in the morning hours.');
       expect(html).toContain('Should I adjust my sleep schedule or try magnesium?');
-      expect(html).toContain('Confidential Patient Summary:');
+      expect(html).toContain('Confidential Medical Review');
     });
 
     it('should handle empty pattern notes and questions gracefully with placeholders', () => {
@@ -78,7 +78,7 @@ describe('PDF Export Utility (src/lib/pdf-export.ts)', () => {
 
       const html = generateDoctorReportHtml(emptyData);
 
-      expect(html).toContain('No specific patterns noted yet.');
+      expect(html).toContain('No significant clinical patterns noted yet.');
     });
   });
 
@@ -112,7 +112,7 @@ describe('PDF Export Utility (src/lib/pdf-export.ts)', () => {
       expect(Print.printToFileAsync).toHaveBeenCalled();
       expect(Sharing.shareAsync).toHaveBeenCalledWith('file:///cache/report.pdf', {
         mimeType: 'application/pdf',
-        dialogTitle: 'Doctor Summary - Jane Doe',
+        dialogTitle: 'Clinical Summary - Jane Doe',
         UTI: 'com.adobe.pdf',
       });
 

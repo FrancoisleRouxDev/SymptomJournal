@@ -1,14 +1,14 @@
 # SymptomJournal 🌿
 > *"Log it calmly. Understand it clearly. Talk to your doctor with confidence."*
 
-[![Milestone 2](https://img.shields.io/badge/Milestone%202-Complete%20(100%25)-3D6456?style=for-the-badge&logo=checkmarx)](docs/MILESTONE_2_DOCUMENTATION.md)
-[![Release](https://img.shields.io/badge/Release-v1.0.1%20APK-C86D51?style=for-the-badge&logo=android)](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/tag/v1.0.1)
-[![Tests](https://img.shields.io/badge/Tests-94%20Passing-brightgreen?style=for-the-badge&logo=jest)](frontend/src/__tests__)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2057-000020?style=for-the-badge&logo=expo)](https://expo.dev)
+[![Release](https://img.shields.io/badge/Release-v1.0.3-C86D51?style=for-the-badge&logo=github)](https://github.com/FrancoisleRouxDev/SymptomJournal/releases)
+[![Tests](https://img.shields.io/badge/Tests-103%20Passing-brightgreen?style=for-the-badge&logo=pytest)](frontend/src/__tests__)
+[![Expo](https://img.shields.io/badge/Expo-SDK%2057%20(iOS%20%26%20Android)-000020?style=for-the-badge&logo=expo)](https://expo.dev)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20Cloud-009688?style=for-the-badge&logo=fastapi)](https://symptomjournal.onrender.com/docs)
 [![Supabase](https://img.shields.io/badge/Database-Supabase%20Postgres-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
+[![Theme](https://img.shields.io/badge/Theme-Dark%20%26%20Light%20Mode-5A7D66?style=for-the-badge)]()
 
-A mobile health companion engineered to replace the anxiety of Googling symptoms with calm, structured self-awareness. Users log their physical and emotional symptoms in seconds, discover temporal correlations powered by NVIDIA NIM AI, and export clinical SBAR doctor summaries directly to PDF for medical appointments.
+A cross-platform mobile health companion engineered to replace the anxiety of Googling symptoms with calm, structured self-awareness. Users log their physical and emotional symptoms in seconds, customize anatomical body regions and triggers, discover temporal correlations powered by NVIDIA NIM AI, and export clinical SBAR doctor summaries directly to PDF for medical appointments.
 
 ---
 
@@ -16,12 +16,13 @@ A mobile health companion engineered to replace the anxiety of Googling symptoms
 
 | Resource | Link | Description |
 |:---|:---|:---|
-| **Android APK (Latest)** | [**Download v1.0.1 APK**](https://github.com/FrancoisleRouxDev/SymptomJournal/releases/download/v1.0.1/SymptomJournal-v1.0.1.apk) | Direct installable Android build with brand icons & splash |
-| **GitHub Releases** | [**SymptomJournal Releases**](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Release notes, changelog, and standalone APK binaries |
-| **Cloud API (Live)** | [**symptomjournal.onrender.com**](https://symptomjournal.onrender.com) | Production FastAPI backend hosted on Render |
+| **GitHub Releases (v1.0.3)** | [**SymptomJournal Releases**](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Latest release notes, changelog, and standalone build binaries |
+| **Android APK Build** | [**Download APK (v1.0.3)**](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Standalone installable Android build with brand icons & splash |
+| **iOS Simulator Build** | [**iOS Simulator (.tar.gz)**](https://expo.dev/artifacts/eas/evplY85VchJ5j7K3TtDT6uXIu1fE2h_BfyZBJYh9l9s.tar.gz) | Apple iOS Simulator build for Appetize.io or Xcode Simulator |
+| **Cloud API (Production)** | [**symptomjournal.onrender.com**](https://symptomjournal.onrender.com) | Production FastAPI backend hosted on Render |
 | **Interactive API Docs** | [**Swagger UI Documentation**](https://symptomjournal.onrender.com/docs) | Interactive OpenAPI testing console with auth & analysis routes |
-| **Presentation Script** | [**Milestone 2 Script**](docs/MILESTONE_2_PRESENTATION_SCRIPT.md) | 3-minute demo guide & rubric defense for lecturers |
-| **Technical Report** | [**Milestone 2 Report**](docs/MILESTONE_2_DOCUMENTATION.md) | In-depth architecture, risk mitigation, and testing log |
+| **Presentation Script** | [**Presentation Script**](docs/MILESTONE_2_PRESENTATION_SCRIPT.md) | Demo walkthrough & rubric defense |
+| **Technical Documentation** | [**Technical Report**](docs/MILESTONE_2_DOCUMENTATION.md) | In-depth architecture, data schemas, and risk mitigation |
 
 ---
 
@@ -29,10 +30,11 @@ A mobile health companion engineered to replace the anxiety of Googling symptoms
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   React Native (Expo SDK 57)           │
+│             React Native (Expo SDK 57)                 │
 │   • Expo Router (Tabs & Stacks)   • Lucide Icons       │
+│   • Light & Dark Theme System     • Dynamic Text Scale │
+│   • Custom Triggers & Body Areas  • Print / PDF Export │
 │   • Persistent Session (AsyncStorage + AppState)       │
-│   • Shimmer Skeleton Loaders      • Print / PDF Export │
 └───────────┬────────────────────────────────┬───────────┘
             │                                │
       Supabase Auth                     JWT Bearer Auth
@@ -59,86 +61,88 @@ A mobile health companion engineered to replace the anxiety of Googling symptoms
 
 ---
 
-## ✨ Core Feature Showcase
+## ✨ Core Feature Highlights
 
-### 1. 📝 Structured Symptom Logging
-* **Fast 15-second entry:** 6 major categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specialized subcategories.
-* **Granular Tracking:** 1–10 visual severity slider, interactive body area selectors, onset timing presets, customizable lifestyle triggers, and contextual notes.
-* **Instant Persistence:** Automatically saved to Supabase PostgreSQL with optimistic state updates.
+### 1. 📝 Granular Symptom Logging & Customization
+* **Rapid 15-second entry:** 6 core categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specialized subcategories and emoji cues.
+* **1–10 Severity & Onset:** Precise sliders with visual color transitions and time presets (*Morning, Afternoon, Evening, Night*).
+* **Custom Anatomical Areas:** Add custom body areas grouped under intuitive parent regions (*Head, Neck, Torso, Back, Arms, Legs, Other*).
+* **Custom Lifestyle Triggers:** Create and save personal triggers (*e.g., "Screen Glare", "Dehydration", "Late Coffee"*) with local persistence.
 
-### 2. 📅 Chronological Timeline & Filters
-* **Visual Calendar Feed:** Chronological history grouped by date with category badge indicators.
-* **Dynamic Filtering:** Filter history by category tabs and review severity levels over time.
+### 2. 🌓 Complete Dark & Light Mode System
+* **Bespoke Palette:** Calming Deep Slate dark canvas (`#121614`), warm element cards (`#1A211D`), sage accents (`#8BAE97`), and crisp contrast text (`#EBE3D7`).
+* **Instant Toggle:** Accessible via the Quick Switch on the Profile screen or inside Settings, automatically updating all tabs, modals, and navigation stacks.
 
-### 3. 🧠 AI Pattern Recognition (Core AI)
-* **Multi-Entry Synthesis:** Requires $\ge 3$ entries to unlock deep trend analysis.
-* **Correlations Detected:** Temporal patterns (e.g., *"Headaches cluster around late afternoons"*), lifestyle trigger links (*"Poor sleep correlates with 80% of fatigue spikes"*), and calm lifestyle advice.
-* **UX Continuity:** Shimmer skeleton loaders provide immediate visual feedback while the LLM generates inferences.
+### 3. 🔍 Accessibility & Dynamic Text Scaling
+* **User-Selectable Sizing:** Choose between *Small (85%)*, *Medium (100%)*, *Large (115%)*, and *Extra Large (130%)*.
+* **Global Font Scaling:** Scales headings, body text, badges, and button labels dynamically for maximum legibility.
 
-### 4. 💬 AI Medication & Health Assistant
-* **Safe Clinical Guardrails:** Conversational assistant answering questions on over-the-counter medications, potential interactions, and general usage guidelines.
-* **Proactive Disclaimers:** System prompts strictly forbid medical prescriptions or diagnostic claims, reminding users to verify instructions with their pharmacist.
+### 4. 🧠 AI Pattern Recognition & Insights
+* **Multi-Entry Synthesis:** Automatically evaluates trends once $\ge 3$ logs are recorded.
+* **Correlations Detected:** Temporal clustering (*"Headaches frequently occur between 3 PM – 6 PM"*), trigger associations (*"Poor sleep correlates with 75% of fatigue spikes"*), and calm lifestyle recommendations.
+* **Zero Jitter:** Shimmer skeleton loaders provide smooth transitions during inference.
 
-### 5. 📄 Clinical Doctor Summary & PDF Export
-* **SBAR Format:** Formats logged patient history into a structured briefing (*Situation, Background, Assessment, Recommendation*) specifically formatted for physicians.
-* **Native PDF Compilation:** Generates a clean, print-ready medical report via `expo-print` with one-tap system sharing and native printing.
+### 5. 💬 AI Medication & Health Assistant
+* **Safe Clinical Guardrails:** Conversational assistant answering questions regarding over-the-counter medications, interactions, and symptom management.
+* **Strict Non-Diagnostic Disclaimer:** Explicit reminders ensuring users consult their physician or pharmacist for medical treatment.
 
-### 6. 🔐 Auth & Persistent Session
-* **Supabase JWT:** Secure email/password authentication, automatic user profile creation in PostgreSQL, and 1-click **Guest Access** for demo evaluators.
-* **App Closure Persistence:** Native `AppState` listeners and `AsyncStorage` keep the user logged in across complete app terminations and re-launches.
+### 6. 📄 Clinical Doctor Summary & PDF Export
+* **SBAR Format:** Formats logged history into a physician-aligned brief (*Situation, Background, Assessment, Recommendation*).
+* **Publication-Grade Print Layout:** High-contrast typography, distribution tables, symptom frequency percentages, patient details, and physician sign-off line.
+* **Native System Share & Print:** One-tap export via `expo-print` and `expo-sharing` on iOS, Android, and Web.
+
+### 7. 🩺 Physician Profile Management
+* **Editable Doctor Details:** Track your attending physician's name, primary clinic, and tracked chronic conditions with quick modal editing.
+* **Dual-Sync:** Instant local caching via `AsyncStorage` paired with cloud backup to Supabase `user_metadata`.
 
 ---
 
 ## 🎨 Design System & Brand Identity
 
-The design system prioritizes a calm, non-alarmist medical experience:
+The interface balances medical clarity with calming organic aesthetics:
 
-| Token | Hex Code | Visual Application |
-|:---|:---|:---|
-| **Sage Dark** | `#5A7D66` | Primary buttons, active badges, Android adaptive background |
-| **Sage Base** | `#7B9E87` | Logo squircle, accents, sliders, tab active highlights |
-| **Terracotta** | `#C86D51` | Subtle brand accent dot, critical category highlights |
-| **Warm Canvas** | `#F6F0E8` | Native splash screen background, app screen canvas |
-| **Card / Element**| `#FDFAF5` | Elevated cards, symptom form containers |
-| **Deep Brown** | `#3E2D1E` | Typography headings (DM Serif Display) |
-| **Muted Brown** | `#6A5A4E` | Body and secondary text (Nunito) |
+| Token | Light Theme | Dark Theme | Purpose |
+|:---|:---|:---|:---|
+| **Canvas** | `#F6F0E8` (Warm Linen) | `#121614` (Deep Slate) | Screen background |
+| **Card / Surface** | `#FDFAF5` (Off-white) | `#1A211D` (Muted Slate) | Elevated containers & cards |
+| **Primary Accent** | `#5A7D66` (Sage Dark) | `#8BAE97` (Sage Glow) | Active buttons, tabs & badges |
+| **Secondary Accent**| `#C86D51` (Terracotta) | `#D97A5C` (Warm Rust) | High-severity indicators |
+| **Headings** | `#3E2D1E` (Deep Bark) | `#EBE3D7` (Ivory Soft) | DM Serif Display headers |
+| **Body Text** | `#6A5A4E` (Muted Soil) | `#B3AAA0` (Warm Grey) | Nunito regular / medium text |
+| **Borders** | `#E8DFD1` | `#2D3830` | Structural dividers & chip outlines |
 
 ---
 
 ## 🧪 Testing & Verification
 
-The application maintains a dual automated testing suite spanning both frontend and backend architectures:
+SymptomJournal enforces automated test coverage across both frontend and backend layers:
 
 ### Frontend Unit & Integration Tests (Jest)
 ```powershell
 cd frontend
 npm test
 ```
-* **54 Tests Passing** across 7 test suites (**94.6% code coverage**):
+* **54 Tests Passing** across 7 test suites:
   * `auth.test.ts` — Session recovery, authentication flows, and profile updates.
   * `api.test.ts` — Axios interceptors, JWT attachment, and error handling.
-  * `pdf-export.test.ts` — SBAR HTML formatting, system share dialog, and print fallbacks.
+  * `pdf-export.test.ts` — Clinical HTML generation, patient headers, and native share dialogs.
   * `SkeletonLoader.test.tsx` — Shimmer loading state animations across tab views.
   * `symptom-validation.test.ts` — Category bounds, severity constraints (1–10).
-  * `theme.test.ts` — Color token maps and semantic palettes.
+  * `theme.test.ts` — Semantic tokens, contrast levels, and theme provider state.
   * `components.test.tsx` — Custom typography and themed wrappers.
 
 ### Backend Unit & Integration Tests (pytest)
 ```powershell
 cd backend
-.\.venv\Scripts\pytest --cov=routers --cov=services
+.\.venv\Scripts\pytest
 ```
-* **40 Tests Passing** (**77% statement coverage**):
+* **49 Tests Passing** across 4 test suites:
+  * `test_analysis.py` — SBAR summary generation, trend calculation, and pattern recognition.
   * `test_auth.py` — Supabase JWT verification (`ES256` / `HS256`) and profile auto-sync.
   * `test_symptoms.py` — Input validation (Pydantic constraints) and CRUD logic.
-  * `test_ai_service.py` — LLM mocking, JSON fence stripping, fallback recovery.
+  * `test_ai_service.py` — LLM mocking, JSON fence stripping, and fallback recovery.
 
-### End-to-End Live Subsystem Healthcheck
-```powershell
-cd backend
-python tests/e2e_healthcheck.py
-```
-* Directly probes live Supabase database tables, NVIDIA NIM inference, FastAPI security guards, and Render cloud hosting (`200 OK`).
+**Total Automated Coverage: 103 Passing Tests**
 
 ---
 
@@ -147,7 +151,7 @@ python tests/e2e_healthcheck.py
 ### Prerequisites
 * **Node.js** $\ge 18$
 * **Python** $\ge 3.11$
-* **Expo Go** on Android/iOS (or Android Emulator)
+* **Expo Go** on Android/iOS (or Android Emulator / iOS Simulator)
 
 ### 1. Clone Repository
 ```bash
@@ -163,7 +167,7 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
-*Backend Swagger Docs will be accessible at: `http://localhost:8000/docs`*
+*Backend Swagger Docs accessible at: `http://localhost:8000/docs`*
 
 ### 3. Frontend Setup (React Native / Expo)
 ```bash
@@ -171,7 +175,18 @@ cd ../frontend
 npm install
 npm start
 ```
-*Scan the QR code in your terminal with Expo Go (Android) or the Camera app (iOS).*
+* Scan the terminal QR code with **Expo Go** (Android) or the **Camera app** (iOS).
+* Press `w` to run on **Web** (supports Chrome Device Emulation).
+* Press `a` to run on a connected **Android Emulator / Device**.
+
+### 4. Cloud Builds (EAS)
+```powershell
+# Build standalone Android APK
+npx eas-cli build -p android --profile preview
+
+# Build iOS Simulator bundle (for Appetize.io or local Mac simulator)
+npx eas-cli build -p ios --profile preview-simulator
+```
 
 ---
 
@@ -181,9 +196,10 @@ npm start
 - [X] **Phase 2 — Auth & Symptom Logging** (Supabase Auth, category grid, severity sliders)
 - [X] **Phase 3 — AI Integration via FastAPI** (NVIDIA NIM, pattern detection, safety guardrails)
 - [X] **Phase 4 — Core Features & Screens** (Timeline, Doctor Summary, Medication Chatbot, Profile)
-- [X] **Phase 5 — Polish, Testing & Persistence** (94 automated tests, shimmer loaders, session persistence)
-- [X] **Phase 6 — Cloud Deployment & Release** (Render cloud backend, GitHub Release v1.0.1 APK)
-- [ ] **Phase 7 — Qualitative User Testing** (Weeks 3–4: 5 peer testing sessions, feedback refinement)
+- [X] **Phase 5 — Accessibility & Theming** (Complete Dark Mode, dynamic text sizing, custom triggers & body areas)
+- [X] **Phase 6 — Clinical Export & Hardening** (Redesigned SBAR PDF, doctor info editor, 103 passing tests)
+- [X] **Phase 7 — Multi-Platform Releases** (Render cloud backend, Android APK v1.0.3, iOS Simulator build)
+- [ ] **Phase 8 — Qualitative User Testing** (5 peer usability evaluations & feedback analysis)
 
 ---
 
