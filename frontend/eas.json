@@ -14,6 +14,31 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "apple-simulator": {
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://uzopbhizwlgenibqriue.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_pVrpEbkP06HyyZ69hrDz0Q_bhoCHD4f",
+        "EXPO_PUBLIC_API_URL": "https://symptomjournal.onrender.com"
+      }
+    },
+    "preview-simulator": {
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://uzopbhizwlgenibqriue.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_pVrpEbkP06HyyZ69hrDz0Q_bhoCHD4f",
+        "EXPO_PUBLIC_API_URL": "https://symptomjournal.onrender.com"
+      }
+    },
+    "android-simulator": {
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
