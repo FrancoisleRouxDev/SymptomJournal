@@ -73,12 +73,12 @@ export default function ProfileScreen() {
       const savedDoctor = await AsyncStorage.getItem(STORAGE_DOCTOR);
       const savedConditions = await AsyncStorage.getItem(STORAGE_CONDITIONS);
 
-      // Prioritize saved doctor or metadata
-      const initialDoctor = savedDoctor || currentUser?.user_metadata?.doctor || 'Not set';
-      const initialConditions = savedConditions || currentUser?.user_metadata?.conditions || 'Not set';
+      // Prioritize saved doctor or metadata (doctor is completely optional)
+      const initialDoctor = savedDoctor !== null ? savedDoctor : (currentUser?.user_metadata?.doctor || '');
+      const initialConditions = savedConditions !== null ? savedConditions : (currentUser?.user_metadata?.conditions || '');
 
       setDoctorName(initialDoctor);
-      setConditions(initialConditions);
+      setConditions(initialConditions || 'None recorded');
 
       const res = await api.get('/symptoms/history');
       const logs: any[] = res.data?.symptoms || [];
@@ -106,15 +106,15 @@ export default function ProfileScreen() {
 
   const openHealthEditModal = () => {
     setDraftDoctor(doctorName === 'Not set' ? '' : doctorName);
-    setDraftConditions(conditions === 'Not set' ? '' : conditions);
+    setDraftConditions(conditions === 'None recorded' || conditions === 'Not set' ? '' : conditions);
     setIsEditModalVisible(true);
   };
 
   const handleSaveHealthDetails = async () => {
     setSavingHealth(true);
     try {
-      const trimmedDoc = draftDoctor.trim() || 'Not set';
-      const trimmedCond = draftConditions.trim() || 'Not set';
+      const trimmedDoc = draftDoctor.trim();
+      const trimmedCond = draftConditions.trim() || 'None recorded';
 
       // 1. Save to AsyncStorage so reports & summaries use it immediately
       await AsyncStorage.setItem(STORAGE_DOCTOR, trimmedDoc);
@@ -123,8 +123,8 @@ export default function ProfileScreen() {
       // 2. Save to Supabase user profile
       try {
         await updateUserProfile({
-          doctor: trimmedDoc === 'Not set' ? '' : trimmedDoc,
-          conditions: trimmedCond === 'Not set' ? '' : trimmedCond,
+          doctor: trimmedDoc,
+          conditions: trimmedCond,
         });
       } catch (e) {
         console.log('Remote profile update note:', e);
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
       setDoctorName(trimmedDoc);
       setConditions(trimmedCond);
       setIsEditModalVisible(false);
-      Alert.alert('Details Saved', 'Doctor and conditions updated.');
+      Alert.alert('Details Saved', 'Clinical preferences updated.');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Could not save health details.');
     } finally {
@@ -242,11 +242,18 @@ export default function ProfileScreen() {
               activeOpacity={0.7}
             >
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  PRIMARY DOCTOR / CLINIC
-                </Text>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14.5), color: colors.neutral.brown, marginTop: 3 }}>
-                  {doctorName}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    PRIMARY DOCTOR / CLINIC
+                  </Text>
+                  <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                    <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(9.5), color: colors.neutral.muted }}>
+                      OPTIONAL
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: doctorName && doctorName !== 'Not set' ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
+                  {doctorName && doctorName !== 'Not set' ? doctorName : 'None / Changes as needed'}
                 </Text>
               </View>
               <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
@@ -386,9 +393,14 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.modalFieldGroup}>
-              <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
-                PRIMARY CARE DOCTOR OR CLINIC
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                  PRIMARY CARE DOCTOR OR CLINIC
+                </Text>
+                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10), color: colors.sage.dark }}>
+                  OPTIONAL
+                </Text>
+              </View>
               <TextInput
                 style={[
                   styles.modalInput,
@@ -401,10 +413,13 @@ export default function ProfileScreen() {
                 ]}
                 value={draftDoctor}
                 onChangeText={setDraftDoctor}
-                placeholder="e.g. Dr. Sarah Jenkins, Valley Medical"
+                placeholder="e.g. Dr. Sarah Jenkins (leave empty if you switch doctors)"
                 placeholderTextColor={colors.neutral.muted}
                 autoFocus
               />
+              <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(10.5), color: colors.neutral.muted, marginTop: 4 }}>
+                Leave empty if you don't have a regular physician or move between clinics.
+              </Text>
             </View>
 
             <View style={styles.modalFieldGroup}>

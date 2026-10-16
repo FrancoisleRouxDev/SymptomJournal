@@ -150,9 +150,14 @@ export default function EditProfileScreen() {
               </Text>
 
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
-                  PRIMARY CARE DOCTOR / CLINIC
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={[styles.fieldLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                    PRIMARY CARE DOCTOR / CLINIC
+                  </Text>
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10), color: colors.sage.dark }}>
+                    OPTIONAL
+                  </Text>
+                </View>
                 <TextInput
                   style={[
                     styles.textInput,
@@ -165,10 +170,13 @@ export default function EditProfileScreen() {
                   ]}
                   value={doctor}
                   onChangeText={setDoctor}
-                  placeholder="e.g. Dr. Priya Anand, City Clinic"
+                  placeholder="e.g. Dr. Priya Anand (or leave blank if you switch doctors)"
                   placeholderTextColor={colors.neutral.muted}
                   autoCapitalize="words"
                 />
+                <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(10.5), color: colors.neutral.muted, marginTop: 4 }}>
+                  Optional. Leave empty if you change doctors or visit clinics as needed.
+                </Text>
               </View>
 
               <View style={styles.fieldGroup}>

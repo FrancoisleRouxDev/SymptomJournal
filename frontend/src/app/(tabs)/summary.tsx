@@ -41,8 +41,8 @@ export default function DoctorSummaryScreen() {
   const [generatingAi, setGeneratingAi] = useState(false);
 
   const [userName, setUserName] = useState('Patient');
-  const [doctorName, setDoctorName] = useState('Dr. Smith (Primary Care)');
-  const [conditions, setConditions] = useState('Migraine, Fatigue');
+  const [doctorName, setDoctorName] = useState('');
+  const [conditions, setConditions] = useState('');
   const [symptomLogs, setSymptomLogs] = useState<any[]>([]);
   const [totalEntries, setTotalEntries] = useState(0);
   const [symptomTypesCount, setSymptomTypesCount] = useState(0);
@@ -60,16 +60,28 @@ export default function DoctorSummaryScreen() {
     else setLoading(true);
 
     try {
-      // 1. Get user profile and stored doctor / conditions
+      // 1. Get user profile and stored doctor / conditions (optional)
       const user = await getCurrentUser();
       const rawName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Patient';
       setUserName(rawName);
 
       const storedDoc = await AsyncStorage.getItem(STORAGE_KEY_DOCTOR);
-      if (storedDoc) setDoctorName(storedDoc);
+      if (storedDoc && storedDoc !== 'Not set') {
+        setDoctorName(storedDoc);
+      } else if (user?.user_metadata?.doctor) {
+        setDoctorName(user.user_metadata.doctor);
+      } else {
+        setDoctorName('');
+      }
 
       const storedCond = await AsyncStorage.getItem(STORAGE_KEY_CONDITIONS);
-      if (storedCond) setConditions(storedCond);
+      if (storedCond && storedCond !== 'Not set') {
+        setConditions(storedCond);
+      } else if (user?.user_metadata?.conditions) {
+        setConditions(user.user_metadata.conditions);
+      } else {
+        setConditions('');
+      }
 
       // 2. Fetch history
       const historyRes = await api.get('/symptoms/history');

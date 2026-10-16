@@ -380,12 +380,12 @@ export function generateDoctorReportHtml(data: DoctorReportData): string {
           <div>
             <div class="patient-name">${data.patientName}</div>
             <div class="patient-sub">
-              ${data.conditions ? `Conditions: <strong style="color: #E2E8F0;">${data.conditions}</strong>` : 'General Patient Log'}
+              ${data.conditions && data.conditions !== 'Not set' && data.conditions !== 'None recorded' ? `Conditions: <strong style="color: #E2E8F0;">${data.conditions}</strong>` : 'General Patient Log'}
             </div>
           </div>
           <div class="physician-tag">
             Physician / Clinic:<br/>
-            <strong>${data.doctorName || 'Attending Physician'}</strong>
+            <strong>${data.doctorName && data.doctorName !== 'Not set' ? data.doctorName : 'Attending Physician / Clinic Review'}</strong>
           </div>
         </div>
 
