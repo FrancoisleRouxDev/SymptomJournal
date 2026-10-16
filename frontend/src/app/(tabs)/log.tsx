@@ -25,9 +25,11 @@ import {
   ChevronLeft,
   CheckCircle2,
   Check,
+  Plus,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
+import { useTheme } from '@/hooks/use-theme';
 
 // ── Categories ────────────────────────────────────────────────
 interface CategoryItem {
@@ -81,6 +83,7 @@ const TRIGGER_OPTIONS: TriggerOption[] = [
 
 export default function LogScreen() {
   const router = useRouter();
+  const { scaled } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Form states with multi-select support
@@ -356,15 +359,12 @@ export default function LogScreen() {
                   onPress={() => toggleBodyArea(area)}
                   activeOpacity={0.8}
                 >
-                  <Text
-                    style={[
-                      styles.areaPillText,
-                      isSelected && styles.areaPillTextSelected,
-                    ]}
-                  >
-                    {isSelected ? '✓ ' : '+ '}
-                    {area}
-                  </Text>
+                  <View style={styles.areaPillIconRow}>
+                    {isSelected
+                      ? <Check size={scaled(12)} color={Colors.white} strokeWidth={3} />
+                      : <Plus size={scaled(12)} color={Colors.neutral.brownMid} strokeWidth={2} />}
+                    <Text style={[styles.areaPillText, isSelected && styles.areaPillTextSelected]}>{area}</Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -479,15 +479,12 @@ export default function LogScreen() {
                   onPress={() => toggleTrigger(trig.id)}
                   activeOpacity={0.8}
                 >
-                  <Text
-                    style={[
-                      styles.triggerPillText,
-                      isSelected && styles.triggerPillTextSelected,
-                    ]}
-                  >
-                    {isSelected ? '✓ ' : '+ '}
-                    {trig.label}
-                  </Text>
+                  <View style={styles.areaPillIconRow}>
+                    {isSelected
+                      ? <Check size={scaled(12)} color={Colors.terracotta.dark} strokeWidth={3} />
+                      : <Plus size={scaled(12)} color={Colors.neutral.brownMid} strokeWidth={2} />}
+                    <Text style={[styles.triggerPillText, isSelected && styles.triggerPillTextSelected]}>{trig.label}</Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -662,6 +659,11 @@ const styles = StyleSheet.create({
   areaPillSelected: {
     backgroundColor: Colors.sage.base,
     borderColor: Colors.sage.base,
+  },
+  areaPillIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   areaPillText: {
     fontFamily: 'Nunito-Bold',
