@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Bot, Sparkles, ChevronLeft, User, Send } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import api from '@/lib/api';
 
 interface Message {
@@ -31,6 +33,7 @@ const QUICK_QUESTIONS = [
 
 export default function MedicationAssistantScreen() {
     const router = useRouter();
+    const { colors, isDarkMode } = useTheme();
 
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -103,27 +106,29 @@ export default function MedicationAssistantScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
             <SafeAreaView style={styles.safe}>
                 
                 {/* Header with Back Button */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-                        <Text style={styles.backBtnText}>‹ Back</Text>
+                    <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.background.cream }]} onPress={() => router.back()}>
+                        <ChevronLeft size={16} color={colors.neutral.brown} />
+                        <Text style={[styles.backBtnText, { color: colors.neutral.brown }]}>Back</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>Medication Assistant</Text>
-                    <Text style={styles.subtitle}>AI-powered medication info & general health guidance</Text>
+                    <Text style={[styles.title, { color: colors.neutral.brown }]}>Medication Assistant</Text>
+                    <Text style={[styles.subtitle, { color: colors.neutral.muted }]}>AI-powered medication info & general health guidance</Text>
                 </View>
 
                 {/* Quick Prompts */}
-                <View style={styles.quickPromptsWrapper}>
+                <View style={[styles.quickPromptsWrapper, { borderBottomColor: colors.neutral.border }]}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPromptsContainer}>
                         {QUICK_QUESTIONS.map((q, idx) => (
                             <TouchableOpacity
                                 key={idx}
-                                style={styles.quickPromptChip}
+                                style={[styles.quickPromptChip, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
                                 onPress={() => handleSend(q)}>
-                                <Text style={styles.quickPromptText}>💡 {q}</Text>
+                                <Sparkles size={12} color={colors.sage.dark} style={{ marginRight: 6 }} />
+                                <Text style={[styles.quickPromptText, { color: colors.neutral.brown }]}>{q}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -136,34 +141,44 @@ export default function MedicationAssistantScreen() {
                             key={msg.id}
                             style={[
                                 styles.messageBubble,
-                                msg.sender === 'user' ? styles.userBubble : styles.assistantBubble,
+                                msg.sender === 'user'
+                                    ? styles.userBubble
+                                    : [styles.assistantBubble, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }],
                             ]}>
-                            <Text style={[styles.messageSender, msg.sender === 'user' && { color: Colors.white }]}>
-                                {msg.sender === 'user' ? 'You' : '🤖 AI Assistant'}
-                            </Text>
-                            <Text style={[styles.messageText, msg.sender === 'user' && { color: Colors.white }]}>
+                            <View style={styles.senderHeaderRow}>
+                                {msg.sender === 'user' ? (
+                                    <User size={13} color={Colors.white} style={{ marginRight: 4 }} />
+                                ) : (
+                                    <Bot size={14} color={colors.sage.dark} style={{ marginRight: 4 }} />
+                                )}
+                                <Text style={[styles.messageSender, msg.sender === 'user' ? { color: Colors.white } : { color: colors.sage.dark }]}>
+                                    {msg.sender === 'user' ? 'You' : 'AI Assistant'}
+                                </Text>
+                            </View>
+                            <Text style={[styles.messageText, msg.sender === 'user' ? { color: Colors.white } : { color: colors.neutral.brown }]}>
                                 {msg.text}
                             </Text>
-                            <Text style={[styles.messageTime, msg.sender === 'user' && { color: 'rgba(255,255,255,0.7)' }]}>
+                            <Text style={[styles.messageTime, msg.sender === 'user' ? { color: 'rgba(255,255,255,0.7)' } : { color: colors.neutral.muted }]}>
                                 {msg.timestamp}
                             </Text>
                         </View>
                     ))}
                     {loading && (
-                        <View style={[styles.messageBubble, styles.assistantBubble, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
-                            <ActivityIndicator color={Colors.sage.dark} size="small" />
-                            <Text style={styles.messageText}>Thinking...</Text>
+                        <View style={[styles.messageBubble, styles.assistantBubble, { backgroundColor: colors.background.card, borderColor: colors.neutral.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                            <Bot size={15} color={colors.sage.dark} />
+                            <ActivityIndicator color={colors.sage.dark} size="small" />
+                            <Text style={[styles.messageText, { color: colors.neutral.muted }]}>Thinking...</Text>
                         </View>
                     )}
                 </ScrollView>
 
                 {/* Input Bar */}
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { backgroundColor: colors.background.card, borderTopColor: colors.neutral.border }]}>
                         <TextInput
-                            style={styles.textInput}
+                            style={[styles.textInput, { backgroundColor: colors.background.canvas, borderColor: colors.neutral.border, color: colors.neutral.brown }]}
                             placeholder="Ask about medications, side effects..."
-                            placeholderTextColor={Colors.neutral.muted}
+                            placeholderTextColor={colors.neutral.muted}
                             value={inputText}
                             onChangeText={setInputText}
                             onSubmitEditing={() => handleSend()}
@@ -257,11 +272,15 @@ const styles = StyleSheet.create({
         borderColor: Colors.neutral.border,
     },
 
+    senderHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
     messageSender: {
         fontFamily: 'Nunito-Bold',
         fontSize: FontSize.micro,
         color: Colors.neutral.brownMid,
-        marginBottom: 4,
     },
     messageText: {
         fontFamily: 'Nunito-Medium',

@@ -11,6 +11,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Keyboard,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -92,6 +93,34 @@ export default function LogScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const [loggedSuccess, setLoggedSuccess] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  // Slider gesture support
+  const sliderContainerWidth = useRef<number>(0);
+
+  const clampSeverity = (val: number) => Math.min(10, Math.max(1, Math.round(val)));
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        const x = evt.nativeEvent.locationX;
+        const w = sliderContainerWidth.current;
+        if (w > 0) {
+          const ratio = Math.max(0, Math.min(1, x / w));
+          setSeverity(clampSeverity(1 + ratio * 9));
+        }
+      },
+      onPanResponderMove: (evt) => {
+        const x = evt.nativeEvent.locationX;
+        const w = sliderContainerWidth.current;
+        if (w > 0) {
+          const ratio = Math.max(0, Math.min(1, x / w));
+          setSeverity(clampSeverity(1 + ratio * 9));
+        }
+      },
+    })
+  ).current;
 
   // Listen to keyboard show/hide to smoothly expand scroll padding
   useEffect(() => {
@@ -341,7 +370,7 @@ export default function LogScreen() {
             })}
           </View>
 
-          {/* SEVERITY CARD */}
+            {/* SEVERITY CARD */}
           <View style={styles.severityCard}>
             <View style={styles.severityHeaderRow}>
               <Text style={styles.severityLabel}>SEVERITY</Text>
@@ -351,9 +380,14 @@ export default function LogScreen() {
               </Text>
             </View>
 
-            {/* Interactive Step Buttons for 1 - 10 */}
-            <View style={styles.stepTrackContainer}>
-              <View style={styles.steppedNumbersRow}>
+            {/* Drag-able + tappable severity track */}
+            <View
+              style={styles.stepTrackContainer}
+              onLayout={(e) => { sliderContainerWidth.current = e.nativeEvent.layout.width; }}
+              {...panResponder.panHandlers}
+            >
+              {/* Step buttons — tap to set exact value */}
+              <View style={styles.steppedNumbersRow} pointerEvents="box-none">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
                   const isCurrent = severity === num;
                   const stepColor = getSeverityColor(num);

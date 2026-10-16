@@ -2,6 +2,7 @@ import { Tabs, useRouter, usePathname } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, FontSize } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import {
   Home,
   Plus,
@@ -16,6 +17,7 @@ export default function TabsLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { colors, isDarkMode } = useTheme();
 
   // Ensure safe elevation above device navigation pill / gesture bar / Android HUD
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
@@ -25,13 +27,13 @@ export default function TabsLayout() {
   const isMedicationScreen = pathname?.includes('medication');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: Colors.background.card,
-            borderTopColor: Colors.neutral.border,
+            backgroundColor: colors.background.card,
+            borderTopColor: colors.neutral.border,
             borderTopWidth: 1,
             paddingTop: 8,
             paddingBottom: bottomInset,
@@ -39,11 +41,11 @@ export default function TabsLayout() {
             elevation: 8,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.05,
+            shadowOpacity: isDarkMode ? 0.35 : 0.05,
             shadowRadius: 4,
           },
-          tabBarActiveTintColor: Colors.sage.dark,
-          tabBarInactiveTintColor: Colors.neutral.muted,
+          tabBarActiveTintColor: colors.sage.dark,
+          tabBarInactiveTintColor: colors.neutral.muted,
           tabBarLabelStyle: {
             fontFamily: 'Nunito-Bold',
             fontSize: 10,

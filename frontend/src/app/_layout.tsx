@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import {
   DMSerifDisplay_400Regular,
 } from '@expo-google-fonts/dm-serif-display';
@@ -9,11 +10,35 @@ import {
   Nunito_500Medium,
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
+import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+function RootNavigator() {
+  const { isDarkMode, colors } = usePreferences();
 
+  return (
+    <>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: colors.background.canvas },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="profile/edit" />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     'DMSerifDisplay-Regular': DMSerifDisplay_400Regular,
     'Nunito-Medium': Nunito_500Medium,
@@ -29,11 +54,8 @@ export default function TabLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <PreferencesProvider>
+      <RootNavigator />
+    </PreferencesProvider>
   );
 }

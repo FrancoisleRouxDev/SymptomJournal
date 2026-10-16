@@ -20,21 +20,21 @@ import {
   Download,
   LogOut,
   Info,
+  Type,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { isDarkMode, toggleDarkMode, textSize, setTextSize, colors } = useTheme();
 
   // Notification toggles
   const [pushEnabled, setPushEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [insightAlertsEnabled, setInsightAlertsEnabled] = useState(true);
-
-  // Appearance toggles
-  const [darkMode, setDarkMode] = useState(false);
 
   // Privacy toggles
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
@@ -104,18 +104,18 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.background.cream }]}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={22} color={Colors.neutral.brown} />
+            <ChevronLeft size={22} color={colors.neutral.brown} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={[styles.headerTitle, { color: colors.neutral.brown }]}>Settings</Text>
         </View>
 
         <ScrollView
@@ -124,81 +124,114 @@ export default function SettingsScreen() {
         >
           {/* SECTION: NOTIFICATIONS */}
           <Text style={styles.sectionHeader}>NOTIFICATIONS</Text>
-          <View style={styles.cardGroup}>
+          <View style={[styles.cardGroup, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Push Notifications</Text>
-                <Text style={styles.settingSubtitle}>Daily symptom reminders</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Push Notifications</Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>Daily symptom reminders</Text>
               </View>
               <Switch
                 value={pushEnabled}
                 onValueChange={setPushEnabled}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Log Reminders</Text>
-                <Text style={styles.settingSubtitle}>Nudges to log how you feel</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Log Reminders</Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>Nudges to log how you feel</Text>
               </View>
               <Switch
                 value={remindersEnabled}
                 onValueChange={setRemindersEnabled}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>AI Insight Alerts</Text>
-                <Text style={styles.settingSubtitle}>When new patterns are found</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>AI Insight Alerts</Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>When new patterns are found</Text>
               </View>
               <Switch
                 value={insightAlertsEnabled}
                 onValueChange={setInsightAlertsEnabled}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
           </View>
 
           {/* SECTION: APPEARANCE */}
           <Text style={styles.sectionHeader}>APPEARANCE</Text>
-          <View style={styles.cardGroup}>
+          <View style={[styles.cardGroup, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Dark Mode</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Dark Mode</Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>
+                  {isDarkMode ? 'Dark warm palette active' : 'Warm canvas palette active'}
+                </Text>
               </View>
               <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
-                trackColor={{ false: '#E5DC CF', true: Colors.sage.base }}
-                thumbColor={Colors.white}
+                value={isDarkMode}
+                onValueChange={(val) => toggleDarkMode(val)}
+                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                thumbColor={colors.white}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.neutral.border }]} />
 
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={() => Alert.alert('Text Size', 'Dynamic type is set to system standard.')}
-              activeOpacity={0.7}
-            >
+            <View style={styles.textSizeBlock}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Text Size</Text>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown }]}>Text Size</Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted }]}>
+                  Scales fonts across all screens ({textSize === 'small' ? '90%' : textSize === 'medium' ? '100%' : '115%'})
+                </Text>
               </View>
-              <View style={styles.rightNavRow}>
-                <Text style={styles.rightNavText}>Default</Text>
-                <ChevronRight size={16} color={Colors.neutral.muted} />
+              <View style={[styles.textSizeSegmented, { backgroundColor: isDarkMode ? '#1E1A18' : '#EFE8DE', borderColor: colors.neutral.border }]}>
+                {(['small', 'medium', 'large'] as const).map((size) => {
+                  const isSelected = textSize === size;
+                  const label = size === 'small' ? 'Small' : size === 'medium' ? 'Default' : 'Large';
+                  return (
+                    <TouchableOpacity
+                      key={size}
+                      style={[
+                        styles.textSizeOption,
+                        isSelected && {
+                          backgroundColor: colors.background.card,
+                          shadowColor: '#000',
+                          shadowOpacity: isDarkMode ? 0.35 : 0.08,
+                          shadowRadius: 3,
+                          elevation: 2,
+                        },
+                      ]}
+                      onPress={() => setTextSize(size)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.textSizeOptionText,
+                          {
+                            color: isSelected ? colors.sage.dark : colors.neutral.muted,
+                            fontFamily: isSelected ? 'Nunito-Bold' : 'Nunito-Medium',
+                          },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* SECTION: PRIVACY & SECURITY */}
@@ -354,6 +387,26 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0E8DC',
+  },
+  textSizeBlock: {
+    paddingVertical: 12,
+  },
+  textSizeSegmented: {
+    flexDirection: 'row',
+    borderRadius: Radius.lg,
+    padding: 3,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  textSizeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textSizeOptionText: {
+    fontSize: 12.5,
   },
   rightNavRow: {
     flexDirection: 'row',
