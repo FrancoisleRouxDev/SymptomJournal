@@ -10,6 +10,10 @@
 
 A cross-platform mobile health companion engineered to replace the anxiety of Googling symptoms with calm, structured self-awareness. Users log their physical and emotional symptoms in seconds, customize anatomical body regions and triggers, discover temporal correlations powered by NVIDIA NIM AI, and export clinical SBAR doctor summaries directly to PDF for medical appointments.
 
+<p align="center">
+  <img src="docs/images/mockup_devices_showcase.jpg" alt="SymptomJournal iOS & Android Mockup" width="100%" />
+</p>
+
 ---
 
 ## 📲 Quick Links & Live Deployments
@@ -94,6 +98,22 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 ### 7. 🩺 Physician Profile Management
 * **Editable Doctor Details:** Track your attending physician's name, primary clinic, and tracked chronic conditions with quick modal editing.
 * **Dual-Sync:** Instant local caching via `AsyncStorage` paired with cloud backup to Supabase `user_metadata`.
+
+<p align="center">
+  <img src="docs/images/mockup_darkmode_insights.jpg" alt="Dark Mode & Clinical Doctor Summary Showcase" width="100%" />
+</p>
+
+### 📸 Core Screens & Visual Walkthrough
+
+| Home Dashboard | Log a Symptom | Timeline & History |
+|:---:|:---:|:---:|
+| <img src="docs/images/screen_home.png" width="220" /> | <img src="docs/images/screen_logging.png" width="220" /> | <img src="docs/images/screen_timeline.png" width="220" /> |
+| **Wellness Overview & Quick Actions** | **Severity Slider & Body Selection** | **Chronological Logs & Filter Badges** |
+
+| AI Correlation Insights | Clinical Doctor Summary | User & Health Profile |
+|:---:|:---:|:---:|
+| <img src="docs/images/screen_insights.png" width="220" /> | <img src="docs/images/screen_summary.png" width="220" /> | <img src="docs/images/screen_profile.png" width="220" /> |
+| **Temporal Patterns & Trigger Links** | **SBAR Briefing & PDF Export** | **Physician Details & Dark Mode Toggle** |
 
 ---
 
