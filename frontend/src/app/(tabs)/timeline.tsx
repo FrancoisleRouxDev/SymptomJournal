@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2, FileText } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import api from '@/lib/api';
 import { TimelineScreenSkeleton } from '@/components/SkeletonLoader';
@@ -406,6 +406,14 @@ export default function TimelineScreen() {
                               ))}
                             </View>
                           )}
+
+                          {/* Notes / mood text if present */}
+                          {!!symptom.mood && (
+                            <View style={styles.notesWrap}>
+                              <FileText size={11} color={Colors.neutral.muted} style={{ marginRight: 4, marginTop: 1 }} />
+                              <Text style={styles.notesText}>{symptom.mood}</Text>
+                            </View>
+                          )}
                         </TouchableOpacity>
                       </View>
                     );
@@ -688,6 +696,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Medium',
     fontSize: 10.5,
     color: Colors.neutral.brownMid,
+  },
+  notesWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3EDE4',
+  },
+  notesText: {
+    flex: 1,
+    fontFamily: 'Nunito-Medium',
+    fontSize: 12,
+    color: Colors.neutral.brownMid,
+    fontStyle: 'italic',
+    lineHeight: 17,
   },
 
   /* Empty State */

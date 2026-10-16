@@ -1,14 +1,17 @@
-/**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
- */
-
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePreferences } from '@/context/PreferencesContext';
 
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? 'dark' : 'light';
+  const prefs = usePreferences();
 
-  return Colors[theme];
+  return {
+    ...prefs.colors,
+    isDarkMode: prefs.isDarkMode,
+    toggleDarkMode: prefs.toggleDarkMode,
+    textSize: prefs.textSize,
+    setTextSize: prefs.setTextSize,
+    textScale: prefs.textScale,
+    scaled: prefs.scaled,
+    colors: prefs.colors,
+  };
 }
+

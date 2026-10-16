@@ -14,21 +14,30 @@ import { getCurrentUser, signOut } from '@/lib/auth';
 
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-
-
+import {
+    Settings,
+    Flame,
+    ClipboardList,
+    Target,
+    Leaf,
+    Trophy,
+    Sparkles,
+} from 'lucide-react-native';
+import { useTheme } from '@/hooks/use-theme';
 import api from '@/lib/api';
 
 const DEFAULT_ACHIEVEMENTS = [
-    { id: 'streak_7', title: '7-Day Streak', icon: '🔥', minDays: 7 },
-    { id: 'entries_50', title: '50 Entries', icon: '📝', minEntries: 50 },
-    { id: 'pattern_spotter', title: 'Pattern Spotter', icon: '🎯', minEntries: 3 },
-    { id: 'streak_30', title: '30-Day Streak', icon: '🌿', minDays: 30 },
-    { id: 'entries_100', title: '100 Entries', icon: '🏆', minEntries: 100 },
-    { id: 'ai_explorer', title: 'AI Explorer', icon: '💡', minEntries: 3 },
+    { id: 'streak_7', title: '7-Day Streak', icon: Flame, minDays: 7 },
+    { id: 'entries_50', title: '50 Entries', icon: ClipboardList, minEntries: 50 },
+    { id: 'pattern_spotter', title: 'Pattern Spotter', icon: Target, minEntries: 3 },
+    { id: 'streak_30', title: '30-Day Streak', icon: Leaf, minDays: 30 },
+    { id: 'entries_100', title: '100 Entries', icon: Trophy, minEntries: 100 },
+    { id: 'ai_explorer', title: 'AI Explorer', icon: Sparkles, minEntries: 3 },
 ];
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const { colors, isDarkMode } = useTheme();
     const [user, setUser] = useState<any>(null);
     const [entriesCount, setEntriesCount] = useState(0);
     const [daysActive, setDaysActive] = useState(0);
@@ -105,19 +114,19 @@ export default function ProfileScreen() {
     const earnedCount = achievementsWithStatus.filter((a) => a.earned).length;
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
             <SafeAreaView style={styles.safe}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                     {/* Header */}
                     <View style={styles.headerRow}>
-                        <Text style={styles.title}>Profile</Text>
+                        <Text style={[styles.title, { color: colors.neutral.brown }]}>Profile</Text>
                         <TouchableOpacity
-                            style={styles.gearBtn}
+                            style={[styles.gearBtn, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
                             onPress={() => router.push('/settings' as any)}
                             activeOpacity={0.7}
                         >
-                            <Text style={styles.gearText}>⚙️</Text>
+                            <Settings size={18} color={colors.neutral.brown} />
                         </TouchableOpacity>
                     </View>
 
@@ -141,51 +150,70 @@ export default function ProfileScreen() {
 
                     {/* 3 Stat Boxes Row */}
                     <View style={styles.statsRow}>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statNum}>{entriesCount}</Text>
-                            <Text style={styles.statLabel}>Entries</Text>
+                        <View style={[styles.statBox, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                            <Text style={[styles.statNum, { color: colors.neutral.brown }]}>{entriesCount}</Text>
+                            <Text style={[styles.statLabel, { color: colors.neutral.muted }]}>Entries</Text>
                         </View>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statNum}>{daysActive}</Text>
-                            <Text style={styles.statLabel}>Days Active</Text>
+                        <View style={[styles.statBox, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                            <Text style={[styles.statNum, { color: colors.neutral.brown }]}>{daysActive}</Text>
+                            <Text style={[styles.statLabel, { color: colors.neutral.muted }]}>Days Active</Text>
                         </View>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statNum}>{symptomTypesCount}</Text>
-                            <Text style={styles.statLabel}>Symptom Types</Text>
+                        <View style={[styles.statBox, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                            <Text style={[styles.statNum, { color: colors.neutral.brown }]}>{symptomTypesCount}</Text>
+                            <Text style={[styles.statLabel, { color: colors.neutral.muted }]}>Symptom Types</Text>
                         </View>
                     </View>
 
                     {/* Achievements Card */}
-                    <View style={styles.card}>
+                    <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
                         <View style={styles.cardHeaderRow}>
-                            <Text style={styles.cardTitle}>Achievements</Text>
-                            <Text style={styles.earnedText}>{earnedCount} / {DEFAULT_ACHIEVEMENTS.length} earned</Text>
+                            <Text style={[styles.cardTitle, { color: colors.neutral.brown }]}>Achievements</Text>
+                            <Text style={[styles.earnedText, { color: colors.sage.dark }]}>{earnedCount} / {DEFAULT_ACHIEVEMENTS.length} earned</Text>
                         </View>
 
                         <View style={styles.achievementsGrid}>
-                            {achievementsWithStatus.map((item) => (
-                                <View key={item.title} style={[styles.achievementTile, !item.earned && styles.achievementTileLocked]}>
-                                    <View style={[styles.badgeIconBox, !item.earned && styles.badgeIconBoxLocked]}>
-                                        <Text style={[styles.badgeIconText, !item.earned && { opacity: 0.4 }]}>{item.icon}</Text>
+                            {achievementsWithStatus.map((item) => {
+                                const IconComp = item.icon;
+                                return (
+                                    <View
+                                        key={item.title}
+                                        style={[
+                                            styles.achievementTile,
+                                            { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+                                            !item.earned && styles.achievementTileLocked,
+                                        ]}>
+                                        <View
+                                            style={[
+                                                styles.badgeIconBox,
+                                                { backgroundColor: item.earned ? colors.sage.tint : colors.background.cream },
+                                                !item.earned && styles.badgeIconBoxLocked,
+                                            ]}>
+                                            <IconComp size={18} color={item.earned ? colors.sage.dark : colors.neutral.muted} />
+                                        </View>
+                                        <Text
+                                            style={[
+                                                styles.achievementTitle,
+                                                { color: colors.neutral.brown },
+                                                !item.earned && styles.achievementTitleLocked,
+                                            ]}>
+                                            {item.title}
+                                        </Text>
                                     </View>
-                                    <Text style={[styles.achievementTitle, !item.earned && styles.achievementTitleLocked]}>
-                                        {item.title}
-                                    </Text>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     </View>
 
                     {/* Health Overview Card */}
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Health Overview</Text>
+                    <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
+                        <Text style={[styles.cardTitle, { color: colors.neutral.brown }]}>Health Overview</Text>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Primary Doctor</Text>
-                            <Text style={styles.infoVal}>{doctorName}</Text>
+                            <Text style={[styles.infoLabel, { color: colors.neutral.muted }]}>Primary Doctor</Text>
+                            <Text style={[styles.infoVal, { color: colors.neutral.brown }]}>{doctorName}</Text>
                         </View>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Tracked Conditions</Text>
-                            <Text style={styles.infoVal}>{conditions}</Text>
+                            <Text style={[styles.infoLabel, { color: colors.neutral.muted }]}>Tracked Conditions</Text>
+                            <Text style={[styles.infoVal, { color: colors.neutral.brown }]}>{conditions}</Text>
                         </View>
                     </View>
 
