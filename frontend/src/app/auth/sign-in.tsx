@@ -189,6 +189,17 @@ export default function SignIn() {
             </TouchableOpacity>
           </View>
 
+          {/* View Onboarding Tour Link */}
+          <TouchableOpacity
+            style={styles.tourButton}
+            onPress={async () => {
+              await AsyncStorage.removeItem('has_onboarded');
+              router.push('/onboarding/slide-1' as any);
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tourButtonText}>✨ View Onboarding Tour</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -368,5 +379,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Bold',
     fontSize: FontSize.caption,
     color: Colors.terracotta.base,
+  },
+  tourButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.full,
+    backgroundColor: '#EBF2EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tourButtonText: {
+    fontFamily: 'Nunito-Bold',
+    fontSize: FontSize.caption,
+    color: Colors.sage.dark,
   },
 });

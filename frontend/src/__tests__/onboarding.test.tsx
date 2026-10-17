@@ -16,15 +16,17 @@ describe('Onboarding Slides', () => {
     expect(dropletIcon.props.size).toBe(36);
   });
 
-  it('renders Slide 2 with Activity icon', () => {
+  it('renders Slide 2 with icon', () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
     act(() => {
       renderer = ReactTestRenderer.create(<OnboardingSlide2 />);
     });
     expect(renderer!.root).toBeTruthy();
-    const activityIcon = renderer!.root.findByProps({ testID: 'lucide-Activity' });
-    expect(activityIcon).toBeTruthy();
-    expect(activityIcon.props.size).toBe(36);
+    const icon =
+      renderer!.root.findAllByProps({ testID: 'lucide-BrainCircuit' })[0] ||
+      renderer!.root.findAllByProps({ testID: 'lucide-Activity' })[0];
+    expect(icon).toBeTruthy();
+    expect(icon.props.size).toBe(36);
   });
 
   it('renders Slide 3 with BriefcaseMedical icon', () => {

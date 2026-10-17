@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Spacing, Radius } from '@/constants/theme';
 import { getCurrentUser, signOut, updateUserProfile } from '@/lib/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Settings,
   Flame,
@@ -151,7 +152,10 @@ export default function ProfileScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await signOut();
+          try {
+            await signOut();
+          } catch {}
+          await AsyncStorage.removeItem('has_onboarded');
           router.replace('/auth/sign-in' as any);
         },
       },

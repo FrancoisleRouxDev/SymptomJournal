@@ -19,6 +19,7 @@ import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -71,7 +72,10 @@ export default function SettingsScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            try {
+              await signOut();
+            } catch {}
+            await AsyncStorage.removeItem('has_onboarded');
             router.replace('/auth/sign-in' as any);
           },
         },
@@ -306,9 +310,30 @@ export default function SettingsScreen() {
 
           {/* SECTION: ABOUT */}
           <Text style={[styles.sectionHeader, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
-            ABOUT
+            ABOUT &amp; SUPPORT
           </Text>
           <View style={cardGroupStyle}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={async () => {
+                await AsyncStorage.removeItem('has_onboarded');
+                router.push('/onboarding/slide-1' as any);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  View Onboarding Tour
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Replay the introduction screens &amp; icons
+                </Text>
+              </View>
+              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
+            </TouchableOpacity>
+
+            <View style={dividerStyle} />
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
