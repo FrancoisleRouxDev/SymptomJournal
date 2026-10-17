@@ -272,7 +272,7 @@ npx eas-cli build -p ios --profile preview-simulator
 * **Module:** Interactive Development 300 (DV300) – Theme 4: AI-Driven Application
 * **Institution:** The Open Window Institute
 * **Student:** Francois le Roux (231256)
-* **Milestone Date:** Wednesday, 14 October 2026 | **Final Submission:** 28 October 2026
+* **Final Submission:** 28 October 2026
 
 ---
 
