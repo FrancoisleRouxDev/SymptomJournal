@@ -55,9 +55,9 @@ export default function ProfileScreen() {
   const [daysActive, setDaysActive] = useState(0);
   const [symptomTypesCount, setSymptomTypesCount] = useState(0);
 
-  // Editable health info
-  const [doctorName, setDoctorName] = useState('Not set');
-  const [conditions, setConditions] = useState('Not set');
+  // Editable health info (empty by default)
+  const [doctorName, setDoctorName] = useState('');
+  const [conditions, setConditions] = useState('');
 
   // Edit Modal State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -73,12 +73,15 @@ export default function ProfileScreen() {
       const savedDoctor = await AsyncStorage.getItem(STORAGE_DOCTOR);
       const savedConditions = await AsyncStorage.getItem(STORAGE_CONDITIONS);
 
-      // Prioritize saved doctor or metadata (doctor is completely optional)
-      const initialDoctor = savedDoctor !== null ? savedDoctor : (currentUser?.user_metadata?.doctor || '');
-      const initialConditions = savedConditions !== null ? savedConditions : (currentUser?.user_metadata?.conditions || '');
+      // Prioritize saved doctor or metadata (empty by default, filter legacy 'Not set')
+      const rawDoctor = savedDoctor !== null ? savedDoctor : (currentUser?.user_metadata?.doctor || '');
+      const initialDoctor = rawDoctor && rawDoctor !== 'Not set' ? rawDoctor : '';
+
+      const rawConditions = savedConditions !== null ? savedConditions : (currentUser?.user_metadata?.conditions || '');
+      const initialConditions = rawConditions && rawConditions !== 'Not set' ? rawConditions : '';
 
       setDoctorName(initialDoctor);
-      setConditions(initialConditions || 'None recorded');
+      setConditions(initialConditions);
 
       const res = await api.get('/symptoms/history');
       const logs: any[] = res.data?.symptoms || [];
@@ -269,8 +272,8 @@ export default function ProfileScreen() {
                 <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   TRACKED CONDITIONS
                 </Text>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14.5), color: colors.neutral.brown, marginTop: 3 }}>
-                  {conditions}
+                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: conditions ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
+                  {conditions || 'None recorded'}
                 </Text>
               </View>
               <ChevronRight size={scaled(16)} color={colors.neutral.muted} />

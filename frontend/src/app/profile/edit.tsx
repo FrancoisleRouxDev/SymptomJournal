@@ -51,12 +51,15 @@ export default function EditProfileScreen() {
         if (meta.phone) setPhone(meta.phone);
         if (meta.dob) setDob(meta.dob);
 
-        // Load doctor & conditions from AsyncStorage or metadata
+        // Load doctor & conditions from AsyncStorage or metadata (empty by default)
         const savedDoctor = await AsyncStorage.getItem(STORAGE_DOCTOR);
         const savedConditions = await AsyncStorage.getItem(STORAGE_CONDITIONS);
 
-        setDoctor(savedDoctor ?? meta.doctor ?? '');
-        setConditions(savedConditions ?? meta.conditions ?? '');
+        const rawDoctor = savedDoctor ?? meta.doctor ?? '';
+        setDoctor(rawDoctor === 'Not set' ? '' : rawDoctor);
+
+        const rawConditions = savedConditions ?? meta.conditions ?? '';
+        setConditions(rawConditions === 'Not set' ? '' : rawConditions);
       }
     } catch (err) {
       console.log('Error loading user profile data:', err);
@@ -77,8 +80,8 @@ export default function EditProfileScreen() {
       const trimmedConditions = conditions.trim();
 
       // 1. Save to AsyncStorage so Profile & Reports immediately reflect updates
-      await AsyncStorage.setItem(STORAGE_DOCTOR, trimmedDoctor || 'Not set');
-      await AsyncStorage.setItem(STORAGE_CONDITIONS, trimmedConditions || 'Not set');
+      await AsyncStorage.setItem(STORAGE_DOCTOR, trimmedDoctor);
+      await AsyncStorage.setItem(STORAGE_CONDITIONS, trimmedConditions);
 
       // 2. Save to Supabase user metadata
       await updateUserProfile({
