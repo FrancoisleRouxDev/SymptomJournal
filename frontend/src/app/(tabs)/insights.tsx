@@ -21,7 +21,7 @@ import {
   Leaf,
   PlusCircle,
   RefreshCw,
-  Brain,
+  BrainCircuit,
   Share2,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
@@ -465,7 +465,7 @@ export default function InsightsScreen() {
           >
             <View style={[styles.lockCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
               <View style={[styles.lockIconCircle, { backgroundColor: colors.sage.tint }]}>
-                <Brain size={scaled(38)} color={colors.sage.dark} />
+                <BrainCircuit size={scaled(38)} color={colors.sage.dark} />
               </View>
               <Text style={[styles.lockTitle, { color: colors.neutral.brown, fontSize: scaled(22) }]}>
                 AI Insights Locked

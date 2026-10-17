@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
-import { TrendingUp } from 'lucide-react-native';
+import { Activity } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -13,7 +13,7 @@ export default function OnboardingSlide2() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
                 <View style={styles.iconContainer}>
-                    <TrendingUp size={36} color={Colors.neutral.brown} />
+                    <Activity size={36} color={Colors.terracotta.dark} strokeWidth={2} />
                 </View>
 
                 <View style={styles.textContainer}>
@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    icon: { fontSize: 36 },
     textContainer: {
         alignItems: 'center',
         gap: Spacing.md,

@@ -7,7 +7,7 @@ import {
   Home,
   Plus,
   List,
-  Brain,
+  BrainCircuit,
   FileText,
   User,
   Sparkles,
@@ -78,7 +78,7 @@ export default function TabsLayout() {
           name="insights"
           options={{
             title: 'Insights',
-            tabBarIcon: ({ color, size }) => <Brain size={size - 1} color={color} />,
+            tabBarIcon: ({ color, size }) => <BrainCircuit size={size - 1} color={color} />,
           }}
         />
         <Tabs.Screen

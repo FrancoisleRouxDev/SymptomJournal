@@ -28,3 +28,20 @@ jest.mock('expo-router', () => ({
     Screen: 'Screen',
   },
 }));
+
+// Mock Lucide Icons
+jest.mock('lucide-react-native', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return new Proxy(
+    {},
+    {
+      get: (_, prop) => {
+        return function MockLucideIcon(props) {
+          return React.createElement(View, { testID: `lucide-${String(prop)}`, ...props });
+        };
+      },
+    }
+  );
+});
+

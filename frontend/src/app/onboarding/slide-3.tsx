@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
-import { Stethoscope } from 'lucide-react-native';
+import { BriefcaseMedical } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height } = Dimensions.get('window');
@@ -14,7 +14,7 @@ export default function OnboardingSlide3() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safe}>
                 <View style={styles.iconContainer}>
-                    <Stethoscope size={36} color={Colors.neutral.brown} />
+                    <BriefcaseMedical size={36} color={Colors.sage.dark} strokeWidth={2} />
                 </View>
 
                 <View style={styles.textContainer}>
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    icon: { fontSize: 36 },
     textContainer: {
         alignItems: 'center',
         gap: Spacing.md,
