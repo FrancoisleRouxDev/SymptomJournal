@@ -335,9 +335,11 @@ const styles = StyleSheet.create({
         borderColor: Colors.neutral.border,
     },
     sendBtn: {
+        height: 40,
+        width: 40,
         backgroundColor: Colors.sage.dark,
-        paddingHorizontal: 18,
-        borderRadius: Radius.md,
+        paddingHorizontal: 25,
+        borderRadius: 50,
         justifyContent: 'center',
         alignItems: 'center',
     },

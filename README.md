@@ -2,16 +2,28 @@
 > *"Log it calmly. Understand it clearly. Talk to your doctor with confidence."*
 
 [![Release](https://img.shields.io/badge/Release-v1.0.3-C86D51?style=for-the-badge&logo=github)](https://github.com/FrancoisleRouxDev/SymptomJournal/releases)
-[![Tests](https://img.shields.io/badge/Tests-103%20Passing-brightgreen?style=for-the-badge&logo=pytest)](frontend/src/__tests__)
+[![Tests](https://img.shields.io/badge/Tests-57%20Passing-brightgreen?style=for-the-badge&logo=jest)](frontend/src/__tests__)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2057%20(iOS%20%26%20Android)-000020?style=for-the-badge&logo=expo)](https://expo.dev)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20Cloud-009688?style=for-the-badge&logo=fastapi)](https://symptomjournal.onrender.com/docs)
 [![Supabase](https://img.shields.io/badge/Database-Supabase%20Postgres-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
 [![Theme](https://img.shields.io/badge/Theme-Dark%20%26%20Light%20Mode-5A7D66?style=for-the-badge)]()
 
-A cross-platform mobile health companion engineered to replace the anxiety of Googling symptoms with calm, structured self-awareness. Users log their physical and emotional symptoms in seconds, customize anatomical body regions and triggers, discover temporal correlations powered by NVIDIA NIM AI, and export clinical SBAR doctor summaries directly to PDF for medical appointments.
+A cross-platform mobile health companion designed to replace the anxiety of Googling symptoms with calm, structured self-awareness. Users log physical and emotional symptoms in seconds, discover AI-powered temporal correlations, and export clinical SBAR doctor summaries to PDF — all wrapped in a warm, accessible interface.
+
+---
+
+## 📱 App Screens
 
 <p align="center">
-  <img src="docs/images/mockup_devices_showcase.jpg" alt="SymptomJournal iOS & Android Mockup" width="100%" />
+  <img src="docs/images/cw_onboarding1.png" alt="Onboarding" width="19%" />
+  <img src="docs/images/cw_home.png" alt="Home Dashboard" width="19%" />
+  <img src="docs/images/cw_logging.png" alt="Log a Symptom" width="19%" />
+  <img src="docs/images/cw_insights.png" alt="AI Insights" width="19%" />
+  <img src="docs/images/cw_summary.png" alt="Doctor Summary" width="19%" />
+</p>
+
+<p align="center">
+  <em>Onboarding &nbsp;•&nbsp; Home Dashboard &nbsp;•&nbsp; Symptom Logger &nbsp;•&nbsp; AI Insights &nbsp;•&nbsp; Doctor Summary</em>
 </p>
 
 ---
@@ -68,52 +80,103 @@ A cross-platform mobile health companion engineered to replace the anxiety of Go
 ## Core Feature Highlights
 
 ### 1. Granular Symptom Logging & Customization
-* **Rapid 15-second entry:** 6 core categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specialized subcategories and emoji cues.
-* **1–10 Severity & Onset:** Precise sliders with visual color transitions and time presets (*Morning, Afternoon, Evening, Night*).
-* **Custom Anatomical Areas:** Add custom body areas grouped under intuitive parent regions (*Head, Neck, Torso, Back, Arms, Legs, Other*).
-* **Custom Lifestyle Triggers:** Create and save personal triggers (*e.g., "Screen Glare", "Dehydration", "Late Coffee"*) with local persistence.
-
-### 2. Complete Dark & Light Mode System
-* **Bespoke Palette:** Calming Deep Slate dark canvas (`#121614`), warm element cards (`#1A211D`), sage accents (`#8BAE97`), and crisp contrast text (`#EBE3D7`).
-* **Instant Toggle:** Accessible via the Quick Switch on the Profile screen or inside Settings, automatically updating all tabs, modals, and navigation stacks.
-
-### 3. Accessibility & Dynamic Text Scaling
-* **User-Selectable Sizing:** Choose between *Small (85%)*, *Medium (100%)*, *Large (115%)*, and *Extra Large (130%)*.
-* **Global Font Scaling:** Scales headings, body text, badges, and button labels dynamically for maximum legibility.
-
-### 4. AI Pattern Recognition & Insights
-* **Multi-Entry Synthesis:** Automatically evaluates trends once $\ge 3$ logs are recorded.
-* **Correlations Detected:** Temporal clustering (*"Headaches frequently occur between 3 PM – 6 PM"*), trigger associations (*"Poor sleep correlates with 75% of fatigue spikes"*), and calm lifestyle recommendations.
-* **Zero Jitter:** Shimmer skeleton loaders provide smooth transitions during inference.
-
-### 5. AI Medication & Health Assistant
-* **Safe Clinical Guardrails:** Conversational assistant answering questions regarding over-the-counter medications, interactions, and symptom management.
-* **Strict Non-Diagnostic Disclaimer:** Explicit reminders ensuring users consult their physician or pharmacist for medical treatment.
-
-### 6. Clinical Doctor Summary & PDF Export
-* **SBAR Format:** Formats logged history into a physician-aligned brief (*Situation, Background, Assessment, Recommendation*).
-* **Publication-Grade Print Layout:** High-contrast typography, distribution tables, symptom frequency percentages, patient details, and physician sign-off line.
-* **Native System Share & Print:** One-tap export via `expo-print` and `expo-sharing` on iOS, Android, and Web.
-
-### 7. Physician Profile Management
-* **Editable Doctor Details:** Track your attending physician's name, primary clinic, and tracked chronic conditions with quick modal editing.
-* **Dual-Sync:** Instant local caching via `AsyncStorage` paired with cloud backup to Supabase `user_metadata`.
 
 <p align="center">
-  <img src="docs/images/mockup_darkmode_insights.jpg" alt="Dark Mode & Clinical Doctor Summary Showcase" width="100%" />
+  <img src="docs/images/cw_logging.png" alt="Log a Symptom Screen" width="260" />
 </p>
 
-### 📸 Core Screens & Visual Walkthrough
+* **Rapid 15-second entry:** 6 core categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specialized subcategories and emoji cues.
+* **1–10 Severity & Onset:** Precise sliders with visual colour transitions and time presets (*Now, 1h ago, 3h ago, Earlier*).
+* **Custom Anatomical Areas:** Add custom body areas grouped under intuitive parent regions (*Head, Neck, Chest, Abdomen, Back, Arms, Legs, General*).
+* **Custom Lifestyle Triggers:** Create and save personal triggers (*e.g., "Screen Glare", "Dehydration", "Late Coffee"*) with local persistence.
 
-| Home Dashboard | Log a Symptom | Timeline & History |
-|:---:|:---:|:---:|
-| <img src="docs/images/screen_home.png" width="220" /> | <img src="docs/images/screen_logging.png" width="220" /> | <img src="docs/images/screen_timeline.png" width="220" /> |
-| **Wellness Overview & Quick Actions** | **Severity Slider & Body Selection** | **Chronological Logs & Filter Badges** |
+---
 
-| AI Correlation Insights | Clinical Doctor Summary | User & Health Profile |
-|:---:|:---:|:---:|
-| <img src="docs/images/screen_insights.png" width="220" /> | <img src="docs/images/screen_summary.png" width="220" /> | <img src="docs/images/screen_profile.png" width="220" /> |
-| **Temporal Patterns & Trigger Links** | **SBAR Briefing & PDF Export** | **Physician Details & Dark Mode Toggle** |
+### 2. Symptom Timeline & History
+
+<p align="center">
+  <img src="docs/images/cw_timeline.png" alt="Symptom Timeline Screen" width="260" />
+</p>
+
+* **Calendar dot indicators** show every day a log was recorded at a glance.
+* **Category filter badges** let you quickly isolate Pain, Fatigue, Mood, Digestion, and more.
+* **Chronological entry cards** show category, time, severity score, and your notes in a single tap.
+
+---
+
+### 3. AI Pattern Recognition & Insights
+
+<p align="center">
+  <img src="docs/images/cw_insights.png" alt="AI Insights Screen" width="260" />
+</p>
+
+* **Multi-Entry Synthesis:** Automatically evaluates trends once ≥ 3 logs are recorded.
+* **Weekly Overview Chart:** Dual-series bar chart plotting Pain vs. Fatigue day-by-day.
+* **Key Findings cards:** Sleep connections, afternoon peaks, week-over-week trend deltas — surfaced in plain language.
+* **AI Recommendation:** A personalised lifestyle nudge based on your full history.
+* **Zero Jitter:** Shimmer skeleton loaders provide smooth transitions during inference.
+
+---
+
+### 4. Clinical Doctor Summary & PDF Export
+
+<p align="center">
+  <img src="docs/images/cw_summary.png" alt="Doctor Summary Screen" width="260" />
+</p>
+
+* **SBAR Format:** Formats logged history into a physician-aligned brief (*Situation, Background, Assessment, Recommendation*).
+* **Most Frequent Symptoms:** Colour-coded frequency bars with occurrence counts.
+* **Patterns & Notes:** AI-synthesised bullet summaries of temporal and trigger patterns.
+* **Questions to Discuss:** Ready-made conversation starters for your appointment.
+* **One-tap Export PDF:** Publication-grade print layout via `expo-print` and `expo-sharing`.
+
+---
+
+### 5. AI Medication & Health Assistant
+
+<p align="center">
+  <img src="docs/images/cw_ai_rx.png" alt="AI Medication Assistant Screen" width="260" />
+</p>
+
+* **Safe Clinical Guardrails:** Conversational assistant answering questions about over-the-counter medications, interactions, and symptom management.
+* **Quick-Question Chips:** Tap pre-built prompts to get started instantly.
+* **Strict Non-Diagnostic Disclaimer:** Explicit inline reminders ensuring users consult their physician or pharmacist for medical treatment.
+
+---
+
+### 6. Home Dashboard & Wellness Score
+
+<p align="center">
+  <img src="docs/images/cw_home.png" alt="Home Dashboard Screen" width="260" />
+</p>
+
+* **Today's Wellness Score:** A 0–100 composite metric derived from recent severity entries and logging consistency.
+* **Quick Stats:** Day Streak, Logged Today, and This Month counts at a glance.
+* **Recent Symptoms feed** shows the last three entries with severity badges.
+* **AI Insight nudge card** surfaces when a new pattern has been detected.
+
+---
+
+### 7. User Profile & Physician Details
+
+<p align="center">
+  <img src="docs/images/cw_profile.png" alt="Profile Screen" width="260" />
+</p>
+
+* **Editable Doctor Details (Optional):** Track your attending physician and clinic — or leave it blank if your care changes.
+* **Health Statistics:** Total entries, days active, and distinct symptom types tracked.
+* **Achievements System:** Earn badges for logging streaks, entry milestones, and using AI features.
+* **Dark / Light Mode Toggle:** Accessible directly from the Profile screen.
+
+---
+
+### 8. Complete Dark & Light Mode System
+* **Bespoke Palette:** Calming warm linen light canvas (`#F6F0E8`) and deep slate dark canvas (`#1C1917`), sage accents (`#7B9E87`), and terracotta highlights (`#C4714F`).
+* **Instant Toggle:** Accessible via the Profile screen or inside Settings, automatically updating all tabs, modals, and navigation stacks.
+
+### 9. Accessibility & Dynamic Text Scaling
+* **User-Selectable Sizing:** Choose between *Small (85%)*, *Medium (100%)*, *Large (115%)*, and *Extra Large (130%)*.
+* **Global Font Scaling:** Scales headings, body text, badges, and button labels dynamically for maximum legibility.
 
 ---
 
@@ -123,13 +186,13 @@ The interface balances medical clarity with calming organic aesthetics:
 
 | Token | Light Theme | Dark Theme | Purpose |
 |:---|:---|:---|:---|
-| **Canvas** | `#F6F0E8` (Warm Linen) | `#121614` (Deep Slate) | Screen background |
-| **Card / Surface** | `#FDFAF5` (Off-white) | `#1A211D` (Muted Slate) | Elevated containers & cards |
+| **Canvas** | `#F6F0E8` (Warm Linen) | `#1C1917` (Deep Slate) | Screen background |
+| **Card / Surface** | `#FDFAF5` (Off-white) | `#292524` (Muted Slate) | Elevated containers & cards |
 | **Primary Accent** | `#5A7D66` (Sage Dark) | `#8BAE97` (Sage Glow) | Active buttons, tabs & badges |
-| **Secondary Accent**| `#C86D51` (Terracotta) | `#D97A5C` (Warm Rust) | High-severity indicators |
-| **Headings** | `#3E2D1E` (Deep Bark) | `#EBE3D7` (Ivory Soft) | DM Serif Display headers |
-| **Body Text** | `#6A5A4E` (Muted Soil) | `#B3AAA0` (Warm Grey) | Nunito regular / medium text |
-| **Borders** | `#E8DFD1` | `#2D3830` | Structural dividers & chip outlines |
+| **Secondary Accent**| `#C4714F` (Terracotta) | `#D97A5C` (Warm Rust) | High-severity indicators |
+| **Headings** | `#3E2D1E` (Deep Bark) | `#F6F0E8` (Ivory Soft) | DM Serif Display headers |
+| **Body Text** | `#6A5A4E` (Muted Soil) | `#C8BFB5` (Warm Grey) | Nunito regular / medium text |
+| **Borders** | `#C8BFB5` | `#44403C` | Structural dividers & chip outlines |
 
 ---
 
@@ -142,7 +205,7 @@ SymptomJournal enforces automated test coverage across both frontend and backend
 cd frontend
 npm test
 ```
-* **54 Tests Passing** across 7 test suites:
+* **57 Tests Passing** across 8 test suites:
   * `auth.test.ts` — Session recovery, authentication flows, and profile updates.
   * `api.test.ts` — Axios interceptors, JWT attachment, and error handling.
   * `pdf-export.test.ts` — Clinical HTML generation, patient headers, and native share dialogs.
@@ -150,6 +213,7 @@ npm test
   * `symptom-validation.test.ts` — Category bounds, severity constraints (1–10).
   * `theme.test.ts` — Semantic tokens, contrast levels, and theme provider state.
   * `components.test.tsx` — Custom typography and themed wrappers.
+  * `onboarding.test.tsx` — Onboarding slide rendering with Lucide icon verification.
 
 ### Backend Unit & Integration Tests (pytest)
 ```powershell
@@ -162,15 +226,15 @@ cd backend
   * `test_symptoms.py` — Input validation (Pydantic constraints) and CRUD logic.
   * `test_ai_service.py` — LLM mocking, JSON fence stripping, and fallback recovery.
 
-**Total Automated Coverage: 103 Passing Tests**
+**Total Automated Coverage: 106 Passing Tests**
 
 ---
 
 ## Local Development Setup
 
 ### Prerequisites
-* **Node.js** $\ge 18$
-* **Python** $\ge 3.11$
+* **Node.js** ≥ 18
+* **Python** ≥ 3.11
 * **Expo Go** on Android/iOS (or Android Emulator / iOS Simulator)
 
 ### 1. Clone Repository
@@ -217,7 +281,7 @@ npx eas-cli build -p ios --profile preview-simulator
 - [X] **Phase 3 — AI Integration via FastAPI** (NVIDIA NIM, pattern detection, safety guardrails)
 - [X] **Phase 4 — Core Features & Screens** (Timeline, Doctor Summary, Medication Chatbot, Profile)
 - [X] **Phase 5 — Accessibility & Theming** (Complete Dark Mode, dynamic text sizing, custom triggers & body areas)
-- [X] **Phase 6 — Clinical Export & Hardening** (Redesigned SBAR PDF, doctor info editor, 103 passing tests)
+- [X] **Phase 6 — Clinical Export & Hardening** (Redesigned SBAR PDF, optional doctor info, 106 passing tests)
 - [X] **Phase 7 — Multi-Platform Releases** (Render cloud backend, Android APK v1.0.3, iOS Simulator build)
 - [ ] **Phase 8 — Qualitative User Testing** (5 peer usability evaluations & feedback analysis)
 
