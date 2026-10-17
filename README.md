@@ -79,7 +79,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## 🗺️ Patient User Journey & Screen Navigation Flow
+## Patient User Journey & Screen Navigation Flow
 
 SymptomJournal guides patients from initial onboarding and structured daily tracking through to actionable AI correlations and clinical SBAR consultation summaries ([read the in-depth journey specification](docs/USER_JOURNEY.md)):
 
@@ -104,7 +104,7 @@ SymptomJournal guides patients from initial onboarding and structured daily trac
 
 ---
 
-## 🗄️ Database Architecture & Entity Relationship Diagram (ERD)
+## Database Architecture & Entity Relationship Diagram (ERD)
 
 The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Security (RLS) policies ensuring patients can exclusively access and export their own medical history.
 
@@ -201,7 +201,7 @@ The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Secur
 
 ### 6. Inclusive Accessibility & Complete Theming
 
-| ☀️ Light Theme Experience | 🌙 Dark Theme Experience |
+| Light Theme Experience | Dark Theme Experience |
 |:---:|:---:|
 | <img src="docs/images/mockup_theme_light.jpg" width="100%" alt="Light Theme Mockup" /> | <img src="docs/images/mockup_theme_dark.jpg" width="100%" alt="Dark Theme Mockup" /> |
 | **Warm Linen Canvas (`#F6F0E8`)**<br>Soothing daytime palette with sage `#5A7D66` & terracotta `#C4714F` | **Deep Slate Canvas (`#1C1917`)**<br>Low-strain evening palette with luminous sage glow `#8BAE97` |
