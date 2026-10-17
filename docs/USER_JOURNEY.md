@@ -8,6 +8,10 @@
 
 Living with chronic, fluctuating, or mysterious symptoms often leads to anxiety, forgotten details during short 15-minute clinical appointments, and unhelpful internet searches. **SymptomJournal** bridges the gap between daily lived experience and clinical consultations through an intentional 6-stage user journey:
 
+<p align="center">
+  <img src="images/user_journey_flow.png" alt="SymptomJournal Patient User Journey & Screen Flow" width="100%" />
+</p>
+
 ```mermaid
 journey
     title Patient Journey Through SymptomJournal

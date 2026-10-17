@@ -146,3 +146,4 @@ temp/
 *.orig
 # APK build artifacts (too large for GitHub, use Releases instead)
 *.apk
+scratch/

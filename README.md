@@ -35,12 +35,14 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 | **iOS Simulator Build** | [**iOS Simulator (.tar.gz)**](https://expo.dev/artifacts/eas/evplY85VchJ5j7K3TtDT6uXIu1fE2h_BfyZBJYh9l9s.tar.gz) | Apple iOS Simulator build ready for Appetize.io or Xcode Simulator |
 | **Production Cloud API** | [**symptomjournal.onrender.com**](https://symptomjournal.onrender.com) | FastAPI backend deployed with live CORS and health monitoring |
 | **Interactive API Docs** | [**Swagger UI Console**](https://symptomjournal.onrender.com/docs) | OpenAPI interactive testing sandbox with auth and analysis routes |
+| **Patient User Journey** | [**User Journey Map**](docs/USER_JOURNEY.md) | Complete end-to-end patient experience map & visual flow diagram |
+| **Database ERD Diagram** | [**Entity Relationship Diagram**](docs/ERD-Diagram.png) | PostgreSQL schema diagram with foreign keys and relationships |
 | **Presentation Walkthrough** | [**Presentation Script**](docs/MILESTONE_2_PRESENTATION_SCRIPT.md) | Comprehensive rubric demonstration script & presentation slides |
 | **Technical Architecture** | [**Technical Documentation**](docs/MILESTONE_2_DOCUMENTATION.md) | Database schemas, token dictionaries, and safety guardrails |
 
 ---
 
-## System Architecture
+## 🏛️ System Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -74,6 +76,53 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
                                  │  • Guardrailed AI Rx  │
                                  └───────────────────────┘
 ```
+
+---
+
+## 🗺️ Patient User Journey & Screen Navigation Flow
+
+SymptomJournal guides patients from initial onboarding and structured daily tracking through to actionable AI correlations and clinical SBAR consultation summaries ([read the in-depth journey specification](docs/USER_JOURNEY.md)):
+
+<p align="center">
+  <img src="docs/images/user_journey_flow.png" alt="SymptomJournal Patient User Journey & Screen Flow" width="100%" />
+</p>
+
+### Navigation Structure & Flow Legend
+
+* **Onboarding & Authentication:**
+  * **Onboarding 1, 2, 3 (`Core`):** Sequential introductory walkthrough (`Droplet` ➔ `BrainCircuit` ➔ `BriefcaseMedical`).
+  * **Sign Up — Step 1 & 2 (`AI / Auth`):** 2-step onboarding capturing credentials, demographics, and personal health goals.
+  * **Sign In (`Account`):** Returning user session recovery and guest access with quick tour replay.
+* **Central Hub:**
+  * **Home Dashboard (`Core`):** Daily wellness score, day streaks, recent symptoms feed, and AI alert nudge.
+  * **Profile (`Account`):** Health statistics and achievements, routing to **Edit Profile** (doctor details) and **Settings** (theme, text scale, tour replay).
+* **Feature Branches:**
+  * **Log Symptom (`Logging`):** 15-second category, severity slider (1–10), body area, and lifestyle triggers ➔ **Symptom Saved** ➔ returns to Dashboard.
+  * **Symptom Timeline (`Account`):** Visual calendar dot indicators and category filter chips.
+  * **AI Insights (`AI`):** Weekly trend charts and plain-language temporal findings ➔ **Doctor Summary (`Clinical SBAR`)** ➔ **Export PDF**.
+  * **AI Rx Assistant (`AI`):** Conversational medication chat with interactive prompt chips and safety disclaimers ➔ returns to Dashboard.
+
+---
+
+## 🗄️ Database Architecture & Entity Relationship Diagram (ERD)
+
+The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Security (RLS) policies ensuring patients can exclusively access and export their own medical history.
+
+<p align="center">
+  <img src="docs/ERD-Diagram.png" alt="SymptomJournal Entity Relationship Diagram" width="100%" />
+</p>
+
+### Relational Schema & Data Dictionary
+
+| Table Name | Primary Key | Foreign Keys | Key Columns | Clinical Purpose |
+|:---|:---|:---|:---|:---|
+| **`Users`** | `id` (uuid) | — | `name`, `email`, `password_hash`, `date_of_birth`, `notification_preferences` (jsonb), `onboarding_completed` | Core patient identity, auth credentials, notification settings, and onboarding state. |
+| **`Common_Conditions`** | `id` (uuid) | `user_id` ➔ `Users.id` | `condition_name`, `noted_at` | Pre-existing medical conditions (e.g., Asthma, Migraines, IBS) used for clinical background. |
+| **`Symptom_Logs`** | `id` (uuid) | `user_id` ➔ `Users.id` | `description`, `severity` (1–10), `time_of_day`, `mood`, `created_at` | Primary transactional log recording each symptom event, intensity score, and temporal context. |
+| **`Triggers`** | `id` (uuid) | `log_id` ➔ `Symptom_Logs.id` | `trigger_type`, `trigger_value`, `noted_at` | Correlated lifestyle and environmental factors (e.g., *Poor Sleep, Dehydration, Stress, Weather*). |
+| **`AI_Analysis`** | `id` (uuid) | `user_id` ➔ `Users.id` | `patterns_identified`, `trigger_summary`, `recommendation`, `entries_analysed`, `date_range_start/end` | Cached LLM inference results, temporal trend syntheses, and actionable lifestyle recommendations. |
+| **`Doctor_Summaries`** | `id` (uuid) | `user_id` ➔ `Users.id`<br>`analysis_id` ➔ `AI_Analysis.id` | `summary_text` (SBAR), `date_range_start/end`, `exported` (bool), `exported_at` | Physician-ready clinical reports with consultation discussion points and export timestamps. |
+| **`Notifications`** | `id` (uuid) | `user_id` ➔ `Users.id` | `type`, `sent_at`, `read` (bool) | In-app reminders and notifications for scheduled logging check-ins and new AI pattern alerts. |
 
 ---
 
