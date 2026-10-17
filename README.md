@@ -1,4 +1,4 @@
-# SymptomJournal 🌿
+# SymptomJournal
 > *"Log it calmly. Understand it clearly. Talk to your doctor with confidence."*
 
 <p align="center">
@@ -16,7 +16,7 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
 **SymptomJournal** is a full-stack, cross-platform mobile health companion designed to replace the panic and anxiety of Googling symptoms with calm, structured self-awareness. 
 
@@ -26,23 +26,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## 📱 Interactive Screen Gallery
-
-<p align="center">
-  <img src="docs/images/cw_onboarding1.png" alt="Onboarding" width="18%" />
-  <img src="docs/images/cw_home.png" alt="Home Dashboard" width="18%" />
-  <img src="docs/images/cw_logging.png" alt="Log a Symptom" width="18%" />
-  <img src="docs/images/cw_insights.png" alt="AI Insights" width="18%" />
-  <img src="docs/images/cw_summary.png" alt="Doctor Summary" width="18%" />
-</p>
-
-<p align="center">
-  <em>Onboarding Tour &nbsp;•&nbsp; Home Dashboard &nbsp;•&nbsp; Rapid Logger &nbsp;•&nbsp; AI Insights &nbsp;•&nbsp; Clinical Doctor Summary</em>
-</p>
-
----
-
-## 🔗 Quick Links & Live Deployments
+## Quick Links & Live Deployments
 
 | Resource | Link | Description |
 |:---|:---|:---|
@@ -56,7 +40,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -93,7 +77,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## ✨ Core Feature Showcases & Mockups
+## Core Feature Showcases & Mockups
 
 ### 1. Granular Symptom Logging & Chronological Timeline
 
@@ -168,9 +152,10 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ### 6. Inclusive Accessibility & Complete Theming
 
-| Light Theme | Dark Theme |
+| ☀️ Light Theme Experience | 🌙 Dark Theme Experience |
 |:---:|:---:|
-| <img src="docs/images/cw_home.png" width="300" alt="Light Mode" /> | <img src="docs/images/mockup_darkmode_insights.jpg" width="300" alt="Dark Mode" /> |
+| <img src="docs/images/mockup_theme_light.jpg" width="100%" alt="Light Theme Mockup" /> | <img src="docs/images/mockup_theme_dark.jpg" width="100%" alt="Dark Theme Mockup" /> |
+| **Warm Linen Canvas (`#F6F0E8`)**<br>Soothing daytime palette with sage `#5A7D66` & terracotta `#C4714F` | **Deep Slate Canvas (`#1C1917`)**<br>Low-strain evening palette with luminous sage glow `#8BAE97` |
 
 * **Calming Color System:** Warm linen light canvas (`#F6F0E8`), deep slate dark canvas (`#1C1917`), sage primary (`#7B9E87`), and terracotta warning accents (`#C4714F`).
 * **Instant Theme Toggle:** Switch seamlessly from Profile or Settings with full persistence across all tabs and modal stacks.
@@ -178,7 +163,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## 🎨 Design System Tokens
+## Design System Tokens
 
 | Design Token | Light Mode Value | Dark Mode Value | Usage Description |
 |:---|:---|:---|:---|
@@ -192,7 +177,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## 🧪 Comprehensive Automated Testing (106 Tests)
+## Comprehensive Automated Testing (106 Tests)
 
 SymptomJournal features automated test suites verifying correctness across client UI logic, PDF layout, API security, and AI service layers.
 
@@ -226,7 +211,7 @@ cd backend
 
 ---
 
-## 🚀 Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 * **Node.js** ≥ 18
@@ -270,7 +255,7 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ---
 
-## 🗺️ Project Roadmap & Milestone Progress
+## Project Roadmap & Milestone Progress
 
 - [X] **Phase 1 — Design Tokens & Scaffolding** (Linen & sage palette, DM Serif / Nunito fonts, stack routing)
 - [X] **Phase 2 — Auth & Symptom Logging** (Supabase Auth, 6 symptom categories, severity slider, custom body areas & triggers)
@@ -283,7 +268,7 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ---
 
-## 🎓 Academic Module
+## Academic Module
 * **Module:** Interactive Development 300 (DV300) – Theme 4: AI-Driven Application
 * **Institution:** The Open Window Institute
 * **Student:** Francois le Roux (231256)
