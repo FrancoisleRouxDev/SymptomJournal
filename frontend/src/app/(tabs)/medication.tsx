@@ -76,7 +76,7 @@ export default function MedicationAssistantScreen() {
                 }
             } catch (apiErr: any) {
                 console.log('AI chat API error, using safe fallback:', apiErr?.message || apiErr);
-                
+
                 // Fallback rules if backend is unreachable or offline
                 const lower = textToSend.toLowerCase();
                 if (lower.includes('ibuprofen')) {
@@ -108,7 +108,7 @@ export default function MedicationAssistantScreen() {
     return (
         <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
             <SafeAreaView style={styles.safe} edges={['top']}>
-                
+
                 {/* Header with Back Button */}
                 <View style={[styles.header, { borderBottomColor: colors.neutral.border }]}>
                     <TouchableOpacity
@@ -195,8 +195,10 @@ export default function MedicationAssistantScreen() {
                         <TouchableOpacity
                             style={[styles.sendBtn, (!inputText.trim() || loading) && styles.sendBtnDisabled]}
                             onPress={() => handleSend()}
-                            disabled={!inputText.trim() || loading}>
-                            <Text style={styles.sendBtnText}>Send</Text>
+                            disabled={!inputText.trim() || loading}
+                            activeOpacity={0.8}
+                            accessibilityLabel="Send message">
+                            <Send size={18} color={Colors.white} strokeWidth={2.2} />
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>

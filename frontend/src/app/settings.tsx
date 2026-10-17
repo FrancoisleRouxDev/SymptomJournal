@@ -31,7 +31,7 @@ export default function SettingsScreen() {
   const [insightAlertsEnabled, setInsightAlertsEnabled] = useState(true);
 
   // Privacy toggles
-  const [biometricsEnabled, setBiometricsEnabled] = useState(true);
+  // const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [shareAnonymous, setShareAnonymous] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await signOut();
-            } catch {}
+            } catch { }
             await AsyncStorage.removeItem('has_onboarded');
             router.replace('/auth/sign-in' as any);
           },
@@ -256,7 +256,7 @@ export default function SettingsScreen() {
             PRIVACY &amp; SECURITY
           </Text>
           <View style={cardGroupStyle}>
-            <View style={styles.settingRow}>
+            {/* <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
                   Biometric Lock
@@ -271,7 +271,7 @@ export default function SettingsScreen() {
                 trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
                 thumbColor={colors.white}
               />
-            </View>
+            </View> */}
 
             <View style={dividerStyle} />
 
