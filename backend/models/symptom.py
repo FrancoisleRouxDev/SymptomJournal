@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 VALID_TIME_OF_DAY = ["morning", "afternoon", "evening", "night"]
-VALID_TRIGGER_TYPES = ["sleep", "stress", "food", "exercise", "weather", "other"]
+VALID_TRIGGER_TYPES = ["sleep", "stress", "food", "exercise", "weather", "other", "custom"]
 
 
 class SymptomLogCreate(BaseModel):
