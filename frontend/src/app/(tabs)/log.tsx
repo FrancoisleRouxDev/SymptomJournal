@@ -30,6 +30,7 @@ import {
   Plus,
   X,
   MapPin,
+  Trash2,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius } from '@/constants/theme';
 import api from '@/lib/api';
@@ -233,6 +234,35 @@ export default function LogScreen() {
     setIsAreaModalVisible(false);
   };
 
+  // Delete Custom Body Area
+  const handleDeleteCustomArea = (areaToDelete: string) => {
+    const performDelete = async () => {
+      const updated = customBodyAreas.filter((a) => a !== areaToDelete);
+      setCustomBodyAreas(updated);
+      setSelectedBodyAreas((prev) => prev.filter((a) => a !== areaToDelete));
+      try {
+        await AsyncStorage.setItem(STORAGE_CUSTOM_AREAS, JSON.stringify(updated));
+      } catch (err) {
+        console.log('Error deleting custom area:', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Delete custom body area "${areaToDelete}"?`)) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Custom Area',
+        `Are you sure you want to remove "${areaToDelete}" from your custom body areas?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: performDelete },
+        ]
+      );
+    }
+  };
+
   // Add Custom Trigger
   const handleAddCustomTrigger = async () => {
     const trimmed = customTriggerInput.trim();
@@ -258,6 +288,35 @@ export default function LogScreen() {
 
     setCustomTriggerInput('');
     setIsTriggerModalVisible(false);
+  };
+
+  // Delete Custom Trigger
+  const handleDeleteCustomTrigger = (trigToDelete: string) => {
+    const performDelete = async () => {
+      const updated = customTriggers.filter((t) => t !== trigToDelete);
+      setCustomTriggers(updated);
+      setSelectedTriggers((prev) => prev.filter((t) => t !== trigToDelete));
+      try {
+        await AsyncStorage.setItem(STORAGE_CUSTOM_TRIGGERS, JSON.stringify(updated));
+      } catch (err) {
+        console.log('Error deleting custom trigger:', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Delete custom trigger "${trigToDelete}"?`)) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Custom Trigger',
+        `Are you sure you want to remove "${trigToDelete}" from your custom triggers?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: performDelete },
+        ]
+      );
+    }
   };
 
   // Convert time preset to backend-valid time_of_day ('morning' | 'afternoon' | 'evening' | 'night')
@@ -482,6 +541,7 @@ export default function LogScreen() {
                   key={customArea}
                   style={[
                     styles.areaPill,
+                    styles.customPillWithDelete,
                     {
                       backgroundColor: colors.background.card,
                       borderColor: colors.sage.base,
@@ -494,6 +554,7 @@ export default function LogScreen() {
                     },
                   ]}
                   onPress={() => toggleBodyArea(customArea)}
+                  onLongPress={() => handleDeleteCustomArea(customArea)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.areaPillIconRow}>
@@ -511,6 +572,21 @@ export default function LogScreen() {
                     >
                       {customArea}
                     </Text>
+                    <TouchableOpacity
+                      style={styles.pillDeleteBtn}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteCustomArea(customArea);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel={`Delete custom body area ${customArea}`}
+                    >
+                      <X
+                        size={scaled(13)}
+                        color={isSelected ? '#FFFFFF' : colors.neutral.muted}
+                        strokeWidth={2.5}
+                      />
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               );
@@ -698,6 +774,7 @@ export default function LogScreen() {
                   key={cTrig}
                   style={[
                     styles.triggerPill,
+                    styles.customPillWithDelete,
                     {
                       backgroundColor: colors.background.card,
                       borderColor: colors.terracotta.base,
@@ -710,6 +787,7 @@ export default function LogScreen() {
                     },
                   ]}
                   onPress={() => toggleTrigger(cTrig)}
+                  onLongPress={() => handleDeleteCustomTrigger(cTrig)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.areaPillIconRow}>
@@ -727,6 +805,21 @@ export default function LogScreen() {
                     >
                       {cTrig}
                     </Text>
+                    <TouchableOpacity
+                      style={styles.pillDeleteBtn}
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteCustomTrigger(cTrig);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel={`Delete custom trigger ${cTrig}`}
+                    >
+                      <X
+                        size={scaled(12)}
+                        color={isSelected ? colors.terracotta.dark : colors.neutral.muted}
+                        strokeWidth={2.5}
+                      />
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               );
@@ -876,6 +969,47 @@ export default function LogScreen() {
               </Text>
             </View>
 
+            {/* Manage existing custom areas */}
+            {customBodyAreas.length > 0 && (
+              <View style={styles.modalCustomListSection}>
+                <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                  MANAGE SAVED CUSTOM AREAS:
+                </Text>
+                <ScrollView style={styles.modalCustomScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {customBodyAreas.map((area) => (
+                    <View
+                      key={area}
+                      style={[
+                        styles.modalCustomItemRow,
+                        {
+                          backgroundColor: isDarkMode ? '#231F1C' : '#F5EFE6',
+                          borderColor: colors.neutral.border,
+                        },
+                      ]}
+                    >
+                      <View style={styles.modalCustomItemLeft}>
+                        <MapPin size={scaled(13)} color={colors.sage.dark} />
+                        <Text
+                          style={[styles.modalCustomItemText, { color: colors.neutral.brown, fontSize: scaled(12.5) }]}
+                          numberOfLines={1}
+                        >
+                          {area}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.modalCustomDeleteBtn}
+                        onPress={() => handleDeleteCustomArea(area)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={`Delete ${area}`}
+                      >
+                        <Trash2 size={scaled(14)} color={colors.terracotta.base} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
                 style={[styles.modalCancelBtn, { borderColor: colors.neutral.border }]}
@@ -935,6 +1069,47 @@ export default function LogScreen() {
                 autoFocus
               />
             </View>
+
+            {/* Manage existing custom triggers */}
+            {customTriggers.length > 0 && (
+              <View style={styles.modalCustomListSection}>
+                <Text style={[styles.modalLabel, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
+                  MANAGE SAVED CUSTOM TRIGGERS:
+                </Text>
+                <ScrollView style={styles.modalCustomScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {customTriggers.map((trig) => (
+                    <View
+                      key={trig}
+                      style={[
+                        styles.modalCustomItemRow,
+                        {
+                          backgroundColor: isDarkMode ? '#231F1C' : '#F5EFE6',
+                          borderColor: colors.neutral.border,
+                        },
+                      ]}
+                    >
+                      <View style={styles.modalCustomItemLeft}>
+                        <Sparkles size={scaled(13)} color={colors.terracotta.base} />
+                        <Text
+                          style={[styles.modalCustomItemText, { color: colors.neutral.brown, fontSize: scaled(12.5) }]}
+                          numberOfLines={1}
+                        >
+                          {trig}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.modalCustomDeleteBtn}
+                        onPress={() => handleDeleteCustomTrigger(trig)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={`Delete ${trig}`}
+                      >
+                        <Trash2 size={scaled(14)} color={colors.terracotta.base} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
@@ -1284,5 +1459,46 @@ const styles = StyleSheet.create({
   modalSaveText: {
     fontFamily: 'Nunito-Bold',
     color: '#FFFFFF',
+  },
+  customPillWithDelete: {
+    paddingRight: 8,
+  },
+  pillDeleteBtn: {
+    marginLeft: 6,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCustomListSection: {
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  modalCustomScroll: {
+    maxHeight: 120,
+    marginTop: 4,
+  },
+  modalCustomItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  modalCustomItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
+  modalCustomItemText: {
+    fontFamily: 'Nunito-Bold',
+    flex: 1,
+  },
+  modalCustomDeleteBtn: {
+    padding: 4,
   },
 });

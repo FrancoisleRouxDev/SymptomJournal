@@ -39,6 +39,17 @@ export function validateSymptomPayload(payload: {
   return true;
 }
 
+export function deleteCustomChoice(
+  customList: string[],
+  selectedList: string[],
+  itemToDelete: string
+): { updatedCustom: string[]; updatedSelected: string[] } {
+  return {
+    updatedCustom: customList.filter((item) => item !== itemToDelete),
+    updatedSelected: selectedList.filter((item) => item !== itemToDelete),
+  };
+}
+
 describe('Symptom Validation & Formatting Logic', () => {
   describe('mapTimeToTimeOfDay', () => {
     it('resolves 8:00 AM as morning', () => {
@@ -107,6 +118,48 @@ describe('Symptom Validation & Formatting Logic', () => {
       expect(() =>
         validateSymptomPayload({ category: 'pain', severity: 5, notes: longNote })
       ).toThrow('Notes must not exceed 500 characters');
+    });
+  });
+
+  describe('deleteCustomChoice', () => {
+    it('removes custom body area from custom list and active selection', () => {
+      const initialCustom = ['Head: Left Temple', 'Knee: Patella', 'Lower Back'];
+      const initialSelected = ['Head', 'Head: Left Temple', 'Lower Back'];
+
+      const result = deleteCustomChoice(initialCustom, initialSelected, 'Head: Left Temple');
+
+      expect(result.updatedCustom).toEqual(['Knee: Patella', 'Lower Back']);
+      expect(result.updatedSelected).toEqual(['Head', 'Lower Back']);
+    });
+
+    it('removes custom trigger from custom list and active selection', () => {
+      const initialCustom = ['Caffeine Crash', 'Late Night Coding', 'Dairy'];
+      const initialSelected = ['stress', 'Late Night Coding'];
+
+      const result = deleteCustomChoice(initialCustom, initialSelected, 'Late Night Coding');
+
+      expect(result.updatedCustom).toEqual(['Caffeine Crash', 'Dairy']);
+      expect(result.updatedSelected).toEqual(['stress']);
+    });
+
+    it('retains selections if deleted item was not currently selected', () => {
+      const initialCustom = ['Perfume Fragrance'];
+      const initialSelected = ['stress', 'poor_sleep'];
+
+      const result = deleteCustomChoice(initialCustom, initialSelected, 'Perfume Fragrance');
+
+      expect(result.updatedCustom).toEqual([]);
+      expect(result.updatedSelected).toEqual(['stress', 'poor_sleep']);
+    });
+
+    it('handles non-existent item gracefully', () => {
+      const initialCustom = ['Neck: Cervical'];
+      const initialSelected = ['Neck: Cervical'];
+
+      const result = deleteCustomChoice(initialCustom, initialSelected, 'Non-existent Item');
+
+      expect(result.updatedCustom).toEqual(['Neck: Cervical']);
+      expect(result.updatedSelected).toEqual(['Neck: Cervical']);
     });
   });
 });
