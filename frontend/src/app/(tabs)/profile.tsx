@@ -33,6 +33,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import api from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchCommonConditions, saveCommonConditions } from '@/lib/conditions';
 
 const STORAGE_DOCTOR = '@symptomjournal_doctor';
 const STORAGE_CONDITIONS = '@symptomjournal_conditions';
@@ -71,17 +72,25 @@ export default function ProfileScreen() {
       setUser(currentUser);
 
       const savedDoctor = await AsyncStorage.getItem(STORAGE_DOCTOR);
-      const savedConditions = await AsyncStorage.getItem(STORAGE_CONDITIONS);
-
       // Prioritize saved doctor or metadata (empty by default, filter legacy 'Not set')
       const rawDoctor = savedDoctor !== null ? savedDoctor : (currentUser?.user_metadata?.doctor || '');
       const initialDoctor = rawDoctor && rawDoctor !== 'Not set' ? rawDoctor : '';
-
-      const rawConditions = savedConditions !== null ? savedConditions : (currentUser?.user_metadata?.conditions || '');
-      const initialConditions = rawConditions && rawConditions !== 'Not set' ? rawConditions : '';
-
       setDoctorName(initialDoctor);
-      setConditions(initialConditions);
+
+      // 1. Fetch conditions from Supabase public.common_conditions table
+      try {
+        const supabaseConditions = await fetchCommonConditions();
+        if (supabaseConditions && supabaseConditions.length > 0) {
+          setConditions(supabaseConditions.join(', '));
+        } else {
+          const savedConditions = await AsyncStorage.getItem(STORAGE_CONDITIONS);
+          const rawConditions = savedConditions !== null ? savedConditions : (currentUser?.user_metadata?.conditions || '');
+          const initialConditions = rawConditions && rawConditions !== 'Not set' ? rawConditions : '';
+          setConditions(initialConditions);
+        }
+      } catch (condErr) {
+        console.log('Error loading common conditions from Supabase:', condErr);
+      }
 
       const res = await api.get('/symptoms/history');
       const logs: any[] = res.data?.symptoms || [];
@@ -119,11 +128,8 @@ export default function ProfileScreen() {
       const trimmedDoc = draftDoctor.trim();
       const trimmedCond = draftConditions.trim() || 'None recorded';
 
-      // 1. Save to AsyncStorage so reports & summaries use it immediately
+      // 1. Save doctor info to local storage & auth metadata
       await AsyncStorage.setItem(STORAGE_DOCTOR, trimmedDoc);
-      await AsyncStorage.setItem(STORAGE_CONDITIONS, trimmedCond);
-
-      // 2. Save to Supabase user profile
       try {
         await updateUserProfile({
           doctor: trimmedDoc,
@@ -133,10 +139,13 @@ export default function ProfileScreen() {
         console.log('Remote profile update note:', e);
       }
 
+      // 2. Persist conditions into Supabase public.common_conditions table
+      await saveCommonConditions(trimmedCond);
+
       setDoctorName(trimmedDoc);
       setConditions(trimmedCond);
       setIsEditModalVisible(false);
-      Alert.alert('Details Saved', 'Clinical preferences updated.');
+      Alert.alert('Details Saved', 'Clinical conditions and preferences updated in Supabase.');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Could not save health details.');
     } finally {

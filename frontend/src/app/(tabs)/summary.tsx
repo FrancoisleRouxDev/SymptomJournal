@@ -19,6 +19,7 @@ import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { SummaryScreenSkeleton } from '@/components/SkeletonLoader';
+import { fetchCommonConditions } from '@/lib/conditions';
 
 interface SymptomFreq {
   name: string;
@@ -74,12 +75,22 @@ export default function DoctorSummaryScreen() {
         setDoctorName('');
       }
 
-      const storedCond = await AsyncStorage.getItem(STORAGE_KEY_CONDITIONS);
-      if (storedCond && storedCond !== 'Not set') {
-        setConditions(storedCond);
-      } else if (user?.user_metadata?.conditions) {
-        setConditions(user.user_metadata.conditions);
-      } else {
+      // Fetch conditions from Supabase common_conditions table
+      try {
+        const condList = await fetchCommonConditions();
+        if (condList && condList.length > 0) {
+          setConditions(condList.join(', '));
+        } else {
+          const storedCond = await AsyncStorage.getItem(STORAGE_KEY_CONDITIONS);
+          if (storedCond && storedCond !== 'Not set') {
+            setConditions(storedCond);
+          } else if (user?.user_metadata?.conditions) {
+            setConditions(user.user_metadata.conditions);
+          } else {
+            setConditions('');
+          }
+        }
+      } catch {
         setConditions('');
       }
 

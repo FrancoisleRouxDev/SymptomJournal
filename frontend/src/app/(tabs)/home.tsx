@@ -6,15 +6,31 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Sparkles, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react-native';
+import {
+  Sparkles,
+  ChevronRight,
+  Plus,
+  Calendar as CalendarIcon,
+  Bell,
+  Trash2,
+  X,
+  Info,
+} from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
 import { HomeScreenSkeleton } from '@/components/SkeletonLoader';
+import {
+  fetchUserNotifications,
+  markNotificationAsRead,
+  deleteNotification,
+  AppNotification,
+} from '@/lib/notifications';
 
 const CATEGORY_DOT_COLORS: Record<string, string> = {
   Pain: '#C4714F',
@@ -35,6 +51,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Supabase Notifications
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+
   const [allSymptoms, setAllSymptoms] = useState<any[]>([]);
   const [recentSymptoms, setRecentSymptoms] = useState<any[]>([]);
   const [hasInsight, setHasInsight] = useState(false);
@@ -44,6 +64,10 @@ export default function HomeScreen() {
   const [thisMonthCount, setThisMonthCount] = useState(0);
   const [dayStreak, setDayStreak] = useState(1);
   const [wellnessScore, setWellnessScore] = useState(85);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter((n) => !n.read).length;
+  }, [notifications]);
 
   const todayFormatted = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
@@ -135,6 +159,14 @@ export default function HomeScreen() {
           // Fallback
         }
       }
+
+      // Fetch Supabase notifications
+      try {
+        const notifs = await fetchUserNotifications();
+        setNotifications(notifs);
+      } catch (nErr) {
+        console.log('Error loading notifications:', nErr);
+      }
     } catch (error) {
       console.log('Error loading home data:', error);
     } finally {
@@ -148,6 +180,16 @@ export default function HomeScreen() {
       loadData();
     }, [loadData])
   );
+
+  const handleMarkAsRead = async (id: string) => {
+    await markNotificationAsRead(id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    await deleteNotification(id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
 
   const getCategoryFromDesc = (desc: string): string => {
     const lower = (desc || '').toLowerCase();
@@ -195,7 +237,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Top Header */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.dateText, { color: colors.neutral.muted, fontSize: scaled(12.5) }]}>
               {todayFormatted}
             </Text>
@@ -203,9 +245,36 @@ export default function HomeScreen() {
               {getGreeting()}, {userName}
             </Text>
           </View>
-          {/* Avatar initial circle */}
-          <View style={[styles.avatarCircle, { backgroundColor: colors.sage.base, borderColor: colors.sage.light }]}>
-            <Text style={[styles.avatarText, { fontSize: scaled(18) }]}>{userInitial}</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {/* Notification Bell Button */}
+            <TouchableOpacity
+              style={[
+                styles.bellButton,
+                {
+                  backgroundColor: colors.background.card,
+                  borderColor: colors.neutral.border,
+                },
+              ]}
+              onPress={() => setNotificationsModalVisible(true)}
+              activeOpacity={0.75}
+            >
+              <Bell size={scaled(18)} color={colors.neutral.brown} />
+              {unreadCount > 0 && (
+                <View style={[styles.bellBadge, { backgroundColor: colors.terracotta.base }]}>
+                  <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Avatar initial circle */}
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/profile' as any)}
+              activeOpacity={0.8}
+              style={[styles.avatarCircle, { backgroundColor: colors.sage.base, borderColor: colors.sage.light }]}
+            >
+              <Text style={[styles.avatarText, { fontSize: scaled(18) }]}>{userInitial}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -352,6 +421,175 @@ export default function HomeScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* NOTIFICATIONS MODAL */}
+      <Modal
+        visible={notificationsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotificationsModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+            ]}
+          >
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Bell size={scaled(20)} color={colors.sage.dark} />
+                <Text
+                  style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(18) }]}
+                >
+                  Notifications
+                </Text>
+                {unreadCount > 0 && (
+                  <View style={[styles.modalBadge, { backgroundColor: colors.terracotta.base }]}>
+                    <Text style={styles.modalBadgeText}>{unreadCount} new</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setNotificationsModalVisible(false)}
+                style={{ padding: 4 }}
+              >
+                <X size={scaled(20)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {notifications.length === 0 ? (
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <Bell
+                    size={scaled(32)}
+                    color={colors.neutral.muted}
+                    style={{ marginBottom: 8, opacity: 0.5 }}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: 'Nunito-Bold',
+                      fontSize: scaled(14),
+                      color: colors.neutral.brown,
+                    }}
+                  >
+                    All Caught Up
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Nunito-Medium',
+                      fontSize: scaled(12),
+                      color: colors.neutral.muted,
+                      marginTop: 4,
+                      textAlign: 'center',
+                    }}
+                  >
+                    No pending reminders or alerts right now.
+                  </Text>
+                </View>
+              ) : (
+                notifications.map((item) => {
+                  const isReminder = item.type === 'daily_reminder';
+                  const isPattern = item.type === 'pattern_alert';
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.notificationItem,
+                        {
+                          backgroundColor: item.read
+                            ? isDarkMode
+                              ? '#1E1A17'
+                              : '#FAF6F0'
+                            : isDarkMode
+                              ? '#243228'
+                              : '#F2F8F4',
+                          borderColor: item.read ? colors.neutral.border : colors.sage.light,
+                        },
+                      ]}
+                      onPress={() => !item.read && handleMarkAsRead(item.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.notifIconWrap,
+                          {
+                            backgroundColor: isPattern
+                              ? '#EAE0F5'
+                              : isReminder
+                                ? colors.sage.tint
+                                : '#FBECE3',
+                          },
+                        ]}
+                      >
+                        {isPattern ? (
+                          <Sparkles size={scaled(15)} color="#7B4BB8" />
+                        ) : isReminder ? (
+                          <Bell size={scaled(15)} color={colors.sage.dark} />
+                        ) : (
+                          <Info size={scaled(15)} color={colors.terracotta.base} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1, marginRight: 8 }}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: 'Nunito-Bold',
+                              fontSize: scaled(13.5),
+                              color: colors.neutral.brown,
+                            }}
+                          >
+                            {item.title}
+                          </Text>
+                          {!item.read && (
+                            <View
+                              style={[styles.unreadDot, { backgroundColor: colors.terracotta.base }]}
+                            />
+                          )}
+                        </View>
+                        <Text
+                          style={{
+                            fontFamily: 'Nunito-Medium',
+                            fontSize: scaled(12),
+                            color: colors.neutral.muted,
+                            marginTop: 2,
+                            lineHeight: 16,
+                          }}
+                        >
+                          {item.message}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteNotification(item.id)}
+                        style={{ padding: 6 }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={scaled(14)} color={colors.neutral.muted} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: colors.sage.base }]}
+              onPress={() => setNotificationsModalVisible(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: '#FFF' }}>
+                Close
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -572,5 +810,87 @@ const styles = StyleSheet.create({
   },
   insightSubtext: {
     fontFamily: 'Nunito-Medium',
+  },
+  bellButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: 'Nunito-Bold',
+    fontSize: 10,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontFamily: 'DMSerifDisplay-Regular',
+  },
+  modalBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.sm ?? 8,
+  },
+  modalBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: 'Nunito-Bold',
+    fontSize: 11,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  notifIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  modalCloseBtn: {
+    marginTop: Spacing.md,
+    borderRadius: Radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
 });
