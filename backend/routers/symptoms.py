@@ -19,7 +19,7 @@ supabase = create_client(
 
 
 @router.post("/log")
-@limiter.limit("30/hour")
+@limiter.limit("120/hour")
 async def log_symptom(
     request: Request,
     symptom: SymptomLogWithTriggers,
@@ -66,7 +66,7 @@ async def log_symptom(
 
 
 @router.get("/history")
-@limiter.limit("60/hour")
+@limiter.limit("180/hour")
 async def get_symptom_history(
     request: Request,
     user_id: str = Depends(verify_token)

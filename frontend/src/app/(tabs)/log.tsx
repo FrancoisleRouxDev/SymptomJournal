@@ -390,7 +390,7 @@ export default function LogScreen() {
           };
         }
         return {
-          trigger_type: 'custom',
+          trigger_type: 'other',
           trigger_value: tId,
         };
       });
@@ -399,7 +399,7 @@ export default function LogScreen() {
         description,
         severity,
         time_of_day: mapTimeToTimeOfDay(timePreset),
-        mood: notes.trim() || undefined,
+        mood: notes.trim() ? notes.trim().slice(0, 100) : undefined,
         triggers: triggersPayload,
       };
 

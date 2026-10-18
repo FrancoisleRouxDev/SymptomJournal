@@ -44,7 +44,7 @@ def _most_frequent_symptom(logs: list[dict]) -> str:
     return most_common.capitalize()
 
 @router.get("/patterns")
-@limiter.limit("10/hour")
+@limiter.limit("120/hour")
 async def get_patterns(
     request: Request,
     user_id: str = Depends(verify_token)
@@ -88,7 +88,7 @@ async def get_patterns(
 
 
 @router.post("/summary")
-@limiter.limit("5/hour")
+@limiter.limit("60/hour")
 async def generate_summary(
     request: Request,
     user_id: str = Depends(verify_token)
@@ -149,7 +149,7 @@ async def generate_summary(
 
 
 @router.post("/chat")
-@limiter.limit("40/hour")
+@limiter.limit("120/hour")
 async def chat_medication(
     request: Request,
     body: ChatQuery,

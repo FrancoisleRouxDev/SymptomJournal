@@ -145,7 +145,19 @@ Respond with ONLY the JSON. No explanation, no preamble."""
         }
 
     except Exception as e:
-        raise Exception(f"AI analysis failed: {str(e)}")
+        most_common = symptom_logs[0].get("description", "Various symptoms") if symptom_logs else "None recorded"
+        return {
+            "most_frequent_symptom": most_common,
+            "average_severity": avg_severity if avg_severity is not None else "N/A",
+            "key_findings": [
+                {
+                    "title": "Tracking in progress",
+                    "description": f"You have logged {len(symptom_logs)} entries so far. Continue logging daily to build your health pattern history."
+                }
+            ],
+            "time_pattern": "Logged over time",
+            "suggestion": "Continue logging daily and consult your healthcare provider about recurring symptoms."
+        }
 
 
 def generate_doctor_summary(symptom_logs: list[dict], analysis: dict) -> str:
