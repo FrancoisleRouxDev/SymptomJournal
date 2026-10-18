@@ -119,28 +119,46 @@ export default function LogScreen() {
 
   // Slider gesture support
   const sliderContainerWidth = useRef<number>(0);
+  const sliderContainerPageX = useRef<number>(0); // page-level left edge of the track
+  const dragStartPageX = useRef<number>(0);        // where the finger landed
+  const dragStartSeverity = useRef<number>(5);     // value at drag start
+  const isDragging = useRef<boolean>(false);
+  const sliderContainerRef = useRef<View>(null);  // to measure page offset
 
   const clampSeverity = (val: number) => Math.min(10, Math.max(1, Math.round(val)));
 
+  /** Map an absolute pageX to a severity value using the track's page offset */
+  const pageXToSeverity = (pageX: number) => {
+    const w = sliderContainerWidth.current;
+    if (w <= 0) return severity;
+    const relX = pageX - sliderContainerPageX.current;
+    const ratio = Math.max(0, Math.min(1, relX / w));
+    return clampSeverity(1 + ratio * 9);
+  };
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      // Claim the gesture as soon as a move starts (not on initial press)
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_evt, gs) => {
+        // Only claim after a minimum 4px horizontal movement
+        return Math.abs(gs.dx) > 4 && Math.abs(gs.dx) > Math.abs(gs.dy);
+      },
       onPanResponderGrant: (evt) => {
-        const x = evt.nativeEvent.locationX;
-        const w = sliderContainerWidth.current;
-        if (w > 0) {
-          const ratio = Math.max(0, Math.min(1, x / w));
-          setSeverity(clampSeverity(1 + ratio * 9));
-        }
+        isDragging.current = true;
+        dragStartPageX.current = evt.nativeEvent.pageX;
+        dragStartSeverity.current = severity;
       },
       onPanResponderMove: (evt) => {
-        const x = evt.nativeEvent.locationX;
-        const w = sliderContainerWidth.current;
-        if (w > 0) {
-          const ratio = Math.max(0, Math.min(1, x / w));
-          setSeverity(clampSeverity(1 + ratio * 9));
-        }
+        if (!isDragging.current) return;
+        // Use absolute pageX so locationX child-frame differences don't cause jumps
+        setSeverity(pageXToSeverity(evt.nativeEvent.pageX));
+      },
+      onPanResponderRelease: () => {
+        isDragging.current = false;
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
       },
     })
   ).current;
@@ -626,9 +644,14 @@ export default function LogScreen() {
 
             {/* Drag-able + tappable severity track */}
             <View
+              ref={sliderContainerRef}
               style={styles.stepTrackContainer}
-              onLayout={(e) => {
-                sliderContainerWidth.current = e.nativeEvent.layout.width;
+              onLayout={() => {
+                // Use measure() instead of layout event — gives us absolute pageX on screen
+                sliderContainerRef.current?.measure((_x, _y, width, _height, pageX) => {
+                  sliderContainerWidth.current = width;
+                  sliderContainerPageX.current = pageX;
+                });
               }}
               {...panResponder.panHandlers}
             >
