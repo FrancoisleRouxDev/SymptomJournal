@@ -380,24 +380,27 @@ export default function LogScreen() {
       const bodyAreaNames = selectedBodyAreas.join(', ');
       const description = `${categoryNames} (${bodyAreaNames})`;
 
-      // Format triggers (base + custom)
-      const triggersPayload = selectedTriggers.map((tId) => {
-        const baseTrig = BASE_TRIGGER_OPTIONS.find((o) => o.id === tId);
-        if (baseTrig) {
+      // Format triggers (base + custom), filtering out any empty strings
+      const triggersPayload = selectedTriggers
+        .filter((tId) => typeof tId === 'string' && tId.trim().length > 0)
+        .map((tId) => {
+          const trimmedId = tId.trim();
+          const baseTrig = BASE_TRIGGER_OPTIONS.find((o) => o.id === trimmedId);
+          if (baseTrig) {
+            return {
+              trigger_type: baseTrig.type,
+              trigger_value: baseTrig.label.trim(),
+            };
+          }
           return {
-            trigger_type: baseTrig.type,
-            trigger_value: baseTrig.label,
+            trigger_type: 'other',
+            trigger_value: trimmedId,
           };
-        }
-        return {
-          trigger_type: 'other',
-          trigger_value: tId,
-        };
-      });
+        });
 
       const payload = {
-        description,
-        severity,
+        description: description.trim(),
+        severity: Math.max(1, Math.min(10, Math.round(Number(severity) || 5))),
         time_of_day: mapTimeToTimeOfDay(timePreset),
         mood: notes.trim() ? notes.trim().slice(0, 100) : undefined,
         triggers: triggersPayload,
@@ -415,11 +418,19 @@ export default function LogScreen() {
         router.push('/(tabs)/timeline' as any);
       }, 1200);
     } catch (error: any) {
-      console.log('Error logging symptom:', error);
-      Alert.alert(
-        'Logging Failed',
-        error.response?.data?.detail || 'Could not save symptom log. Please try again.'
-      );
+      const errData = error.response?.data;
+      console.log('Error logging symptom detail:', JSON.stringify(errData || error.message));
+      let errorMsg = 'Could not save symptom log. Please try again.';
+      if (Array.isArray(errData?.detail)) {
+        errorMsg = errData.detail
+          .map((d: any) => `${d.loc?.slice(1).join('.') || 'Field'}: ${d.msg}`)
+          .join('\n');
+      } else if (typeof errData?.detail === 'string') {
+        errorMsg = errData.detail;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      Alert.alert('Logging Failed', errorMsg);
     } finally {
       setLoading(false);
     }
