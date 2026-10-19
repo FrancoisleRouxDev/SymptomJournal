@@ -22,7 +22,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.v3locity_735.symptomjournal"
+      "package": "com.v3locity_735.symptomjournal",
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "static",
@@ -39,7 +42,14 @@
         }
       ],
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#5A7D66"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,9 +58,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5d713519-5609-4264-8f46-0c9757ffe077"
+        "projectId": "b1be5a07-301d-406f-895b-0a6aea308e1a"
       }
     },
-    "owner": "v3locity_735"
+    "owner": "velocity73"
   }
 }
