@@ -64,15 +64,30 @@ export default function SignUp() {
   const handleCreateAccount = async () => {
     setLoading(true);
     try {
-      await signUp(name.trim(), email.trim(), password);
+      const trimmedName = name.trim();
+      const trimmedEmail = email.trim();
+
+      // Pass user metadata directly on sign up
+      const data = await signUp(trimmedName, trimmedEmail, password);
+
+      // If Supabase didn't automatically establish an active session, sign in immediately
+      if (!data?.session) {
+        try {
+          await signIn(trimmedEmail, password);
+        } catch {
+          // If already signed in or not needed, continue
+        }
+      }
+
       try {
         await updateUserProfile({
-          name: name.trim(),
+          name: trimmedName,
           dob: dob.trim(),
         });
       } catch (e) {
         // Continue even if secondary metadata update fails
       }
+
       await AsyncStorage.setItem('has_onboarded', 'true');
       router.replace('/(tabs)/home' as any);
     } catch (error: any) {
