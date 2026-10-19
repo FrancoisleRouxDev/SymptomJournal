@@ -11,6 +11,7 @@ import {
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
 import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
+import { registerForPushNotificationsAsync } from '@/lib/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -48,6 +49,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync().catch(() => {});
+      registerForPushNotificationsAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
 

@@ -1,5 +1,123 @@
 import { supabase } from './supabase';
 import { getCurrentUser } from './auth';
+import { Platform } from 'react-native';
+
+// Safe lazy accessor for expo-notifications to prevent web/build crashes
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+  if (Notifications && Notifications.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+} catch {
+  // Expo notifications not available or in web context
+}
+
+/**
+ * Configure Android notification channels and request OS permission
+ */
+export async function registerForPushNotificationsAsync(): Promise<boolean> {
+  if (!Notifications || Platform.OS === 'web') return false;
+
+  try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('daily-reminders', {
+        name: 'Daily Symptom Reminders',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#5A7D66',
+      });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    return finalStatus === 'granted';
+  } catch (err) {
+    console.log('Error registering for push notifications:', err);
+    return false;
+  }
+}
+
+/**
+ * Schedule a daily reminder notification
+ */
+export async function scheduleDailyReminder(hour = 20, minute = 0): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+
+  try {
+    // Cancel existing scheduled notifications first to prevent duplicates
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Daily Symptom Check-in 🌿',
+        body: 'How is your body feeling today? Take 30 seconds to log your symptoms.',
+        data: { screen: 'log' },
+        sound: true,
+      },
+      trigger: {
+        hour,
+        minute,
+        repeats: true,
+        channelId: 'daily-reminders',
+      } as any,
+    });
+  } catch (err) {
+    console.log('Error scheduling daily reminder:', err);
+  }
+}
+
+/**
+ * Cancel all scheduled reminders
+ */
+export async function cancelDailyReminder(): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (err) {
+    console.log('Error cancelling daily reminder:', err);
+  }
+}
+
+/**
+ * Send an immediate test notification (fires in 3-5 seconds)
+ */
+export async function sendTestNotificationAsync(seconds = 3): Promise<boolean> {
+  if (!Notifications || Platform.OS === 'web') return false;
+  try {
+    const granted = await registerForPushNotificationsAsync();
+    if (!granted) return false;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Daily Symptom Check-in 🌿',
+        body: 'How is your body feeling right now? Take 30 seconds to log your symptoms.',
+        data: { screen: 'log' },
+        sound: true,
+      },
+      trigger: {
+        seconds: Math.max(1, seconds),
+        channelId: 'daily-reminders',
+      } as any,
+    });
+    return true;
+  } catch (err) {
+    console.log('Error triggering test notification:', err);
+    return false;
+  }
+}
 
 export interface AppNotification {
   id: string;

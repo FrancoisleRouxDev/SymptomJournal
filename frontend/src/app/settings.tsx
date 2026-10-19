@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,10 +15,19 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Clock,
+  Bell,
+  Check,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { signOut, getCurrentUser } from '@/lib/auth';
+import {
+  registerForPushNotificationsAsync,
+  scheduleDailyReminder,
+  cancelDailyReminder,
+  sendTestNotificationAsync,
+} from '@/lib/notifications';
 import api from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -29,6 +39,93 @@ export default function SettingsScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [insightAlertsEnabled, setInsightAlertsEnabled] = useState(true);
+  const [reminderTime, setReminderTime] = useState({ hour: 20, minute: 0, label: '8:00 PM' });
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [testingNotification, setTestingNotification] = useState(false);
+
+  React.useEffect(() => {
+    AsyncStorage.getItem('settings_notifications').then((data) => {
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.push !== undefined) setPushEnabled(parsed.push);
+          if (parsed.reminders !== undefined) setRemindersEnabled(parsed.reminders);
+          if (parsed.insights !== undefined) setInsightAlertsEnabled(parsed.insights);
+          if (parsed.reminderTime) setReminderTime(parsed.reminderTime);
+        } catch {}
+      }
+    });
+  }, []);
+
+  const handleTogglePush = async (val: boolean) => {
+    setPushEnabled(val);
+    if (val) {
+      const granted = await registerForPushNotificationsAsync();
+      if (!granted) {
+        Alert.alert(
+          'Notification Permission',
+          'Please enable notifications in your phone Settings > Apps > SymptomJournal > Notifications to receive reminders.'
+        );
+      }
+    } else {
+      await cancelDailyReminder();
+    }
+    await AsyncStorage.setItem(
+      'settings_notifications',
+      JSON.stringify({ push: val, reminders: remindersEnabled, insights: insightAlertsEnabled, reminderTime })
+    );
+  };
+
+  const handleToggleReminders = async (val: boolean) => {
+    setRemindersEnabled(val);
+    if (val) {
+      const granted = await registerForPushNotificationsAsync();
+      if (granted) {
+        await scheduleDailyReminder(reminderTime.hour, reminderTime.minute);
+      } else {
+        Alert.alert(
+          'Notification Permission',
+          'Please enable notifications in your phone Settings > Apps > SymptomJournal > Notifications to schedule check-ins.'
+        );
+      }
+    } else {
+      await cancelDailyReminder();
+    }
+    await AsyncStorage.setItem(
+      'settings_notifications',
+      JSON.stringify({ push: pushEnabled, reminders: val, insights: insightAlertsEnabled, reminderTime })
+    );
+  };
+
+  const handleSelectTime = async (time: { hour: number; minute: number; label: string }) => {
+    setReminderTime(time);
+    setShowTimePicker(false);
+    if (remindersEnabled) {
+      await scheduleDailyReminder(time.hour, time.minute);
+    }
+    await AsyncStorage.setItem(
+      'settings_notifications',
+      JSON.stringify({ push: pushEnabled, reminders: remindersEnabled, insights: insightAlertsEnabled, reminderTime: time })
+    );
+    Alert.alert('Reminder Time Updated', `Your daily symptom check-in is set for ${time.label}.`);
+  };
+
+  const handleTestNotification = async () => {
+    setTestingNotification(true);
+    const sent = await sendTestNotificationAsync(4);
+    setTestingNotification(false);
+    if (sent) {
+      Alert.alert(
+        'Test Notification Scheduled! 🌿',
+        'A test check-in notification will appear in 4 seconds. Lock your phone or leave the app open to see it.'
+      );
+    } else {
+      Alert.alert(
+        'Permission Required',
+        'Could not schedule notification. Please ensure notifications are permitted in your device settings.'
+      );
+    }
+  };
 
   // Privacy toggles
   // const [biometricsEnabled, setBiometricsEnabled] = useState(true);
@@ -206,7 +303,7 @@ export default function SettingsScreen() {
               </View>
               <Switch
                 value={pushEnabled}
-                onValueChange={setPushEnabled}
+                onValueChange={handleTogglePush}
                 trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
                 thumbColor={colors.white}
               />
@@ -225,7 +322,7 @@ export default function SettingsScreen() {
               </View>
               <Switch
                 value={remindersEnabled}
-                onValueChange={setRemindersEnabled}
+                onValueChange={handleToggleReminders}
                 trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
                 thumbColor={colors.white}
               />
@@ -249,6 +346,66 @@ export default function SettingsScreen() {
                 thumbColor={colors.white}
               />
             </View>
+
+            <View style={dividerStyle} />
+
+            {/* REMINDER TIME SELECTOR */}
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setShowTimePicker(true)}
+              activeOpacity={0.7}
+              disabled={!remindersEnabled}
+            >
+              <View style={styles.settingInfo}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Clock size={scaled(15)} color={remindersEnabled ? colors.sage.base : colors.neutral.muted} />
+                  <Text
+                    style={[
+                      styles.settingTitle,
+                      { color: remindersEnabled ? colors.neutral.brown : colors.neutral.muted, fontSize: scaled(14.5) },
+                    ]}
+                  >
+                    Reminder Time
+                  </Text>
+                </View>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  When you want to receive daily check-in
+                </Text>
+              </View>
+              <View style={[styles.timeBadge, { backgroundColor: isDarkMode ? '#24201E' : '#EAE3D9', opacity: remindersEnabled ? 1 : 0.5 }]}>
+                <Text style={[styles.timeBadgeText, { color: colors.sage.dark, fontSize: scaled(13) }]}>
+                  {reminderTime.label}
+                </Text>
+                <ChevronRight size={scaled(14)} color={colors.neutral.muted} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={dividerStyle} />
+
+            {/* INSTANT TEST NOTIFICATION BUTTON */}
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleTestNotification}
+              activeOpacity={0.7}
+              disabled={testingNotification}
+            >
+              <View style={styles.settingInfo}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Bell size={scaled(15)} color={colors.sage.base} />
+                  <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                    Test Notification (4s)
+                  </Text>
+                </View>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Sends a test notification to your lock screen
+                </Text>
+              </View>
+              <View style={[styles.testButtonBadge, { backgroundColor: colors.sage.light }]}>
+                <Text style={[styles.testButtonText, { color: colors.sage.dark, fontSize: scaled(12) }]}>
+                  {testingNotification ? 'Sending...' : 'Send Test'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* SECTION: PRIVACY & SECURITY */}
@@ -358,6 +515,92 @@ export default function SettingsScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* TIME PICKER MODAL */}
+        <Modal
+          visible={showTimePicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowTimePicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowTimePicker(false)}
+          >
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Clock size={scaled(20)} color={colors.sage.dark} />
+                  <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(18) }]}>
+                    Choose Reminder Time
+                  </Text>
+                </View>
+                <Text style={[styles.modalSubtitle, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                  We'll send your daily check-in nudge at this time
+                </Text>
+              </View>
+
+              <View style={styles.timeOptionsGrid}>
+                {[
+                  { hour: 8, minute: 0, label: '8:00 AM (Morning)' },
+                  { hour: 12, minute: 0, label: '12:00 PM (Midday)' },
+                  { hour: 17, minute: 0, label: '5:00 PM (Late Afternoon)' },
+                  { hour: 19, minute: 0, label: '7:00 PM (Early Evening)' },
+                  { hour: 20, minute: 0, label: '8:00 PM (Evening Default)' },
+                  { hour: 21, minute: 0, label: '9:00 PM (Night)' },
+                  { hour: 22, minute: 0, label: '10:00 PM (Before Bed)' },
+                ].map((item) => {
+                  const isSelected = reminderTime.hour === item.hour && reminderTime.minute === item.minute;
+                  return (
+                    <TouchableOpacity
+                      key={item.label}
+                      style={[
+                        styles.timeOptionItem,
+                        {
+                          backgroundColor: isSelected ? colors.sage.light : isDarkMode ? '#1E1A18' : '#FAF6F0',
+                          borderColor: isSelected ? colors.sage.base : colors.neutral.border,
+                        },
+                      ]}
+                      onPress={() => handleSelectTime(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.timeOptionText,
+                          {
+                            color: isSelected ? colors.sage.dark : colors.neutral.brown,
+                            fontFamily: isSelected ? 'Nunito-Bold' : 'Nunito-Medium',
+                            fontSize: scaled(14),
+                          },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      {isSelected && <Check size={scaled(18)} color={colors.sage.dark} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.modalCloseButton, { backgroundColor: isDarkMode ? '#282320' : '#EFE8DE' }]}
+                onPress={() => setShowTimePicker(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalCloseText, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -467,5 +710,79 @@ const styles = StyleSheet.create({
   signOutButtonText: {
     fontFamily: 'Nunito-Bold',
     color: '#FFFFFF',
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  timeBadgeText: {
+    fontFamily: 'Nunito-Bold',
+  },
+  testButtonBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  testButtonText: {
+    fontFamily: 'Nunito-Bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  modalHeader: {
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontFamily: 'DMSerifDisplay-Regular',
+  },
+  modalSubtitle: {
+    fontFamily: 'Nunito-Medium',
+    marginTop: 4,
+  },
+  timeOptionsGrid: {
+    gap: 8,
+    marginVertical: Spacing.sm,
+  },
+  timeOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+  },
+  timeOptionText: {
+    fontSize: 14,
+  },
+  modalCloseButton: {
+    marginTop: Spacing.md,
+    paddingVertical: 12,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontFamily: 'Nunito-Bold',
   },
 });
