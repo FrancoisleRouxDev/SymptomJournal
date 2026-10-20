@@ -32,6 +32,8 @@ export async function registerForPushNotificationsAsync(): Promise<boolean> {
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#5A7D66',
+        enableVibrate: true,
+        showBadge: true,
       });
     }
 
@@ -43,9 +45,10 @@ export async function registerForPushNotificationsAsync(): Promise<boolean> {
       finalStatus = status;
     }
 
+    console.log('[Notifications] OS permission status:', finalStatus);
     return finalStatus === 'granted';
   } catch (err) {
-    console.log('Error registering for push notifications:', err);
+    console.warn('[Notifications] Error registering for push notifications:', err);
     return false;
   }
 }
@@ -60,22 +63,27 @@ export async function scheduleDailyReminder(hour = 20, minute = 0): Promise<void
     // Cancel existing scheduled notifications first to prevent duplicates
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    await Notifications.scheduleNotificationAsync({
+    const triggerType = Notifications.SchedulableTriggerInputTypes?.DAILY || 'daily';
+
+    const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Daily Symptom Check-in 🌿',
         body: 'How is your body feeling today? Take 30 seconds to log your symptoms.',
         data: { screen: 'log' },
         sound: true,
+        channelId: 'daily-reminders',
       },
       trigger: {
+        type: triggerType,
         hour,
         minute,
         repeats: true,
         channelId: 'daily-reminders',
       } as any,
     });
+    console.log(`[Notifications] Daily reminder scheduled for ${hour}:${minute.toString().padStart(2, '0')} (ID: ${notifId})`);
   } catch (err) {
-    console.log('Error scheduling daily reminder:', err);
+    console.warn('[Notifications] Error scheduling daily reminder:', err);
   }
 }
 
@@ -86,35 +94,57 @@ export async function cancelDailyReminder(): Promise<void> {
   if (!Notifications || Platform.OS === 'web') return;
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('[Notifications] Cancelled all scheduled reminders');
   } catch (err) {
-    console.log('Error cancelling daily reminder:', err);
+    console.warn('[Notifications] Error cancelling daily reminder:', err);
   }
 }
 
 /**
- * Send an immediate test notification (fires in 3-5 seconds)
+ * Check currently scheduled notifications (useful for debugging)
  */
-export async function sendTestNotificationAsync(seconds = 3): Promise<boolean> {
+export async function checkScheduledRemindersAsync(): Promise<any[]> {
+  if (!Notifications || Platform.OS === 'web') return [];
+  try {
+    const list = await Notifications.getAllScheduledNotificationsAsync();
+    console.log('[Notifications] Currently scheduled count:', list.length, list);
+    return list;
+  } catch (err) {
+    console.warn('[Notifications] Error checking scheduled notifications:', err);
+    return [];
+  }
+}
+
+/**
+ * Send an immediate test notification (fires in 4-5 seconds)
+ */
+export async function sendTestNotificationAsync(seconds = 4): Promise<boolean> {
   if (!Notifications || Platform.OS === 'web') return false;
   try {
     const granted = await registerForPushNotificationsAsync();
     if (!granted) return false;
 
-    await Notifications.scheduleNotificationAsync({
+    const triggerType = Notifications.SchedulableTriggerInputTypes?.TIME_INTERVAL || 'timeInterval';
+
+    const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Daily Symptom Check-in 🌿',
         body: 'How is your body feeling right now? Take 30 seconds to log your symptoms.',
         data: { screen: 'log' },
         sound: true,
+        channelId: 'daily-reminders',
       },
       trigger: {
+        type: triggerType,
         seconds: Math.max(1, seconds),
+        repeats: false,
         channelId: 'daily-reminders',
       } as any,
     });
+    console.log('[Notifications] Test notification scheduled with id:', notifId);
     return true;
   } catch (err) {
-    console.log('Error triggering test notification:', err);
+    console.warn('[Notifications] Error triggering test notification:', err);
     return false;
   }
 }

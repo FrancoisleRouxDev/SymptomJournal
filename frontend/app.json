@@ -24,7 +24,9 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.v3locity_735.symptomjournal",
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {

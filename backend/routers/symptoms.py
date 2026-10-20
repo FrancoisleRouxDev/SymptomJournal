@@ -118,6 +118,13 @@ async def delete_log(
     user_id: str = Depends(verify_token)
 ):
     try:
+        # First delete dependent triggers associated with this log
+        supabase.table("triggers")\
+            .delete()\
+            .eq("log_id", log_id)\
+            .execute()
+
+        # Then delete the symptom log
         supabase.table("symptom_logs")\
             .delete()\
             .eq("id", log_id)\
