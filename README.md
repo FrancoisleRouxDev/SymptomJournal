@@ -33,7 +33,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 | **GitHub Releases** | [SymptomJournal Releases](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Latest release notes, binary downloads, and changelog |
 | **Android APK (v1.0.4)** | [Download Android APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Native installable Android APK with adaptive brand icons & splash |
 | **iOS Simulator Build** | [iOS Simulator (.tar.gz)](https://expo.dev/artifacts/eas/evplY85VchJ5j7K3TtDT6uXIu1fE2h_BfyZBJYh9l9s.tar.gz) | Apple iOS Simulator build ready for Appetize.io or Xcode Simulator |
-| **Production API** | [symptomjournal.onrender.com](https://symptomjournal.onrender.com) | FastAPI backend deployed with live CORS and health monitoring |
+<!-- | **Production API** | [symptomjournal.onrender.com](https://symptomjournal.onrender.com) | FastAPI backend deployed with live CORS and health monitoring | -->
 | **API Documentation** | [Swagger UI Console](https://symptomjournal.onrender.com/docs) | OpenAPI interactive testing sandbox with auth and analysis routes |
 | **Patient User Journey** | [User Journey Map](docs/USER_JOURNEY.md) | Complete end-to-end patient experience map & visual flow diagram |
 | **Database ERD** | [Entity Relationship Diagram](docs/ERD-Diagram.png) | PostgreSQL schema diagram with foreign keys and relationships |
@@ -168,6 +168,7 @@ The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Secur
 * **Conversational Guidance:** Instant answers regarding over-the-counter medications, potential interactions, common side effects, and home comfort measures.
 * **Interactive Quick-Question Chips:** Tap common enquiries to begin a conversation immediately.
 * **Non-Diagnostic Guardrails:** Built-in medical disclaimers reminding patients that AI guidance does not replace professional medical diagnosis or prescription orders.
+* **Bespoke Chat Interface:** Sage-accented dialogue bubbles, loading shimmer indicators, and native Lucide send controls.
 
 ---
 
