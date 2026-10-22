@@ -16,7 +16,6 @@ import {
   ChevronRight,
   LogOut,
   Clock,
-  Bell,
   Check,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
@@ -26,7 +25,6 @@ import {
   registerForPushNotificationsAsync,
   scheduleDailyReminder,
   cancelDailyReminder,
-  sendTestNotificationAsync,
 } from '@/lib/notifications';
 import api from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -41,7 +39,6 @@ export default function SettingsScreen() {
   const [insightAlertsEnabled, setInsightAlertsEnabled] = useState(true);
   const [reminderTime, setReminderTime] = useState({ hour: 20, minute: 0, label: '8:00 PM' });
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [testingNotification, setTestingNotification] = useState(false);
 
   React.useEffect(() => {
     AsyncStorage.getItem('settings_notifications').then((data) => {
@@ -108,23 +105,6 @@ export default function SettingsScreen() {
       JSON.stringify({ push: pushEnabled, reminders: remindersEnabled, insights: insightAlertsEnabled, reminderTime: time })
     );
     Alert.alert('Reminder Time Updated', `Your daily symptom check-in is set for ${time.label}.`);
-  };
-
-  const handleTestNotification = async () => {
-    setTestingNotification(true);
-    const sent = await sendTestNotificationAsync(4);
-    setTestingNotification(false);
-    if (sent) {
-      Alert.alert(
-        'Test Notification Scheduled! 🌿',
-        'A test check-in notification will appear in 4 seconds. Lock your phone or leave the app open to see it.'
-      );
-    } else {
-      Alert.alert(
-        'Permission Required',
-        'Could not schedule notification. Please ensure notifications are permitted in your device settings.'
-      );
-    }
   };
 
   // Privacy toggles
@@ -377,33 +357,6 @@ export default function SettingsScreen() {
                   {reminderTime.label}
                 </Text>
                 <ChevronRight size={scaled(14)} color={colors.neutral.muted} />
-              </View>
-            </TouchableOpacity>
-
-            <View style={dividerStyle} />
-
-            {/* INSTANT TEST NOTIFICATION BUTTON */}
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={handleTestNotification}
-              activeOpacity={0.7}
-              disabled={testingNotification}
-            >
-              <View style={styles.settingInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Bell size={scaled(15)} color={colors.sage.base} />
-                  <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
-                    Test Notification (4s)
-                  </Text>
-                </View>
-                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
-                  Sends a test notification to your lock screen
-                </Text>
-              </View>
-              <View style={[styles.testButtonBadge, { backgroundColor: colors.sage.light }]}>
-                <Text style={[styles.testButtonText, { color: colors.sage.dark, fontSize: scaled(12) }]}>
-                  {testingNotification ? 'Sending...' : 'Send Test'}
-                </Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -720,14 +673,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   timeBadgeText: {
-    fontFamily: 'Nunito-Bold',
-  },
-  testButtonBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-  },
-  testButtonText: {
     fontFamily: 'Nunito-Bold',
   },
   modalOverlay: {
