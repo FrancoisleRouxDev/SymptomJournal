@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/FrancoisleRouxDev/SymptomJournal/releases"><img src="https://img.shields.io/badge/Release-v1.0.4-C86D51?style=for-the-badge&logo=github" alt="Release v1.0.4" /></a>
+  <a href="https://github.com/FrancoisleRouxDev/SymptomJournal/releases"><img src="https://img.shields.io/badge/Release-v1.0.5-C86D51?style=for-the-badge&logo=github" alt="Release v1.0.5" /></a>
   <a href="frontend/src/__tests__"><img src="https://img.shields.io/badge/Automated_Tests-110_Passing-brightgreen?style=for-the-badge&logo=jest" alt="110 Tests Passing" /></a>
   <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-SDK%2057%20(iOS%20%26%20Android)-000020?style=for-the-badge&logo=expo" alt="Expo SDK 57" /></a>
   <a href="https://symptomjournal.onrender.com/docs"><img src="https://img.shields.io/badge/Backend-FastAPI%20Cloud-009688?style=for-the-badge&logo=fastapi" alt="FastAPI Backend" /></a>
@@ -31,7 +31,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 | Resource | Link | Description |
 |:---|:---|:---|
 | **GitHub Releases** | [SymptomJournal Releases](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Latest release notes, binary downloads, and changelog |
-| **Android APK (v1.0.4)** | [Download Android APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Native installable Android APK with adaptive brand icons & splash |
+| **Android APK (v1.0.5)** | [Download Android APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Native installable Android APK with adaptive brand icons & splash |
 | **iOS Simulator Build** | [iOS Simulator (.tar.gz)](https://expo.dev/artifacts/eas/evplY85VchJ5j7K3TtDT6uXIu1fE2h_BfyZBJYh9l9s.tar.gz) | Apple iOS Simulator build ready for Appetize.io or Xcode Simulator |
 <!-- | **Production API** | [symptomjournal.onrender.com](https://symptomjournal.onrender.com) | FastAPI backend deployed with live CORS and health monitoring | -->
 | **API Documentation** | [Swagger UI Console](https://symptomjournal.onrender.com/docs) | OpenAPI interactive testing sandbox with auth and analysis routes |
@@ -321,7 +321,16 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ## Acknowledgements
 
-Tsungai Katsuro
+Special thanks to:
+
+- **Tsungai Katsuro** — Lecturer, for guidance, technical feedback, and project mentorship
+- **Expo** — For the React Native framework, Expo Router, and EAS build cloud infrastructure
+- **Supabase** — For PostgreSQL database hosting, authentication, and row-level security
+- **FastAPI & Render** — For the Python REST backend and cloud web service hosting
+- **NVIDIA NIM** — For accelerated LLM inference powering clinical pattern recognition
+- **Lucide** — For the open-source icon system used across the user interface
+<!-- - **Claude & Gemini** — AI development assistants utilized for pair-programming and debugging -->
+
 
 ---
 
