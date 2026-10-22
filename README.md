@@ -308,20 +308,6 @@ npx eas-cli build -p ios --profile preview-simulator
 
 ---
 
-## Roadmap
-
-- [x] **Phase 1 — Design Tokens & Scaffolding** — Linen & sage palette, DM Serif / Nunito fonts, stack routing
-- [x] **Phase 2 — Auth & Symptom Logging** — Supabase Auth, 6 symptom categories, severity slider, custom body areas & triggers
-- [x] **Phase 3 — AI Integration via FastAPI** — NVIDIA NIM Llama integration, pattern detection, safety disclaimers
-- [x] **Phase 4 — Core Screens & Navigation** — Interactive Timeline, SBAR Doctor Summary, Medication Chatbot, Profile
-- [x] **Phase 5 — Accessibility & Theming** — Complete Dark & Light Mode, 4-step dynamic font scaling
-- [x] **Phase 6 — Clinical Export & Hardening** — Redesigned SBAR PDF, 110 automated tests, foreign key integrity
-- [x] **Phase 7 — Multi-Platform Releases** — FastAPI deployed on Render, Android APK v1.0.4, iOS Simulator build
-- [x] **Phase 8 — Native Push Notifications** — Daily reminder scheduler, custom time picker, Android exact alarm support
-- [ ] **Phase 9 — Qualitative Usability Evaluation** — User testing sessions and final submission
-
----
-
 ## Academic Context
 
 | | |
