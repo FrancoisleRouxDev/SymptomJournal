@@ -68,7 +68,7 @@ export default function MedicationAssistantScreen() {
     const checkStatus = async () => {
         setIsChecking(true);
         try {
-            const res = await api.get('/', { timeout: 3500 });
+            const res = await api.get('/', { timeout: 5000 });
             setIsOnline(res.status === 200);
         } catch {
             setIsOnline(false);
@@ -117,7 +117,7 @@ export default function MedicationAssistantScreen() {
                 console.log('AI chat API error, using safe fallback:', apiErr?.message || apiErr);
                 setIsOnline(false);
 
-                // Fallback rules if backend is unreachable or offline
+                // Safe medical fallback rules if backend is unreachable or offline
                 const lower = textToSend.toLowerCase();
                 if (lower.includes('ibuprofen')) {
                     assistantResponse = 'Ibuprofen is an NSAID commonly used for pain and swelling. Always take with food or milk to protect your stomach. Speak to your doctor if you have kidney or ulcer issues.';
@@ -344,12 +344,15 @@ export default function MedicationAssistantScreen() {
                                     ]}
                                 />
                                 <Text style={[styles.modalStatusText, { color: colors.neutral.brown, fontSize: scaled(12.5) }]}>
-                                    Current AI Status: <Text style={{ fontFamily: 'Nunito-Bold', color: isOnline ? colors.sage.dark : colors.terracotta.dark }}>{isOnline ? 'Online & Connected' : 'Offline Mode (Basic OTC Guidance)'}</Text>
+                                    Current AI Status:{' '}
+                                    <Text style={{ fontFamily: 'Nunito-Bold', color: isOnline ? colors.sage.dark : colors.terracotta.dark }}>
+                                        {isOnline ? 'Online & Connected' : 'Offline Mode (Basic OTC Guidance Active)'}
+                                    </Text>
                                 </Text>
                             </View>
 
                             <TouchableOpacity
-                                style={[styles.modalActionBtn, { backgroundColor: colors.sage.dark }]}
+                                style={[styles.modalActionBtn, { backgroundColor: colors.sage.dark, marginTop: 4 }]}
                                 onPress={handleDismissModal}
                                 activeOpacity={0.85}
                             >
@@ -594,7 +597,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: Spacing.lg,
+        marginBottom: Spacing.md,
         paddingHorizontal: 4,
     },
     modalStatusText: {
