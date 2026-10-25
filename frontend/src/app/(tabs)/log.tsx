@@ -31,6 +31,7 @@ import {
   X,
   MapPin,
   Trash2,
+  AlertCircle,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius } from '@/constants/theme';
 import api from '@/lib/api';
@@ -116,6 +117,10 @@ export default function LogScreen() {
 
   const [isTriggerModalVisible, setIsTriggerModalVisible] = useState(false);
   const [customTriggerInput, setCustomTriggerInput] = useState('');
+
+  // Themed modal confirmations and alerts
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'area' | 'trigger'; name: string } | null>(null);
+  const [validationNotice, setValidationNotice] = useState<{ title: string; message: string } | null>(null);
 
   // Slider gesture support
   const sliderContainerWidth = useRef<number>(0);
@@ -224,7 +229,7 @@ export default function LogScreen() {
   const handleAddCustomArea = async () => {
     const trimmed = customAreaInput.trim();
     if (!trimmed) {
-      Alert.alert('Missing Detail', 'Please enter a specific body area or part.');
+      setValidationNotice({ title: 'Missing Detail', message: 'Please enter a specific body area or part.' });
       return;
     }
 
@@ -254,38 +259,14 @@ export default function LogScreen() {
 
   // Delete Custom Body Area
   const handleDeleteCustomArea = (areaToDelete: string) => {
-    const performDelete = async () => {
-      const updated = customBodyAreas.filter((a) => a !== areaToDelete);
-      setCustomBodyAreas(updated);
-      setSelectedBodyAreas((prev) => prev.filter((a) => a !== areaToDelete));
-      try {
-        await AsyncStorage.setItem(STORAGE_CUSTOM_AREAS, JSON.stringify(updated));
-      } catch (err) {
-        console.log('Error deleting custom area:', err);
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm(`Delete custom body area "${areaToDelete}"?`)) {
-        performDelete();
-      }
-    } else {
-      Alert.alert(
-        'Delete Custom Area',
-        `Are you sure you want to remove "${areaToDelete}" from your custom body areas?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: performDelete },
-        ]
-      );
-    }
+    setDeleteConfirm({ type: 'area', name: areaToDelete });
   };
 
   // Add Custom Trigger
   const handleAddCustomTrigger = async () => {
     const trimmed = customTriggerInput.trim();
     if (!trimmed) {
-      Alert.alert('Missing Trigger', 'Please enter a trigger name.');
+      setValidationNotice({ title: 'Missing Trigger', message: 'Please enter a trigger name.' });
       return;
     }
 
@@ -310,7 +291,24 @@ export default function LogScreen() {
 
   // Delete Custom Trigger
   const handleDeleteCustomTrigger = (trigToDelete: string) => {
-    const performDelete = async () => {
+    setDeleteConfirm({ type: 'trigger', name: trigToDelete });
+  };
+
+  // Confirm delete handler for both area and trigger
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.type === 'area') {
+      const areaToDelete = deleteConfirm.name;
+      const updated = customBodyAreas.filter((a) => a !== areaToDelete);
+      setCustomBodyAreas(updated);
+      setSelectedBodyAreas((prev) => prev.filter((a) => a !== areaToDelete));
+      try {
+        await AsyncStorage.setItem(STORAGE_CUSTOM_AREAS, JSON.stringify(updated));
+      } catch (err) {
+        console.log('Error deleting custom area:', err);
+      }
+    } else {
+      const trigToDelete = deleteConfirm.name;
       const updated = customTriggers.filter((t) => t !== trigToDelete);
       setCustomTriggers(updated);
       setSelectedTriggers((prev) => prev.filter((t) => t !== trigToDelete));
@@ -319,22 +317,8 @@ export default function LogScreen() {
       } catch (err) {
         console.log('Error deleting custom trigger:', err);
       }
-    };
-
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm(`Delete custom trigger "${trigToDelete}"?`)) {
-        performDelete();
-      }
-    } else {
-      Alert.alert(
-        'Delete Custom Trigger',
-        `Are you sure you want to remove "${trigToDelete}" from your custom triggers?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: performDelete },
-        ]
-      );
     }
+    setDeleteConfirm(null);
   };
 
   // Convert time preset to backend-valid time_of_day ('morning' | 'afternoon' | 'evening' | 'night')
@@ -360,12 +344,12 @@ export default function LogScreen() {
 
   const handleSubmit = async () => {
     if (selectedCategories.length === 0) {
-      Alert.alert('Missing Category', 'Please select at least one symptom category.');
+      setValidationNotice({ title: 'Missing Category', message: 'Please select at least one symptom category.' });
       return;
     }
 
     if (selectedBodyAreas.length === 0) {
-      Alert.alert('Missing Body Area', 'Please select at least one body area.');
+      setValidationNotice({ title: 'Missing Body Area', message: 'Please select at least one body area.' });
       return;
     }
 
@@ -430,7 +414,7 @@ export default function LogScreen() {
       } else if (error.message) {
         errorMsg = error.message;
       }
-      Alert.alert('Logging Failed', errorMsg);
+      setValidationNotice({ title: 'Logging Failed', message: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -1164,6 +1148,102 @@ export default function LogScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL: DELETE CUSTOM ITEM CONFIRMATION */}
+      <Modal
+        visible={!!deleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteConfirm(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setDeleteConfirm(null)}
+        >
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.modalHeaderRow}>
+              <View style={[styles.modalIconCircle, { backgroundColor: isDarkMode ? '#2D1F1C' : '#FCECE8' }]}>
+                <Trash2 size={scaled(20)} color={colors.terracotta.base} />
+              </View>
+              <TouchableOpacity onPress={() => setDeleteConfirm(null)} style={{ padding: 4 }}>
+                <X size={scaled(20)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(20), marginBottom: 8 }]}>
+              Delete Custom {deleteConfirm?.type === 'area' ? 'Area' : 'Trigger'}?
+            </Text>
+
+            <Text style={[styles.modalNoticeBody, { color: colors.neutral.muted, fontSize: scaled(13.5) }]}>
+              Are you sure you want to remove "{deleteConfirm?.name}"? It will no longer appear in your quick selection list.
+            </Text>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.neutral.border }]}
+                onPress={() => setDeleteConfirm(null)}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, { backgroundColor: colors.terracotta.base }]}
+                onPress={confirmDelete}
+              >
+                <Text style={[styles.modalSaveText, { fontSize: scaled(14) }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* MODAL: VALIDATION NOTICE */}
+      <Modal
+        visible={!!validationNotice}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setValidationNotice(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setValidationNotice(null)}
+        >
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.modalHeaderRow}>
+              <View style={[styles.modalIconCircle, { backgroundColor: isDarkMode ? '#28211E' : '#FAF1E8' }]}>
+                <AlertCircle size={scaled(20)} color={colors.terracotta.base} />
+              </View>
+              <TouchableOpacity onPress={() => setValidationNotice(null)} style={{ padding: 4 }}>
+                <X size={scaled(20)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(20), marginBottom: 8 }]}>
+              {validationNotice?.title}
+            </Text>
+
+            <Text style={[styles.modalNoticeBody, { color: colors.neutral.muted, fontSize: scaled(13.5), marginBottom: Spacing.lg }]}>
+              {validationNotice?.message}
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.modalSaveBtn, { backgroundColor: colors.sage.dark, width: '100%' }]}
+              onPress={() => setValidationNotice(null)}
+            >
+              <Text style={[styles.modalSaveText, { fontSize: scaled(14) }]}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -1409,25 +1489,36 @@ const styles = StyleSheet.create({
   /* Modals */
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(28, 24, 22, 0.65)',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: Spacing.lg,
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 380,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
     borderWidth: 1,
-    elevation: 8,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
   },
   modalHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  modalIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
   modalTitle: {
     fontFamily: 'DMSerifDisplay-Regular',
@@ -1468,25 +1559,31 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontStyle: 'italic',
   },
+  modalNoticeBody: {
+    fontFamily: 'Nunito-Medium',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
   modalButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
+    gap: 12,
     marginTop: Spacing.sm,
   },
   modalCancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: Radius.md,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCancelText: {
     fontFamily: 'Nunito-Bold',
   },
   modalSaveBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: Radius.md,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },

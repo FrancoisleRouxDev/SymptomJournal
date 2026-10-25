@@ -17,6 +17,9 @@ import {
   LogOut,
   Clock,
   Check,
+  X,
+  FileText,
+  AlertCircle,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -39,6 +42,8 @@ export default function SettingsScreen() {
   const [insightAlertsEnabled, setInsightAlertsEnabled] = useState(true);
   const [reminderTime, setReminderTime] = useState({ hour: 20, minute: 0, label: '8:00 PM' });
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [exportResultModal, setExportResultModal] = useState<{ title: string; message: string; isSuccess: boolean } | null>(null);
 
   React.useEffect(() => {
     AsyncStorage.getItem('settings_notifications').then((data) => {
@@ -127,37 +132,33 @@ export default function SettingsScreen() {
         // Optional
       }
 
-      Alert.alert(
-        'Data Export Ready',
-        `Successfully compiled ${logs.length} symptom logs and user health records. Export format: JSON.`,
-        [{ text: 'Done', style: 'default' }]
-      );
+      setExportResultModal({
+        title: 'Data Export Ready',
+        message: `Successfully compiled ${logs.length} symptom logs and user clinical records into JSON format ready for download.`,
+        isSuccess: true,
+      });
     } catch (err: any) {
-      Alert.alert('Export Notice', 'Could not compile export data: ' + (err.message || 'Network error'));
+      setExportResultModal({
+        title: 'Export Notice',
+        message: 'Could not compile export data: ' + (err.message || 'Network error'),
+        isSuccess: false,
+      });
     } finally {
       setExporting(false);
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out of SymptomJournal?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch { }
-            await AsyncStorage.removeItem('has_onboarded');
-            router.replace('/auth/sign-in' as any);
-          },
-        },
-      ]
-    );
+    setShowSignOutModal(true);
+  };
+
+  const confirmSignOut = async () => {
+    setShowSignOutModal(false);
+    try {
+      await signOut();
+    } catch { }
+    await AsyncStorage.removeItem('has_onboarded');
+    router.replace('/auth/sign-in' as any);
   };
 
   const cardGroupStyle = [
@@ -451,7 +452,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Text style={[styles.rightNavText, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
-                1.0.4 (Build 44)
+                1.0.5 (Build 45)
               </Text>
             </View>
           </View>
@@ -488,17 +489,20 @@ export default function SettingsScreen() {
               ]}
               onStartShouldSetResponder={() => true}
             >
-              <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Clock size={scaled(20)} color={colors.sage.dark} />
-                  <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(18) }]}>
-                    Choose Reminder Time
+                  <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(20) }]}>
+                    Reminder Time
                   </Text>
                 </View>
-                <Text style={[styles.modalSubtitle, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
-                  We'll send your daily check-in nudge at this time
-                </Text>
+                <TouchableOpacity onPress={() => setShowTimePicker(false)} style={{ padding: 4 }}>
+                  <X size={scaled(20)} color={colors.neutral.muted} />
+                </TouchableOpacity>
               </View>
+              <Text style={[styles.modalSubtitle, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                Select when you prefer to receive your daily check-in nudge
+              </Text>
 
               <View style={styles.timeOptionsGrid}>
                 {[
@@ -549,6 +553,120 @@ export default function SettingsScreen() {
               >
                 <Text style={[styles.modalCloseText, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
                   Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* SIGN OUT CONFIRMATION MODAL */}
+        <Modal
+          visible={showSignOutModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSignOutModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowSignOutModal(false)}
+          >
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeaderRow}>
+                <View style={[styles.modalIconCircle, { backgroundColor: isDarkMode ? '#2D1F1C' : '#FCECE8' }]}>
+                  <LogOut size={scaled(20)} color={colors.terracotta.base} />
+                </View>
+                <TouchableOpacity onPress={() => setShowSignOutModal(false)} style={{ padding: 4 }}>
+                  <X size={scaled(20)} color={colors.neutral.muted} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(20) }]}>
+                Sign Out of Account?
+              </Text>
+
+              <Text style={[styles.modalSubtitle, { color: colors.neutral.muted, fontSize: scaled(13.5), marginBottom: Spacing.lg }]}>
+                You will need to sign in again to access your symptom journal. Your encrypted health logs remain safely preserved.
+              </Text>
+
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.modalSecondaryBtn, { borderColor: colors.neutral.border }]}
+                  onPress={() => setShowSignOutModal(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalSecondaryBtnText, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalPrimaryBtn, { backgroundColor: colors.terracotta.base }]}
+                  onPress={confirmSignOut}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.modalPrimaryBtnText, { fontSize: scaled(14) }]}>
+                    Sign Out
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* DATA EXPORT RESULT MODAL */}
+        <Modal
+          visible={!!exportResultModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setExportResultModal(null)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setExportResultModal(null)}
+          >
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeaderRow}>
+                <View style={[styles.modalIconCircle, { backgroundColor: exportResultModal?.isSuccess ? (isDarkMode ? '#1E2C22' : '#EAF4EE') : (isDarkMode ? '#2D1F1C' : '#FCECE8') }]}>
+                  {exportResultModal?.isSuccess ? (
+                    <FileText size={scaled(20)} color={colors.sage.dark} />
+                  ) : (
+                    <AlertCircle size={scaled(20)} color={colors.terracotta.base} />
+                  )}
+                </View>
+                <TouchableOpacity onPress={() => setExportResultModal(null)} style={{ padding: 4 }}>
+                  <X size={scaled(20)} color={colors.neutral.muted} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.modalTitle, { color: colors.neutral.brown, fontSize: scaled(20) }]}>
+                {exportResultModal?.title || 'Notice'}
+              </Text>
+
+              <Text style={[styles.modalSubtitle, { color: colors.neutral.muted, fontSize: scaled(13.5), marginBottom: Spacing.lg }]}>
+                {exportResultModal?.message}
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.modalPrimaryBtn, { backgroundColor: colors.sage.dark, width: '100%' }]}
+                onPress={() => setExportResultModal(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.modalPrimaryBtnText, { fontSize: scaled(14) }]}>
+                  Done
                 </Text>
               </TouchableOpacity>
             </View>
@@ -723,11 +841,51 @@ const styles = StyleSheet.create({
   modalCloseButton: {
     marginTop: Spacing.md,
     paddingVertical: 12,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCloseText: {
     fontFamily: 'Nunito-Bold',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  modalIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: Spacing.xs,
+  },
+  modalSecondaryBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSecondaryBtnText: {
+    fontFamily: 'Nunito-Bold',
+  },
+  modalPrimaryBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryBtnText: {
+    fontFamily: 'Nunito-Bold',
+    color: '#FFFFFF',
   },
 });
