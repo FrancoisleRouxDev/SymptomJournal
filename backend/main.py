@@ -60,4 +60,10 @@ app.include_router(analysis.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Symptom Journal API"}
+    return {"message": "Welcome to the Symptom Journal API"}
+
+@app.get("/ping")
+def ping():
+    """Lightweight health check endpoint for uptime monitors (e.g. UptimeRobot, GitHub Actions).
+    Keeps the Render free-tier instance warm between real user requests."""
+    return {"status": "ok"}

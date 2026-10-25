@@ -1,0 +1,22 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes — keeps Render free-tier from spinning down
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  ping:
+    name: Ping Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /ping endpoint
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://symptomjournal.onrender.com/ping)
+          echo "Response status: $STATUS"
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Warning: backend returned status $STATUS"
+            exit 1
+          fi
+          echo "Backend is alive ✅"
