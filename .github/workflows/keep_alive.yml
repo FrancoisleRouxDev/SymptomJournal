@@ -11,9 +11,11 @@ jobs:
     name: Ping Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Ping /ping endpoint
+      - name: Ping root endpoint
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://symptomjournal.onrender.com/ping)
+          # Use root / endpoint (always available in production).
+          # /ping will also work once development is merged into main.
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://symptomjournal.onrender.com/)
           echo "Response status: $STATUS"
           if [ "$STATUS" -ne 200 ]; then
             echo "Warning: backend returned status $STATUS"
