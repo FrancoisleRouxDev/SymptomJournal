@@ -107,7 +107,7 @@ export default function DoctorSummaryScreen() {
         let validSevCount = 0;
 
         logs.forEach((log) => {
-          const desc = (log.description || 'General Symptom').trim();
+          const desc = (log.description || 'General Symptom').replace(/\$/g, '').trim();
           const capDesc = desc.charAt(0).toUpperCase() + desc.slice(1);
           counts[capDesc] = (counts[capDesc] || 0) + 1;
 
@@ -476,7 +476,7 @@ export default function DoctorSummaryScreen() {
                   <View key={index} style={styles.symptomRow}>
                     <View style={styles.symptomRowHeader}>
                       <Text style={[styles.symptomName, { color: colors.neutral.brown, fontSize: scaled(14) }]}>
-                        ${item.name}
+                        {item.name}
                       </Text>
                       <Text style={[styles.symptomCount, { color: colors.neutral.brownMid, fontSize: scaled(13) }]}>
                         {item.count}×

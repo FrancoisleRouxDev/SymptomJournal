@@ -140,7 +140,7 @@ export default function InsightsScreen() {
     let validSevCount = 0;
 
     logs.forEach((log) => {
-      const cleanDesc = (log.description || 'General').replace(/\s*\(.*?\)/, '').trim();
+      const cleanDesc = (log.description || 'General').replace(/\$/g, '').replace(/\s*\(.*?\)/, '').trim();
       const cap = cleanDesc.charAt(0).toUpperCase() + cleanDesc.slice(1);
       counts[cap] = (counts[cap] || 0) + 1;
 
@@ -334,7 +334,7 @@ export default function InsightsScreen() {
 
       const counts: Record<string, number> = {};
       rawLogs.forEach((log) => {
-        const d = (log.description || 'Symptom').trim();
+        const d = (log.description || 'Symptom').replace(/\$/g, '').trim();
         const cap = d.charAt(0).toUpperCase() + d.slice(1);
         counts[cap] = (counts[cap] || 0) + 1;
       });
