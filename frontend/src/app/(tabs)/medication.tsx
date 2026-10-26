@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Modal,
+    Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -49,11 +50,22 @@ export default function MedicationAssistantScreen() {
     ]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
+    const scrollViewRef = useRef<ScrollView>(null);
 
     // Online / Offline and Network Modal states
     const [showNetworkModal, setShowNetworkModal] = useState(false);
     const [isOnline, setIsOnline] = useState<boolean>(true);
     const [isChecking, setIsChecking] = useState<boolean>(false);
+
+    useEffect(() => {
+        const keyboardEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const sub = Keyboard.addListener(keyboardEvent, () => {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 50);
+        });
+        return () => sub.remove();
+    }, []);
 
     useEffect(() => {
         checkStatus();
@@ -146,9 +158,12 @@ export default function MedicationAssistantScreen() {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
-            <SafeAreaView style={styles.safe} edges={['top']}>
-
+        <SafeAreaView style={[styles.safe, { backgroundColor: colors.background.canvas }]} edges={['top', 'bottom']}>
+            <KeyboardAvoidingView
+                style={styles.keyboardAvoid}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            >
                 {/* Header with Back Button and Online/Offline Indicator */}
                 <View style={[styles.header, { borderBottomColor: colors.neutral.border }]}>
                     <View style={styles.headerTopRow}>
@@ -222,7 +237,14 @@ export default function MedicationAssistantScreen() {
                 </View>
 
                 {/* Chat Messages */}
-                <ScrollView contentContainerStyle={styles.chatScroll} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    ref={scrollViewRef}
+                    style={styles.chatList}
+                    contentContainerStyle={styles.chatScroll}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                >
                     {messages.map((msg) => (
                         <View
                             key={msg.id}
@@ -260,26 +282,25 @@ export default function MedicationAssistantScreen() {
                 </ScrollView>
 
                 {/* Input Bar */}
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                    <View style={[styles.inputContainer, { backgroundColor: colors.background.card, borderTopColor: colors.neutral.border }]}>
-                        <TextInput
-                            style={[styles.textInput, { backgroundColor: colors.background.canvas, borderColor: colors.neutral.border, color: colors.neutral.brown }]}
-                            placeholder="Ask about medications, side effects..."
-                            placeholderTextColor={colors.neutral.muted}
-                            value={inputText}
-                            onChangeText={setInputText}
-                            onSubmitEditing={() => handleSend()}
-                        />
-                        <TouchableOpacity
-                            style={[styles.sendBtn, (!inputText.trim() || loading) && styles.sendBtnDisabled]}
-                            onPress={() => handleSend()}
-                            disabled={!inputText.trim() || loading}
-                            activeOpacity={0.8}
-                            accessibilityLabel="Send message">
-                            <Send size={18} color={Colors.white} strokeWidth={2.2} />
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
+                <View style={[styles.inputContainer, { backgroundColor: colors.background.card, borderTopColor: colors.neutral.border }]}>
+                    <TextInput
+                        style={[styles.textInput, { backgroundColor: colors.background.canvas, borderColor: colors.neutral.border, color: colors.neutral.brown }]}
+                        placeholder="Ask about medications, side effects..."
+                        placeholderTextColor={colors.neutral.muted}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        onSubmitEditing={() => handleSend()}
+                    />
+                    <TouchableOpacity
+                        style={[styles.sendBtn, (!inputText.trim() || loading) && styles.sendBtnDisabled]}
+                        onPress={() => handleSend()}
+                        disabled={!inputText.trim() || loading}
+                        activeOpacity={0.8}
+                        accessibilityLabel="Send message">
+                        <Send size={18} color={Colors.white} strokeWidth={2.2} />
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
 
                 {/* NETWORK STABILITY & AI NOTICE MODAL */}
                 <Modal
@@ -365,13 +386,14 @@ export default function MedicationAssistantScreen() {
                 </Modal>
 
             </SafeAreaView>
-        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F6F0E8' },
     safe: { flex: 1 },
+    keyboardAvoid: { flex: 1 },
+    chatList: { flex: 1 },
     header: {
         paddingHorizontal: Spacing.lg,
         paddingTop: Spacing.sm,

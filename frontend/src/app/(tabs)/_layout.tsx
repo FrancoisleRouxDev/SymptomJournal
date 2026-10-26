@@ -100,6 +100,7 @@ export default function TabsLayout() {
           name="medication"
           options={{
             href: null,
+            tabBarStyle: { display: 'none' },
           }}
         />
       </Tabs>
