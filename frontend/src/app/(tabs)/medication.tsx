@@ -36,6 +36,9 @@ const QUICK_QUESTIONS = [
 
 const STORAGE_SEEN_NETWORK_WARNING = 'has_seen_ai_rx_network_notice';
 
+// Extra breathing room (in pixels) to keep the input bar comfortably above the keyboard
+const KEYBOARD_EXTRA_OFFSET = 24;
+
 export default function MedicationAssistantScreen() {
     const router = useRouter();
     const { colors, isDarkMode, scaled } = useTheme();
@@ -180,11 +183,13 @@ export default function MedicationAssistantScreen() {
                 style={[
                     styles.keyboardAvoid,
                     Platform.OS === 'android' && {
-                        paddingBottom: androidKeyboardHeight > 0 ? androidKeyboardHeight : Math.max(insets.bottom, 8),
+                        paddingBottom: androidKeyboardHeight > 0 
+                            ? androidKeyboardHeight + KEYBOARD_EXTRA_OFFSET 
+                            : Math.max(insets.bottom, 8),
                     },
                 ]}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
             >
                 {/* Header with Back Button and Online/Offline Indicator */}
                 <View style={[styles.header, { borderBottomColor: colors.neutral.border }]}>
