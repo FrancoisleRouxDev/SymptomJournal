@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { User, Mail, Lock, ChevronLeft, Calendar, Check } from 'lucide-react-native';
-import { signUp, updateUserProfile } from '@/lib/auth';
+import { signUp, signIn, updateUserProfile } from '@/lib/auth';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -195,9 +195,19 @@ export default function SignUp() {
               {/* Terms */}
               <Text style={styles.terms}>
                 By continuing, you agree to our{' '}
-                <Text style={styles.termsLink}>Terms</Text>
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => router.push('/terms' as any)}
+                >
+                  Terms
+                </Text>
                 {' '}and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => router.push({ pathname: '/terms' as any, params: { section: 'privacy' } })}
+                >
+                  Privacy Policy
+                </Text>
               </Text>
 
               {/* Continue Button */}

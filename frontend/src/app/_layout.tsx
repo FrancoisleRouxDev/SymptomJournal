@@ -34,6 +34,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="profile/edit" />
+        <Stack.Screen name="terms" />
       </Stack>
     </>
   );

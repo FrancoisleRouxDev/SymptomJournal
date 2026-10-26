@@ -20,6 +20,7 @@ import {
   X,
   FileText,
   AlertCircle,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -445,6 +446,42 @@ export default function SettingsScreen() {
 
             <View style={dividerStyle} />
 
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => router.push('/terms' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Terms of Service
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Medical disclaimer, user guidelines &amp; liability
+                </Text>
+              </View>
+              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
+            </TouchableOpacity>
+
+            <View style={dividerStyle} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => router.push({ pathname: '/terms' as any, params: { section: 'privacy' } })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                  Privacy Policy
+                </Text>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Data handling, POPIA compliance &amp; security
+                </Text>
+              </View>
+              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
+            </TouchableOpacity>
+
+            <View style={dividerStyle} />
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
@@ -452,7 +489,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Text style={[styles.rightNavText, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
-                1.0.5 (Build 45)
+                1.0.6 (Build 46)
               </Text>
             </View>
           </View>
