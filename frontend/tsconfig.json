@@ -5,17 +5,17 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@/assets/*": [
-        "./assets/*"
       ]
-    },
-    "types": ["jest"]
+    }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
+    ".expo/types/**/*.d.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "src/__tests__/**/*",
+    "**/*.test.ts"
   ]
 }

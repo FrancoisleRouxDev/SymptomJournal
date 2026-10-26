@@ -12,7 +12,7 @@ import {
     Modal,
     Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bot, Sparkles, ChevronLeft, User, Send, Wifi, WifiOff, X, Info } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
@@ -39,6 +39,8 @@ const STORAGE_SEEN_NETWORK_WARNING = 'has_seen_ai_rx_network_notice';
 export default function MedicationAssistantScreen() {
     const router = useRouter();
     const { colors, isDarkMode, scaled } = useTheme();
+    const insets = useSafeAreaInsets();
+    const scrollViewRef = useRef<ScrollView>(null);
 
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -50,7 +52,7 @@ export default function MedicationAssistantScreen() {
     ]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
-    const scrollViewRef = useRef<ScrollView>(null);
+    const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
 
     // Online / Offline and Network Modal states
     const [showNetworkModal, setShowNetworkModal] = useState(false);
@@ -58,13 +60,28 @@ export default function MedicationAssistantScreen() {
     const [isChecking, setIsChecking] = useState<boolean>(false);
 
     useEffect(() => {
-        const keyboardEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const sub = Keyboard.addListener(keyboardEvent, () => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSub = Keyboard.addListener(showEvent, (e) => {
+            if (Platform.OS === 'android') {
+                setAndroidKeyboardHeight(e.endCoordinates.height);
+            }
             setTimeout(() => {
                 scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 50);
+            }, 60);
         });
-        return () => sub.remove();
+
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            if (Platform.OS === 'android') {
+                setAndroidKeyboardHeight(0);
+            }
+        });
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
     }, []);
 
     useEffect(() => {
@@ -158,11 +175,16 @@ export default function MedicationAssistantScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor: colors.background.canvas }]} edges={['top', 'bottom']}>
+        <SafeAreaView style={[styles.safe, { backgroundColor: colors.background.canvas }]} edges={['top']}>
             <KeyboardAvoidingView
-                style={styles.keyboardAvoid}
+                style={[
+                    styles.keyboardAvoid,
+                    Platform.OS === 'android' && {
+                        paddingBottom: androidKeyboardHeight > 0 ? androidKeyboardHeight : Math.max(insets.bottom, 8),
+                    },
+                ]}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 {/* Header with Back Button and Online/Offline Indicator */}
                 <View style={[styles.header, { borderBottomColor: colors.neutral.border }]}>
@@ -282,7 +304,16 @@ export default function MedicationAssistantScreen() {
                 </ScrollView>
 
                 {/* Input Bar */}
-                <View style={[styles.inputContainer, { backgroundColor: colors.background.card, borderTopColor: colors.neutral.border }]}>
+                <View
+                    style={[
+                        styles.inputContainer,
+                        {
+                            backgroundColor: colors.background.card,
+                            borderTopColor: colors.neutral.border,
+                            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 8,
+                        },
+                    ]}
+                >
                     <TextInput
                         style={[styles.textInput, { backgroundColor: colors.background.canvas, borderColor: colors.neutral.border, color: colors.neutral.brown }]}
                         placeholder="Ask about medications, side effects..."
