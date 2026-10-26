@@ -151,7 +151,15 @@ export default function MedicationAssistantScreen() {
 
                 // Safe medical fallback rules if backend is unreachable or offline
                 const lower = textToSend.toLowerCase();
-                if (lower.includes('ibuprofen')) {
+                if (lower.includes('emergency') || lower.includes('crisis') || lower.includes('hotline') || lower.includes('poison') || lower.includes('overdose') || lower.includes('suicide') || lower.includes('chest pain')) {
+                    assistantResponse = '🚨 If you are experiencing a medical emergency, please contact emergency services immediately:\n\n' +
+                        '• South Africa: 112 (from mobile) or 10177 | SADAG Crisis: 0800 567 567 | Poison Centre: 0861 555 777\n' +
+                        '• United Kingdom: 999 or 111\n' +
+                        '• United States & Canada: 911 | Suicide & Crisis Lifeline: 988\n' +
+                        '• Europe & International: 112\n' +
+                        '• Australia: 000\n\n' +
+                        'For other countries, please dial your local emergency operator right away.';
+                } else if (lower.includes('ibuprofen')) {
                     assistantResponse = 'Ibuprofen is an NSAID commonly used for pain and swelling. Always take with food or milk to protect your stomach. Speak to your doctor if you have kidney or ulcer issues.';
                 } else if (lower.includes('paracetamol') || lower.includes('acetaminophen')) {
                     assistantResponse = 'Paracetamol is used for mild pain and fever relief. Maximum adult daily limit is strictly 4,000 mg in 24 hours. Avoid combining with other paracetamol products to protect liver health.';
