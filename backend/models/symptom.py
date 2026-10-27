@@ -14,7 +14,8 @@ class SymptomLogCreate(BaseModel):
     description: str = Field(..., min_length=3, max_length=500)
     severity: Optional[int] = Field(None, ge=1, le=10)
     time_of_day: Optional[str] = Field(None)
-    mood: Optional[str] = Field(None, max_length=100)
+    # Matches the varchar(50) symptom_logs.mood column, so long notes fail validation, not the insert
+    mood: Optional[str] = Field(None, max_length=50)
     # When the symptom started; defaults to the insert time if omitted
     occurred_at: Optional[datetime] = Field(None)
 
@@ -74,4 +75,4 @@ class TriggerCreate(BaseModel):
 
 
 class SymptomLogWithTriggers(SymptomLogCreate):
-    triggers: Optional[list[TriggerCreate]] = []
+    triggers: Optional[list[TriggerCreate]] = Field(default_factory=list, max_length=30)

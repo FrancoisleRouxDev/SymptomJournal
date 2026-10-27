@@ -20,13 +20,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS
+# CORS — auth uses Bearer tokens, not cookies, so credentials are not needed
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Rate limiter
@@ -47,6 +47,8 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     duration = round((time.time() - start) * 1000)
     logger.info(f"{request.method} {request.url.path} {response.status_code} {duration}ms")
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
     return response
 
 supabase = create_client(

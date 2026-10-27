@@ -270,6 +270,17 @@ class TestInputValidation:
         print("✅ test_description_too_long passed")
 
     @patch("routers.symptoms.supabase")
+    def test_notes_over_50_characters_rejected(self, mock_supabase):
+        """Notes longer than the varchar(50) column return 422 instead of a database error"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "Headache", "mood": "a" * 51}
+        )
+        assert response.status_code == 422
+        mock_supabase.table.assert_not_called()
+        print("✅ test_notes_over_50_characters_rejected passed")
+
+    @patch("routers.symptoms.supabase")
     def test_invalid_trigger_type(self, mock_supabase):
         """Test that invalid trigger type is rejected"""
         response = client.post(

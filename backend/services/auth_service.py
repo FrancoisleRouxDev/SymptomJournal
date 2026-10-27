@@ -38,7 +38,8 @@ def verify_token(
 ) -> str:
     """
     Verifies the Supabase JWT token and returns the user ID.
-    Supports ES256 (Supabase modern standard), HS256, and RS256 algorithms.
+    Tokens are verified by Supabase Auth (ES256/RS256/HS256), or locally with
+    the HS256 JWT secret as a fallback. Unverified tokens are never trusted.
     Raises 401 if token is invalid or expired.
     """
     token = credentials.credentials
@@ -55,13 +56,14 @@ def verify_token(
     except Exception:
         pass
 
-    # 2. Secondary: If JWT Secret is provided, decode with supported algorithms
+    # 2. Secondary: verify the signature locally with the shared HS256 secret.
+    # Only HS256 is accepted — a symmetric secret must never verify other algorithms.
     if SUPABASE_JWT_SECRET:
         try:
             payload = jwt.decode(
                 token,
                 SUPABASE_JWT_SECRET,
-                algorithms=["HS256", "ES256", "RS256"],
+                algorithms=["HS256"],
                 options={"verify_aud": False}
             )
             user_id: str = payload.get("sub")
@@ -70,16 +72,6 @@ def verify_token(
                 return str(user_id)
         except JWTError:
             pass
-
-    # 3. Tertiary: Extract claims for valid token structure
-    try:
-        claims = jwt.get_unverified_claims(token)
-        user_id = claims.get("sub")
-        if user_id:
-            ensure_user_profile(user_id, claims.get("email"), claims.get("name"))
-            return str(user_id)
-    except Exception:
-        pass
 
     raise HTTPException(
         status_code=401,

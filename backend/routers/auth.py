@@ -4,7 +4,14 @@ from typing import Optional
 from supabase import create_client
 from dotenv import load_dotenv
 from services.auth_service import verify_token
-from services.rate_limiter import limiter
+from services.rate_limiter import (
+    limiter,
+    get_client_ip,
+    auth_global_key,
+    is_login_locked,
+    record_login_failure,
+    clear_login_failures,
+)
 from services.logger import get_logger
 import os
 
@@ -41,8 +48,9 @@ class AuthResponse(BaseModel):
 
 
 @router.post("/signup", response_model=AuthResponse)
-@limiter.limit("10/hour")
-async def signup(request: Request, body: SignUpRequest):
+@limiter.limit("10/hour", key_func=get_client_ip)
+@limiter.limit("100/hour", key_func=auth_global_key)
+def signup(request: Request, body: SignUpRequest):
     """
     Sign up a new user via Supabase Auth and return an access token.
     """
@@ -70,15 +78,23 @@ async def signup(request: Request, body: SignUpRequest):
         )
     except Exception as e:
         logger.error(f"Sign up failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Sign up failed. Check your details and try again.")
 
 
 @router.post("/login", response_model=AuthResponse)
-@limiter.limit("20/hour")
-async def login(request: Request, body: LoginRequest):
+@limiter.limit("20/hour", key_func=get_client_ip)
+@limiter.limit("300/hour", key_func=auth_global_key)
+def login(request: Request, body: LoginRequest):
     """
     Sign in with email and password to retrieve a JWT access token for Swagger UI & API testing.
     """
+    if is_login_locked(body.email):
+        logger.warning("Login blocked: too many failed attempts for one account")
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Please try again in 15 minutes."
+        )
+
     try:
         res = supabase.auth.sign_in_with_password({
             "email": body.email,
@@ -86,8 +102,10 @@ async def login(request: Request, body: LoginRequest):
         })
 
         if not res.session or not res.session.access_token:
+            record_login_failure(body.email)
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
+        clear_login_failures(body.email)
         user_name = res.user.user_metadata.get("name") if res.user and res.user.user_metadata else None
 
         return AuthResponse(
@@ -101,12 +119,13 @@ async def login(request: Request, body: LoginRequest):
     except HTTPException:
         raise
     except Exception as e:
+        record_login_failure(body.email)
         logger.error(f"Login failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid login credentials or unverified email")
 
 
 @router.get("/me")
-async def get_current_user_profile(user_id: str = Depends(verify_token)):
+def get_current_user_profile(user_id: str = Depends(verify_token)):
     """
     Returns the authenticated user's ID to verify that your Bearer token is working properly.
     """

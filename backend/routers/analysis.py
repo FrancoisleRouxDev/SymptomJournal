@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
 from services.ai_service import (
     analyse_patterns,
     generate_doctor_summary,
@@ -28,9 +28,15 @@ supabase = create_client(
 MINIMUM_ENTRIES = 3
 
 
+class ChatMessage(BaseModel):
+    sender: Literal["user", "assistant"]
+    text: str = Field(..., max_length=4000)
+
+
 class ChatQuery(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
-    history: Optional[list[dict]] = []
+    # Bounded so a client can't inflate the AI prompt (only the last 6 are used)
+    history: Optional[list[ChatMessage]] = Field(default_factory=list, max_length=50)
 
 
 def _most_frequent_symptom(logs: list[dict]) -> str:
@@ -45,7 +51,7 @@ def _most_frequent_symptom(logs: list[dict]) -> str:
 
 @router.get("/patterns")
 @limiter.limit("120/hour")
-async def get_patterns(
+def get_patterns(
     request: Request,
     user_id: str = Depends(verify_token)
 ):
@@ -84,12 +90,13 @@ async def get_patterns(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in get_patterns: {str(e)}")
+        raise HTTPException(status_code=500, detail="Could not analyse symptom patterns")
 
 
 @router.post("/summary")
 @limiter.limit("60/hour")
-async def generate_summary(
+def generate_summary(
     request: Request,
     user_id: str = Depends(verify_token)
 ):
@@ -145,12 +152,13 @@ async def generate_summary(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in generate_summary: {str(e)}")
+        raise HTTPException(status_code=500, detail="Could not generate doctor summary")
 
 
 @router.post("/chat")
 @limiter.limit("120/hour")
-async def chat_medication(
+def chat_medication(
     request: Request,
     body: ChatQuery,
     user_id: str = Depends(verify_token)
@@ -158,7 +166,7 @@ async def chat_medication(
     try:
         response_text = answer_medication_query(
             question=body.query,
-            conversation_history=body.history or []
+            conversation_history=[m.model_dump() for m in body.history or []]
         )
         return {
             "response": response_text
@@ -167,6 +175,6 @@ async def chat_medication(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error in chat_medication: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="AI assistant is unavailable right now")
 
         

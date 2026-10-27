@@ -35,7 +35,7 @@ def _mark_utc(log: dict) -> dict:
 
 @router.post("/log")
 @limiter.limit("120/hour")
-async def log_symptom(
+def log_symptom(
     request: Request,
     symptom: SymptomLogWithTriggers,
     user_id: str = Depends(verify_token)
@@ -78,14 +78,16 @@ async def log_symptom(
             "log_id": log_id
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in log_symptom: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Could not save symptom log")
 
 
 @router.get("/history")
 @limiter.limit("180/hour")
-async def get_symptom_history(
+def get_symptom_history(
     request: Request,
     user_id: str = Depends(verify_token)
 ):
@@ -100,12 +102,12 @@ async def get_symptom_history(
 
     except Exception as e:
         logger.error(f"Error in get_symptom_history: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Could not load symptom history")
 
 
 @router.get("/history/{log_id}")
 @limiter.limit("60/hour")
-async def get_single_log(
+def get_single_log(
     request: Request,
     log_id: str,
     user_id: str = Depends(verify_token)
@@ -123,20 +125,32 @@ async def get_single_log(
 
         return _mark_utc(result.data)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in get_single_log: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Could not load symptom log")
 
 
 @router.delete("/history/{log_id}")
 @limiter.limit("30/hour")
-async def delete_log(
+def delete_log(
     request: Request,
     log_id: str,
     user_id: str = Depends(verify_token)
 ):
     try:
-        # First delete dependent triggers associated with this log
+        # Confirm the log belongs to this user before touching its triggers
+        owned = supabase.table("symptom_logs")\
+            .select("id")\
+            .eq("id", log_id)\
+            .eq("user_id", user_id)\
+            .execute()
+
+        if not owned.data:
+            raise HTTPException(status_code=404, detail="Log not found")
+
+        # Delete dependent triggers associated with this log
         supabase.table("triggers")\
             .delete()\
             .eq("log_id", log_id)\
@@ -151,6 +165,8 @@ async def delete_log(
 
         return {"message": "Log deleted successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in delete_log: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Could not delete symptom log")
