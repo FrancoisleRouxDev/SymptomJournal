@@ -13,6 +13,8 @@ import {
   Keyboard,
   PanResponder,
   Modal,
+  type ScrollViewInstance,
+  type ViewInstance,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -93,7 +95,7 @@ const STORAGE_CUSTOM_TRIGGERS = '@symptomjournal_custom_triggers';
 export default function LogScreen() {
   const router = useRouter();
   const { colors, isDarkMode, scaled } = useTheme();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   // Form states with multi-select support
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['pain']);
@@ -128,7 +130,7 @@ export default function LogScreen() {
   const dragStartPageX = useRef<number>(0);        // where the finger landed
   const dragStartSeverity = useRef<number>(5);     // value at drag start
   const isDragging = useRef<boolean>(false);
-  const sliderContainerRef = useRef<View>(null);  // to measure page offset
+  const sliderContainerRef = useRef<ViewInstance>(null);  // to measure page offset
 
   const clampSeverity = (val: number) => Math.min(10, Math.max(1, Math.round(val)));
 

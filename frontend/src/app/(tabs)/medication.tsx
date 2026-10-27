@@ -11,6 +11,7 @@ import {
     Platform,
     Modal,
     Keyboard,
+    type ScrollViewInstance,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -43,7 +44,7 @@ export default function MedicationAssistantScreen() {
     const router = useRouter();
     const { colors, isDarkMode, scaled } = useTheme();
     const insets = useSafeAreaInsets();
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<ScrollViewInstance>(null);
 
     const [messages, setMessages] = useState<Message[]>([
         {
