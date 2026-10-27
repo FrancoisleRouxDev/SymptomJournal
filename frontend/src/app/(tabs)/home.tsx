@@ -23,7 +23,7 @@ import {
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api from '@/lib/api';
+import api, { AI_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp, timestampDateKey, toLocalDateKey } from '@/lib/dates';
 import { HomeScreenSkeleton } from '@/components/SkeletonLoader';
 import {
@@ -42,6 +42,26 @@ const CATEGORY_DOT_COLORS: Record<string, string> = {
   Skin: '#E8A0A0',
   General: '#9A9088',
 };
+
+/** Wellness score for one day's logs (higher severity and more logs lower it), or null with no logs. */
+function scoreForDay(logs: any[] | undefined): number | null {
+  if (!logs || logs.length === 0) return null;
+  const severities = logs.map((l) => Number(l.severity)).filter((s) => !Number.isNaN(s));
+  const avgSev = severities.length > 0 ? severities.reduce((a, b) => a + b, 0) / severities.length : 4;
+  return Math.max(20, Math.min(100, Math.round(100 - avgSev * 6.5 - logs.length * 3)));
+}
+
+/** Consecutive days with at least one log, ending today (or yesterday if today has none yet). */
+function countDayStreak(days: Set<string>): number {
+  const cursor = new Date();
+  if (!days.has(toLocalDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days.has(toLocalDateKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -63,8 +83,10 @@ export default function HomeScreen() {
 
   const [loggedTodayCount, setLoggedTodayCount] = useState(0);
   const [thisMonthCount, setThisMonthCount] = useState(0);
-  const [dayStreak, setDayStreak] = useState(1);
-  const [wellnessScore, setWellnessScore] = useState(85);
+  const [dayStreak, setDayStreak] = useState(0);
+  // null = no logs that day, so there's no score to show
+  const [wellnessScore, setWellnessScore] = useState<number | null>(null);
+  const [wellnessTrend, setWellnessTrend] = useState<number | null>(null);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((n) => !n.read).length;
@@ -106,17 +128,21 @@ export default function HomeScreen() {
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth();
 
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = toLocalDateKey(yesterday);
+
       let todayCount = 0;
       let monthCount = 0;
-      let totalSeverity = 0;
-      let sevCount = 0;
       const uniqueDays = new Set<string>();
+      const logsByDay: Record<string, any[]> = {};
 
       symptoms.forEach((log) => {
         if (log.created_at) {
           const logDate = parseTimestamp(log.created_at);
           const dateStr = toLocalDateKey(logDate);
           uniqueDays.add(dateStr);
+          (logsByDay[dateStr] ||= []).push(log);
 
           if (dateStr === todayStr) {
             todayCount++;
@@ -125,28 +151,20 @@ export default function HomeScreen() {
             monthCount++;
           }
         }
-
-        if (log.severity !== undefined && log.severity !== null) {
-          totalSeverity += Number(log.severity);
-          sevCount++;
-        }
       });
 
       setLoggedTodayCount(todayCount);
       setThisMonthCount(monthCount);
-      setDayStreak(Math.max(1, Math.min(uniqueDays.size, 30)));
+      setDayStreak(countDayStreak(uniqueDays));
 
-      if (symptoms.length === 0) {
-        setWellnessScore(95);
-      } else {
-        const avgSev = sevCount > 0 ? totalSeverity / sevCount : 4;
-        const calculatedScore = Math.max(20, Math.min(100, Math.round(100 - avgSev * 6.5 - todayCount * 3)));
-        setWellnessScore(calculatedScore);
-      }
+      const todayScore = scoreForDay(logsByDay[todayStr]);
+      const yesterdayScore = scoreForDay(logsByDay[yesterdayStr]);
+      setWellnessScore(todayScore);
+      setWellnessTrend(todayScore !== null && yesterdayScore !== null ? todayScore - yesterdayScore : null);
 
       if (symptoms.length >= 3) {
         try {
-          const patternRes = await api.get('/analysis/patterns');
+          const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
           if (patternRes.data?.ready && patternRes.data?.analysis) {
             const ana = patternRes.data.analysis;
             if (ana.key_findings && ana.key_findings.length > 0) {
@@ -294,11 +312,23 @@ export default function HomeScreen() {
               <Text style={[styles.wellnessLabel, { fontSize: scaled(11) }]}>TODAY'S WELLNESS</Text>
 
               <View style={styles.wellnessScoreRow}>
-                <Text style={[styles.wellnessScoreNumber, { fontSize: scaled(38) }]}>{wellnessScore}</Text>
-                <Text style={[styles.wellnessScoreMax, { fontSize: scaled(16) }]}>/100</Text>
+                <Text style={[styles.wellnessScoreNumber, { fontSize: scaled(38) }]}>{wellnessScore ?? '—'}</Text>
+                {wellnessScore !== null && (
+                  <Text style={[styles.wellnessScoreMax, { fontSize: scaled(16) }]}>/100</Text>
+                )}
               </View>
 
-              <Text style={[styles.wellnessTrendText, { fontSize: scaled(12) }]}>▲ 8 pts from yesterday</Text>
+              {wellnessScore === null ? (
+                <Text style={[styles.wellnessTrendText, { fontSize: scaled(12) }]}>
+                  {"Log a symptom to see today's score"}
+                </Text>
+              ) : wellnessTrend !== null ? (
+                <Text style={[styles.wellnessTrendText, { fontSize: scaled(12) }]}>
+                  {wellnessTrend === 0
+                    ? 'Same as yesterday'
+                    : `${wellnessTrend > 0 ? '▲' : '▼'} ${Math.abs(wellnessTrend)} pts from yesterday`}
+                </Text>
+              ) : null}
 
               {/* 3 Stat Sub-Boxes */}
               <View style={styles.wellnessStatsRow}>

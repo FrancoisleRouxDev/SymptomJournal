@@ -159,6 +159,33 @@ export interface AppNotification {
   sent_at: string;
 }
 
+// The live notifications table only stores id, user_id, type, read and sent_at,
+// so the display text is derived from the type. Stored text wins if those
+// columns are added later.
+const NOTIFICATION_CONTENT: Record<string, { title: string; message: string }> = {
+  daily_reminder: {
+    title: 'Daily Symptom Check-in',
+    message: 'How is your body feeling today? Log symptoms calmly to keep your health timeline updated.',
+  },
+  system: {
+    title: 'Welcome to SymptomJournal',
+    message: 'Track symptoms, spot correlations across time, and export clear reports for your doctor.',
+  },
+  pattern_alert: {
+    title: 'New pattern spotted',
+    message: 'Your AI insights have been updated. Open Insights to see what changed.',
+  },
+};
+
+function withContent(row: any): AppNotification {
+  const fallback = NOTIFICATION_CONTENT[row.type] ?? NOTIFICATION_CONTENT.system;
+  return {
+    ...row,
+    title: row.title ?? fallback.title,
+    message: row.message ?? fallback.message,
+  };
+}
+
 /**
  * Fetch all notifications for the currently logged in user from Supabase.
  * If none exist, seeds an initial friendly check-in reminder.
@@ -180,7 +207,7 @@ export async function fetchUserNotifications(): Promise<AppNotification[]> {
         const initial = await seedDefaultNotifications(user.id);
         return initial;
       }
-      return data as AppNotification[];
+      return data.map(withContent);
     }
   } catch (err) {
     console.log('Error fetching notifications:', err);
@@ -193,25 +220,15 @@ export async function fetchUserNotifications(): Promise<AppNotification[]> {
  */
 export async function seedDefaultNotifications(userId: string): Promise<AppNotification[]> {
   try {
+    // sent_at has no default in the live table, so set it explicitly
+    const sentAt = new Date().toISOString();
     const rows = [
-      {
-        user_id: userId,
-        type: 'daily_reminder',
-        title: 'Daily Symptom Check-in',
-        message: 'How is your body feeling today? Log symptoms calmly to keep your health timeline updated.',
-        read: false,
-      },
-      {
-        user_id: userId,
-        type: 'system',
-        title: 'Welcome to SymptomJournal',
-        message: 'Track symptoms, spot correlations across time, and export clear reports for your doctor.',
-        read: false,
-      },
+      { user_id: userId, type: 'daily_reminder', read: false, sent_at: sentAt },
+      { user_id: userId, type: 'system', read: false, sent_at: sentAt },
     ];
 
     const { data } = await supabase.from('notifications').insert(rows).select('*');
-    return (data || []) as AppNotification[];
+    return (data || []).map(withContent);
   } catch (err) {
     console.log('Error seeding notifications:', err);
     return [];
@@ -234,24 +251,15 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
 
 /**
  * Creates a new notification (e.g., when an AI pattern is recognized).
+ * Its text comes from NOTIFICATION_CONTENT for the given type.
  */
-export async function createNotification(
-  title: string,
-  message: string,
-  type = 'pattern_alert'
-): Promise<void> {
+export async function createNotification(type = 'pattern_alert'): Promise<void> {
   try {
     const user = await getCurrentUser();
     if (!user?.id) return;
 
     await supabase.from('notifications').insert([
-      {
-        user_id: user.id,
-        title,
-        message,
-        type,
-        read: false,
-      },
+      { user_id: user.id, type, read: false, sent_at: new Date().toISOString() },
     ]);
   } catch (err) {
     console.log('Error creating notification:', err);

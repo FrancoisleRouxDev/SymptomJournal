@@ -9,11 +9,15 @@ const supabaseKey =
     process.env.EXPO_PUBLIC_SUPABASE_KEY ||
     'sb_publishable_pVrpEbkP06HyyZ69hrDz0Q_bhoCHD4f';
 
+// Static web rendering runs in Node, where AsyncStorage's localStorage backend
+// doesn't exist. Skip session persistence there; the browser takes over on load.
+const isServer = typeof window === 'undefined';
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
+        storage: isServer ? undefined : AsyncStorage,
+        autoRefreshToken: !isServer,
+        persistSession: !isServer,
         detectSessionInUrl: false,
     },
 });

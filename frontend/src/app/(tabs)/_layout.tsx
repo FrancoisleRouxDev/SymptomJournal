@@ -95,11 +95,12 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size }) => <User size={size - 1} color={color} />,
           }}
         />
-        {/* Hidden from bottom tabs, opened via Floating AI button */}
+        {/* Hidden from bottom tabs, opened via Floating AI button.
+            Don't use href: null — since SDK 58 that makes the route unreachable. */}
         <Tabs.Screen
           name="medication"
           options={{
-            href: null,
+            tabBarItemStyle: { display: 'none' },
             tabBarStyle: { display: 'none' },
           }}
         />

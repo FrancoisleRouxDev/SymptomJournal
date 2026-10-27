@@ -89,6 +89,9 @@ const BASE_TRIGGER_OPTIONS: TriggerOption[] = [
   { id: 'caffeine', label: 'Caffeine', type: 'food' },
 ];
 
+// Notes are stored in symptom_logs.mood, a varchar(50) column
+const NOTES_MAX_LENGTH = 50;
+
 const STORAGE_CUSTOM_AREAS = '@symptomjournal_custom_body_areas';
 const STORAGE_CUSTOM_TRIGGERS = '@symptomjournal_custom_triggers';
 
@@ -395,7 +398,7 @@ export default function LogScreen() {
         severity: Math.max(1, Math.min(10, Math.round(Number(severity) || 5))),
         time_of_day: mapTimeToTimeOfDay(startTime),
         occurred_at: startTime.toISOString(),
-        mood: notes.trim() ? notes.trim().slice(0, 100) : undefined,
+        mood: notes.trim() ? notes.trim().slice(0, NOTES_MAX_LENGTH) : undefined,
         triggers: triggersPayload,
       };
 
@@ -879,6 +882,7 @@ export default function LogScreen() {
               placeholderTextColor={colors.neutral.muted}
               value={notes}
               onChangeText={setNotes}
+              maxLength={NOTES_MAX_LENGTH}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -891,6 +895,18 @@ export default function LogScreen() {
                 }, 300);
               }}
             />
+            <Text
+              style={[
+                styles.notesCounter,
+                {
+                  color: notes.length >= NOTES_MAX_LENGTH - 5 ? colors.terracotta.base : colors.neutral.muted,
+                  fontSize: scaled(11),
+                },
+              ]}
+              accessibilityLabel={`${notes.length} of ${NOTES_MAX_LENGTH} characters used`}
+            >
+              {notes.length}/{NOTES_MAX_LENGTH}
+            </Text>
           </View>
 
           {/* SUBMIT BUTTON */}
@@ -1476,6 +1492,11 @@ const styles = StyleSheet.create({
   notesInput: {
     fontFamily: 'Nunito-Medium',
     minHeight: 70,
+  },
+  notesCounter: {
+    fontFamily: 'Nunito-Bold',
+    alignSelf: 'flex-end',
+    marginTop: 4,
   },
   submitButton: {
     borderRadius: Radius.lg,

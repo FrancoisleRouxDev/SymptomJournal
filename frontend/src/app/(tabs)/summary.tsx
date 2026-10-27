@@ -16,7 +16,7 @@ import { Share2, RefreshCw, FileText, AlertCircle, PlusCircle, UserCheck } from 
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api from '@/lib/api';
+import api, { AI_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { SummaryScreenSkeleton } from '@/components/SkeletonLoader';
@@ -183,7 +183,7 @@ export default function DoctorSummaryScreen() {
 
   const fetchAiPatternsAndSummary = async () => {
     try {
-      const patternRes = await api.get('/analysis/patterns');
+      const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
       if (patternRes.data?.ready && patternRes.data?.analysis) {
         const ana = patternRes.data.analysis;
         const notes: string[] = [];
@@ -213,7 +213,7 @@ export default function DoctorSummaryScreen() {
       }
 
       // Generate or fetch Doctor Summary text
-      const summaryRes = await api.post('/analysis/summary');
+      const summaryRes = await api.post('/analysis/summary', undefined, { timeout: AI_TIMEOUT_MS });
       if (summaryRes.data?.summary) {
         setAiSummary(summaryRes.data.summary);
         parseSummarySections(summaryRes.data.summary);
@@ -277,7 +277,7 @@ export default function DoctorSummaryScreen() {
 
     setGeneratingAi(true);
     try {
-      const res = await api.post('/analysis/summary');
+      const res = await api.post('/analysis/summary', undefined, { timeout: AI_TIMEOUT_MS });
       if (res.data?.summary) {
         setAiSummary(res.data.summary);
         parseSummarySections(res.data.summary);

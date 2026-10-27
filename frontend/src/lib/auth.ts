@@ -39,6 +39,8 @@ export async function updateUserProfile(attributes: {
     dob?: string;
     doctor?: string;
     conditions?: string;
+    sex?: string;
+    goals?: string[];
 }) {
     const { data, error } = await supabase.auth.updateUser({
         data: attributes,

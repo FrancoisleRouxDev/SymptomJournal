@@ -30,7 +30,7 @@ import {
   scheduleDailyReminder,
   cancelDailyReminder,
 } from '@/lib/notifications';
-import api from '@/lib/api';
+import api, { AI_TIMEOUT_MS } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
@@ -127,7 +127,7 @@ export default function SettingsScreen() {
 
       let patternData = null;
       try {
-        const patternRes = await api.get('/analysis/patterns');
+        const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
         patternData = patternRes.data;
       } catch {
         // Optional

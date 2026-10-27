@@ -27,7 +27,7 @@ import {
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api from '@/lib/api';
+import api, { AI_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { InsightsScreenSkeleton } from '@/components/SkeletonLoader';
@@ -109,7 +109,7 @@ export default function InsightsScreen() {
 
         // 2. Fetch AI analysis patterns
         try {
-          const patternRes = await api.get('/analysis/patterns');
+          const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
           if (patternRes.data?.ready && patternRes.data?.analysis) {
             const ana = patternRes.data.analysis;
             parseAiFindings(ana, logs);
@@ -278,36 +278,69 @@ export default function InsightsScreen() {
     }
   };
 
+  // Used when the AI is unavailable: findings are counted straight from the
+  // user's own logs, so nothing shown here is invented.
   const populateFallbackFindings = (logs: any[]) => {
-    setFindings([
+    const mostCommon = (values: string[]): [string, number] | null => {
+      const counts: Record<string, number> = {};
+      values.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      return top ? [top[0], top[1]] : null;
+    };
+
+    const list: Finding[] = [
       {
-        id: '1',
-        title: 'Sleep Connection',
-        description:
-          'Headaches and fatigue occur 82% more often after fewer than 6 hours of sleep. Try maintaining a consistent sleep routine this week.',
-        iconType: 'moon',
-        iconBg: isDarkMode ? '#2D2817' : '#FAF4DE',
-        iconColor: '#C8972E',
+        id: 'local-note',
+        title: 'Based on your logs',
+        description: 'AI analysis is unavailable right now, so these findings come directly from your entries. Tap Recalculate to try the AI again.',
+        iconType: 'sparkles',
+        iconBg: isDarkMode ? '#271F33' : '#F3EDF9',
+        iconColor: '#8A68B0',
       },
-      {
-        id: '2',
-        title: 'Afternoon Peak',
-        description:
-          'Most pain symptoms appear between 1–4 PM. Consider a midday hydration break or short rest during this window.',
+    ];
+
+    const topTrigger = mostCommon(
+      logs.flatMap((l) => (Array.isArray(l.triggers) ? l.triggers.map((t: any) => t.trigger_value).filter(Boolean) : []))
+    );
+    if (topTrigger) {
+      list.push({
+        id: 'local-trigger',
+        title: 'Most Logged Trigger',
+        description: `${topTrigger[0]} was noted in ${topTrigger[1]} of your ${logs.length} entries.`,
+        iconType: 'leaf',
+        iconBg: isDarkMode ? '#1A2936' : '#EBF4FA',
+        iconColor: '#4A8DBF',
+      });
+    }
+
+    const topTime = mostCommon(logs.map((l) => l.time_of_day).filter(Boolean));
+    if (topTime) {
+      list.push({
+        id: 'local-time',
+        title: 'Most Common Time',
+        description: `${topTime[1]} of your ${logs.length} entries started in the ${topTime[0]}.`,
         iconType: 'clock',
         iconBg: isDarkMode ? '#331F1B' : '#FCEAE7',
         iconColor: '#C4714F',
-      },
-      {
-        id: '3',
-        title: 'Weekly Trend',
-        description:
-          'Overall symptom frequency shows gradual stabilization compared to earlier logs. Continue logging triggers to track correlations.',
-        iconType: 'calendar',
-        iconBg: isDarkMode ? '#1E2B23' : '#EAF3ED',
-        iconColor: '#5A7D66',
-      },
-    ]);
+      });
+    }
+
+    const worst = logs
+      .filter((l) => l.severity !== undefined && l.severity !== null)
+      .sort((a, b) => Number(b.severity) - Number(a.severity))[0];
+    if (worst) {
+      const name = (worst.description || 'Symptom').replace(/\$/g, '').trim();
+      list.push({
+        id: 'local-severity',
+        title: 'Highest Severity',
+        description: `${name} was your most severe entry at ${worst.severity}/10.`,
+        iconType: 'zap',
+        iconBg: isDarkMode ? '#2D2817' : '#FAF4DE',
+        iconColor: '#C8972E',
+      });
+    }
+
+    setFindings(list);
   };
 
   const handleRefreshAi = async () => {

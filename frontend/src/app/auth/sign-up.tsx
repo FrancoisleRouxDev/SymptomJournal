@@ -32,12 +32,10 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
 
   // Step 2 Fields
-  const [dob, setDob] = useState('1994-05-12');
-  const [sex, setSex] = useState('Female');
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([
-    'Track symptoms',
-    'Find patterns',
-  ]);
+  // Step 2 starts blank so nobody is saved with an example birth date or sex
+  const [dob, setDob] = useState('');
+  const [sex, setSex] = useState('');
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
   const toggleGoal = (goal: string) => {
     if (selectedGoals.includes(goal)) {
@@ -62,6 +60,15 @@ export default function SignUp() {
   };
 
   const handleCreateAccount = async () => {
+    const trimmedDob = dob.trim();
+    if (trimmedDob) {
+      const parsed = new Date(trimmedDob);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedDob) || Number.isNaN(parsed.getTime()) || parsed > new Date()) {
+        Alert.alert('Check your date of birth', 'Please use the format YYYY-MM-DD, e.g. 1995-08-21.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const trimmedName = name.trim();
@@ -82,7 +89,9 @@ export default function SignUp() {
       try {
         await updateUserProfile({
           name: trimmedName,
-          dob: dob.trim(),
+          ...(trimmedDob && { dob: trimmedDob }),
+          ...(sex && { sex }),
+          goals: selectedGoals,
         });
       } catch (e) {
         // Continue even if secondary metadata update fails

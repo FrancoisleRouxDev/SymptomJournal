@@ -3,6 +3,10 @@ import { supabase } from './supabase';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://symptomjournal.onrender.com';
 
+// AI endpoints call an external model, so they get longer than the default
+// timeout; this stays above the backend's own AI timeout (~40s worst case)
+export const AI_TIMEOUT_MS = 45000;
+
 const api = axios.create({
     baseURL: API_URL,
     timeout: 15000,
@@ -30,5 +34,13 @@ api.interceptors.response.use(
         throw error;
     }
 );
+
+/**
+ * Fire-and-forget ping so a sleeping Render instance starts waking up
+ * while the user is still on Home, before they reach an AI screen.
+ */
+export function warmUpBackend(): void {
+    api.get('/ping', { timeout: 60000 }).catch(() => {});
+}
 
 export default api;

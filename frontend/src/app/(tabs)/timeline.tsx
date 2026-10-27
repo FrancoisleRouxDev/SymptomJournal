@@ -254,7 +254,7 @@ export default function TimelineScreen() {
               {/* Day Grid */}
               <View style={styles.daysGrid}>
                 {Array.from({ length: firstDayIndex }).map((_, i) => (
-                  <View key={`empty-${i}`} style={styles.dayCell} />
+                  <View key={`empty-${i}`} style={styles.daySlot} />
                 ))}
 
                 {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -271,30 +271,31 @@ export default function TimelineScreen() {
                     year === new Date().getFullYear();
 
                   return (
-                    <TouchableOpacity
-                      key={`day-${day}`}
-                      style={[
-                        styles.dayCell,
-                        isSelected && { backgroundColor: colors.sage.base },
-                        isToday && !isSelected && { borderWidth: 1.5, borderColor: colors.sage.base },
-                      ]}
-                      onPress={() => handleSelectDay(day)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
+                    <View key={`day-${day}`} style={styles.daySlot}>
+                      <TouchableOpacity
                         style={[
-                          styles.dayText,
-                          { color: colors.neutral.brown, fontSize: scaled(13) },
-                          isSelected && { color: '#FFFFFF' },
-                          isToday && !isSelected && { color: colors.sage.dark },
+                          styles.dayCell,
+                          isSelected && { backgroundColor: colors.sage.base },
+                          isToday && !isSelected && { borderWidth: 1.5, borderColor: colors.sage.base },
                         ]}
+                        onPress={() => handleSelectDay(day)}
+                        activeOpacity={0.7}
                       >
-                        {day}
-                      </Text>
-                      {hasLogs && !isSelected && (
-                        <View style={[styles.logDot, { backgroundColor: colors.terracotta.base }]} />
-                      )}
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.dayText,
+                            { color: colors.neutral.brown, fontSize: scaled(13) },
+                            isSelected && { color: '#FFFFFF' },
+                            isToday && !isSelected && { color: colors.sage.dark },
+                          ]}
+                        >
+                          {day}
+                        </Text>
+                        {hasLogs && !isSelected && (
+                          <View style={[styles.logDot, { backgroundColor: colors.terracotta.base }]} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   );
                 })}
               </View>
@@ -523,18 +524,21 @@ const styles = StyleSheet.create({
   },
   weekRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     marginBottom: 8,
   },
+  // Headers and day slots share the same 1/7 width so partial rows stay in their weekday column
   weekDayText: {
     fontFamily: 'Nunito-Bold',
-    width: 32,
+    width: '14.2857%',
     textAlign: 'center',
   },
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
+  },
+  daySlot: {
+    width: '14.2857%',
+    alignItems: 'center',
   },
   dayCell: {
     width: 34,
