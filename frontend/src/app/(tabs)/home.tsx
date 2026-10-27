@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import {
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api, { AI_TIMEOUT_MS } from '@/lib/api';
+import api, { AI_TIMEOUT_MS, WAKE_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp, timestampDateKey, toLocalDateKey } from '@/lib/dates';
 import { HomeScreenSkeleton } from '@/components/SkeletonLoader';
 import {
@@ -107,9 +107,12 @@ export default function HomeScreen() {
     return 'Good evening';
   };
 
+  // The skeleton only covers the first load; later tab visits refresh in place
+  const hasLoaded = useRef(false);
+
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoaded.current) setLoading(true);
 
     try {
       const user = await getCurrentUser();
@@ -118,7 +121,7 @@ export default function HomeScreen() {
       setUserName(firstName);
       setUserInitial(firstName.charAt(0).toUpperCase() || 'U');
 
-      const res = await api.get('/symptoms/history');
+      const res = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const symptoms: any[] = res.data.symptoms || [];
       setAllSymptoms(symptoms);
       setRecentSymptoms(symptoms.slice(0, 4));
@@ -162,30 +165,40 @@ export default function HomeScreen() {
       setWellnessScore(todayScore);
       setWellnessTrend(todayScore !== null && yesterdayScore !== null ? todayScore - yesterdayScore : null);
 
-      if (symptoms.length >= 3) {
+      // Everything above comes from the symptom history, so the screen is ready.
+      // The AI snippet and notifications fill in afterwards without holding the skeleton.
+      hasLoaded.current = true;
+      setLoading(false);
+      setRefreshing(false);
+
+      const loadInsightSnippet = async () => {
+        if (symptoms.length < 3) return;
+        setInsightSnippet('Analysing your latest logs...');
         try {
           const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
-          if (patternRes.data?.ready && patternRes.data?.analysis) {
-            const ana = patternRes.data.analysis;
-            if (ana.key_findings && ana.key_findings.length > 0) {
-              const f = ana.key_findings[0];
-              setInsightSnippet(f.description || f.title || 'Patterns identified in your logs');
-            } else if (ana.time_pattern) {
-              setInsightSnippet(`Time trend: ${ana.time_pattern}`);
-            }
+          const ana = patternRes.data?.ready ? patternRes.data.analysis : null;
+          if (ana?.key_findings?.length > 0) {
+            const f = ana.key_findings[0];
+            setInsightSnippet(f.description || f.title || 'Patterns identified in your logs');
+          } else if (ana?.time_pattern) {
+            setInsightSnippet(`Time trend: ${ana.time_pattern}`);
+          } else {
+            setInsightSnippet('Tap to view your pattern analysis');
           }
         } catch {
-          // Fallback
+          setInsightSnippet('Tap to view your pattern analysis');
         }
-      }
+      };
 
-      // Fetch Supabase notifications
-      try {
-        const notifs = await fetchUserNotifications();
-        setNotifications(notifs);
-      } catch (nErr) {
-        console.log('Error loading notifications:', nErr);
-      }
+      const loadNotifications = async () => {
+        try {
+          setNotifications(await fetchUserNotifications());
+        } catch (nErr) {
+          console.log('Error loading notifications:', nErr);
+        }
+      };
+
+      await Promise.all([loadInsightSnippet(), loadNotifications()]);
     } catch (error) {
       console.log('Error loading home data:', error);
     } finally {

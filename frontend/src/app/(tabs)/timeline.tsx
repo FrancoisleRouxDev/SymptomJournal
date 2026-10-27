@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash2, FileText } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import api from '@/lib/api';
+import api, { WAKE_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp, timestampDateKey, toLocalDateKey } from '@/lib/dates';
 import { TimelineScreenSkeleton } from '@/components/SkeletonLoader';
 
@@ -67,14 +67,18 @@ export default function TimelineScreen() {
     General: colors.neutral.muted,
   }), [colors]);
 
+  // The skeleton only covers the first load; later tab visits refresh in place
+  const hasLoaded = useRef(false);
+
   const loadSymptoms = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoaded.current) setLoading(true);
 
     try {
-      const res = await api.get('/symptoms/history');
+      const res = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const logs = res.data?.symptoms || [];
       setSymptoms(logs);
+      hasLoaded.current = true;
     } catch (err: any) {
       console.log('Error fetching symptom timeline:', err);
     } finally {

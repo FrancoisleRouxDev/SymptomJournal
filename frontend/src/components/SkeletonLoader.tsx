@@ -77,8 +77,18 @@ export function InsightsScreenSkeleton() {
       <View style={{ marginTop: 16, marginBottom: 8 }}>
         <SkeletonBox width={110} height={11} borderRadius={6} />
       </View>
-      {/* 3 finding cards */}
-      {[0, 1, 2].map((i) => (
+      <FindingCardsSkeleton />
+    </View>
+  );
+}
+
+// ── Section placeholders for AI content that loads after the screen ─────────
+
+/** AI finding cards, shown while the pattern analysis is still running. */
+export function FindingCardsSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
         <View key={i} style={[s.cardRow, { alignItems: "flex-start", marginBottom: 10 }]}>
           <SkeletonBox width={44} height={44} borderRadius={10} style={{ marginRight: 12 }} />
           <View style={{ flex: 1, gap: 6 }}>
@@ -86,6 +96,20 @@ export function InsightsScreenSkeleton() {
             <SkeletonBox width="100%" height={11} borderRadius={6} />
             <SkeletonBox width="80%" height={11} borderRadius={6} />
           </View>
+        </View>
+      ))}
+    </>
+  );
+}
+
+/** Bulleted AI notes, shown while the doctor summary is still generating. */
+export function BulletListSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <View style={{ gap: 12 }}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <SkeletonBox width={6} height={6} borderRadius={3} />
+          <SkeletonBox width={i % 2 === 0 ? "90%" : "70%"} height={12} borderRadius={6} />
         </View>
       ))}
     </View>

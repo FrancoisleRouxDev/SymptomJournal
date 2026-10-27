@@ -31,7 +31,8 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
-import api from '@/lib/api';
+import api, { WAKE_TIMEOUT_MS } from '@/lib/api';
+import { ProfileScreenSkeleton } from '@/components/SkeletonLoader';
 import { timestampDateKey } from '@/lib/dates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchCommonConditions, saveCommonConditions } from '@/lib/conditions';
@@ -67,6 +68,9 @@ export default function ProfileScreen() {
   const [draftConditions, setDraftConditions] = useState('');
   const [savingHealth, setSavingHealth] = useState(false);
 
+  // Skeleton until the first load finishes, so stats never flash as zeros
+  const [loading, setLoading] = useState(true);
+
   const loadUserProfileAndStats = async () => {
     try {
       const currentUser = await getCurrentUser();
@@ -93,7 +97,7 @@ export default function ProfileScreen() {
         console.log('Error loading common conditions from Supabase:', condErr);
       }
 
-      const res = await api.get('/symptoms/history');
+      const res = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const logs: any[] = res.data?.symptoms || [];
       setEntriesCount(logs.length);
 
@@ -108,6 +112,8 @@ export default function ProfileScreen() {
       setSymptomTypesCount(uniqueTypes.size);
     } catch (error) {
       console.log('Error loading profile & stats:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,203 +197,207 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.headerRow}>
-            <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(26), color: colors.neutral.brown }}>
-              Profile
-            </Text>
-            <TouchableOpacity
-              style={[styles.gearBtn, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
-              onPress={() => router.push('/settings' as any)}
-              activeOpacity={0.7}
-            >
-              <Settings size={scaled(18)} color={colors.neutral.brown} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Profile Hero Card */}
-          <View style={[styles.profileCard, { backgroundColor: isDarkMode ? '#203025' : '#5C7C67' }]}>
-            <View style={styles.avatarCircle}>
-              <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(28), color: '#FFF' }}>
-                {initial}
+        {loading ? (
+          <ProfileScreenSkeleton />
+        ) : (
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View style={styles.headerRow}>
+              <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(26), color: colors.neutral.brown }}>
+                Profile
               </Text>
-            </View>
-            <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(22), color: '#FFF' }}>
-              {userName}
-            </Text>
-            <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(12), color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
-              {userEmail}
-            </Text>
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => router.push('/profile/edit' as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(12), color: '#FFF' }}>
-                Edit Full Profile
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Health Overview — Prominent & Easy to Edit */}
-          <View style={cardStyle}>
-            <View style={styles.cardHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <UserCheck size={scaled(16)} color={colors.sage.dark} />
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(15), color: colors.neutral.brown }}>
-                  Clinical &amp; Health Info
-                </Text>
-              </View>
               <TouchableOpacity
-                style={[styles.editHealthBadge, { backgroundColor: colors.sage.tint }]}
-                onPress={openHealthEditModal}
+                style={[styles.gearBtn, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}
+                onPress={() => router.push('/settings' as any)}
                 activeOpacity={0.7}
               >
-                <Pencil size={scaled(12)} color={colors.sage.dark} style={{ marginRight: 4 }} />
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(12), color: colors.sage.dark }}>
-                  Edit
+                <Settings size={scaled(18)} color={colors.neutral.brown} />
+              </TouchableOpacity>
+            </View>
+  
+            {/* Profile Hero Card */}
+            <View style={[styles.profileCard, { backgroundColor: isDarkMode ? '#203025' : '#5C7C67' }]}>
+              <View style={styles.avatarCircle}>
+                <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(28), color: '#FFF' }}>
+                  {initial}
+                </Text>
+              </View>
+              <Text style={{ fontFamily: 'DMSerifDisplay-Regular', fontSize: scaled(22), color: '#FFF' }}>
+                {userName}
+              </Text>
+              <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(12), color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
+                {userEmail}
+              </Text>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => router.push('/profile/edit' as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(12), color: '#FFF' }}>
+                  Edit Full Profile
                 </Text>
               </TouchableOpacity>
             </View>
-
-            {/* Doctor Row - Tappable */}
-            <TouchableOpacity
-              style={[styles.infoRow, { borderTopColor: colors.neutral.border }]}
-              onPress={openHealthEditModal}
-              activeOpacity={0.7}
-            >
-              <View style={{ flex: 1 }}>
+  
+            {/* Health Overview — Prominent & Easy to Edit */}
+            <View style={cardStyle}>
+              <View style={styles.cardHeaderRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                    PRIMARY DOCTOR / CLINIC
-                  </Text>
-                  <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
-                    <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(9.5), color: colors.neutral.muted }}>
-                      OPTIONAL
-                    </Text>
-                  </View>
-                </View>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: doctorName && doctorName !== 'Not set' ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
-                  {doctorName && doctorName !== 'Not set' ? doctorName : 'None / Changes as needed'}
-                </Text>
-              </View>
-              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
-            </TouchableOpacity>
-
-            {/* Conditions Row - Tappable */}
-            <TouchableOpacity
-              style={[styles.infoRow, { borderTopColor: colors.neutral.border }]}
-              onPress={openHealthEditModal}
-              activeOpacity={0.7}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  TRACKED CONDITIONS
-                </Text>
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: conditions ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
-                  {conditions || 'None recorded'}
-                </Text>
-              </View>
-              <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick Preferences: Dark Mode Toggle */}
-          <View style={cardStyle}>
-            <View style={styles.preferenceRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={[styles.prefIconCircle, { backgroundColor: colors.background.cream }]}>
-                  <Moon size={scaled(16)} color={colors.neutral.brown} />
-                </View>
-                <View>
-                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: colors.neutral.brown }}>
-                    Dark Mode
-                  </Text>
-                  <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(11.5), color: colors.neutral.muted }}>
-                    {isDarkMode ? 'Dark warm palette active' : 'Warm canvas palette active'}
+                  <UserCheck size={scaled(16)} color={colors.sage.dark} />
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(15), color: colors.neutral.brown }}>
+                    Clinical &amp; Health Info
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={[styles.editHealthBadge, { backgroundColor: colors.sage.tint }]}
+                  onPress={openHealthEditModal}
+                  activeOpacity={0.7}
+                >
+                  <Pencil size={scaled(12)} color={colors.sage.dark} style={{ marginRight: 4 }} />
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(12), color: colors.sage.dark }}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
               </View>
-              <Switch
-                value={isDarkMode}
-                onValueChange={(val) => toggleDarkMode(val)}
-                trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
-                thumbColor={colors.white}
-              />
-            </View>
-          </View>
-
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            {[
-              { label: 'Entries', value: entriesCount },
-              { label: 'Days Active', value: daysActive },
-              { label: 'Symptom Types', value: symptomTypesCount },
-            ].map((stat) => (
-              <View
-                key={stat.label}
-                style={[
-                  styles.statBox,
-                  { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
-                ]}
+  
+              {/* Doctor Row - Tappable */}
+              <TouchableOpacity
+                style={[styles.infoRow, { borderTopColor: colors.neutral.border }]}
+                onPress={openHealthEditModal}
+                activeOpacity={0.7}
               >
-                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(24), color: colors.neutral.brown }}>
-                  {stat.value}
-                </Text>
-                <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(10), color: colors.neutral.muted, marginTop: 2 }}>
-                  {stat.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Achievements */}
-          <View style={cardStyle}>
-            <View style={styles.cardHeaderRow}>
-              <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: colors.neutral.brown }}>
-                Achievements
-              </Text>
-              <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(12), color: colors.sage.dark }}>
-                {earnedCount} / {DEFAULT_ACHIEVEMENTS.length} earned
-              </Text>
-            </View>
-            <View style={styles.achievementsGrid}>
-              {achievementsWithStatus.map((item) => {
-                const IconComp = item.icon;
-                return (
-                  <View key={item.id} style={[styles.achievementTile, !item.earned && { opacity: 0.45 }]}>
-                    <View
-                      style={[
-                        styles.badgeIconBox,
-                        { backgroundColor: item.earned ? colors.sage.tint : colors.background.cream },
-                      ]}
-                    >
-                      <IconComp size={scaled(18)} color={item.earned ? colors.sage.dark : colors.neutral.muted} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                      PRIMARY DOCTOR / CLINIC
+                    </Text>
+                    <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                      <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(9.5), color: colors.neutral.muted }}>
+                        OPTIONAL
+                      </Text>
                     </View>
-                    <Text
-                      style={{
-                        fontFamily: 'Nunito-Bold',
-                        fontSize: scaled(10),
-                        color: item.earned ? colors.neutral.brown : colors.neutral.muted,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {item.title}
+                  </View>
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: doctorName && doctorName !== 'Not set' ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
+                    {doctorName && doctorName !== 'Not set' ? doctorName : 'None / Changes as needed'}
+                  </Text>
+                </View>
+                <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+  
+              {/* Conditions Row - Tappable */}
+              <TouchableOpacity
+                style={[styles.infoRow, { borderTopColor: colors.neutral.border }]}
+                onPress={openHealthEditModal}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(10.5), color: colors.neutral.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    TRACKED CONDITIONS
+                  </Text>
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: conditions ? colors.neutral.brown : colors.neutral.muted, marginTop: 3 }}>
+                    {conditions || 'None recorded'}
+                  </Text>
+                </View>
+                <ChevronRight size={scaled(16)} color={colors.neutral.muted} />
+              </TouchableOpacity>
+            </View>
+  
+            {/* Quick Preferences: Dark Mode Toggle */}
+            <View style={cardStyle}>
+              <View style={styles.preferenceRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={[styles.prefIconCircle, { backgroundColor: colors.background.cream }]}>
+                    <Moon size={scaled(16)} color={colors.neutral.brown} />
+                  </View>
+                  <View>
+                    <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: colors.neutral.brown }}>
+                      Dark Mode
+                    </Text>
+                    <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(11.5), color: colors.neutral.muted }}>
+                      {isDarkMode ? 'Dark warm palette active' : 'Warm canvas palette active'}
                     </Text>
                   </View>
-                );
-              })}
+                </View>
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={(val) => toggleDarkMode(val)}
+                  trackColor={{ false: colors.neutral.border, true: colors.sage.base }}
+                  thumbColor={colors.white}
+                />
+              </View>
             </View>
-          </View>
-
-          {/* Sign Out */}
-          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
-            <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(16), color: '#FFF' }}>
-              Sign Out of Account
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+  
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              {[
+                { label: 'Entries', value: entriesCount },
+                { label: 'Days Active', value: daysActive },
+                { label: 'Symptom Types', value: symptomTypesCount },
+              ].map((stat) => (
+                <View
+                  key={stat.label}
+                  style={[
+                    styles.statBox,
+                    { backgroundColor: colors.background.card, borderColor: colors.neutral.border },
+                  ]}
+                >
+                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(24), color: colors.neutral.brown }}>
+                    {stat.value}
+                  </Text>
+                  <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(10), color: colors.neutral.muted, marginTop: 2 }}>
+                    {stat.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+  
+            {/* Achievements */}
+            <View style={cardStyle}>
+              <View style={styles.cardHeaderRow}>
+                <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(14), color: colors.neutral.brown }}>
+                  Achievements
+                </Text>
+                <Text style={{ fontFamily: 'Nunito-Medium', fontSize: scaled(12), color: colors.sage.dark }}>
+                  {earnedCount} / {DEFAULT_ACHIEVEMENTS.length} earned
+                </Text>
+              </View>
+              <View style={styles.achievementsGrid}>
+                {achievementsWithStatus.map((item) => {
+                  const IconComp = item.icon;
+                  return (
+                    <View key={item.id} style={[styles.achievementTile, !item.earned && { opacity: 0.45 }]}>
+                      <View
+                        style={[
+                          styles.badgeIconBox,
+                          { backgroundColor: item.earned ? colors.sage.tint : colors.background.cream },
+                        ]}
+                      >
+                        <IconComp size={scaled(18)} color={item.earned ? colors.sage.dark : colors.neutral.muted} />
+                      </View>
+                      <Text
+                        style={{
+                          fontFamily: 'Nunito-Bold',
+                          fontSize: scaled(10),
+                          color: item.earned ? colors.neutral.brown : colors.neutral.muted,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {item.title}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+  
+            {/* Sign Out */}
+            <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
+              <Text style={{ fontFamily: 'Nunito-Bold', fontSize: scaled(16), color: '#FFF' }}>
+                Sign Out of Account
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
       </SafeAreaView>
 
       {/* HEALTH DETAILS EDIT MODAL */}

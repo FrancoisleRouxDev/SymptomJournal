@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,10 @@ import { Share2, RefreshCw, FileText, AlertCircle, PlusCircle, UserCheck } from 
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api, { AI_TIMEOUT_MS } from '@/lib/api';
+import api, { AI_TIMEOUT_MS, WAKE_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
-import { SummaryScreenSkeleton } from '@/components/SkeletonLoader';
+import { SummaryScreenSkeleton, BulletListSkeleton } from '@/components/SkeletonLoader';
 import { fetchCommonConditions } from '@/lib/conditions';
 
 interface SymptomFreq {
@@ -56,10 +56,13 @@ export default function DoctorSummaryScreen() {
   const [aiSummary, setAiSummary] = useState<string>('');
   const [patternsNotes, setPatternsNotes] = useState<string[]>([]);
   const [questionsToDiscuss, setQuestionsToDiscuss] = useState<string[]>([]);
+  // The report shows once history arrives; only the AI sections wait for the model
+  const [aiLoading, setAiLoading] = useState(false);
+  const hasLoaded = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoaded.current) setLoading(true);
 
     try {
       // 1. Get user profile and stored doctor / conditions (optional)
@@ -96,7 +99,7 @@ export default function DoctorSummaryScreen() {
       }
 
       // 2. Fetch history
-      const historyRes = await api.get('/symptoms/history');
+      const historyRes = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const logs: any[] = historyRes.data.symptoms || [];
       setSymptomLogs(logs);
       setTotalEntries(logs.length);
@@ -161,10 +164,20 @@ export default function DoctorSummaryScreen() {
           });
           setDateRangeText(`${fmtEarliest} – ${fmtLatest}`);
         }
+      }
 
-        // 3. If >= 3 logs, load / generate patterns and summary
-        if (logs.length >= 3) {
+      // The report card, counts and frequency bars are ready, so drop the skeleton
+      hasLoaded.current = true;
+      setLoading(false);
+      setRefreshing(false);
+
+      // 3. If >= 3 logs, load / generate patterns and summary
+      if (logs.length >= 3) {
+        setAiLoading(true);
+        try {
           await fetchAiPatternsAndSummary();
+        } finally {
+          setAiLoading(false);
         }
       }
     } catch (err: any) {
@@ -341,10 +354,6 @@ export default function DoctorSummaryScreen() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background.canvas }]}>
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -438,13 +447,17 @@ export default function DoctorSummaryScreen() {
                 </View>
               </View>
 
-              {/* Doctor / Condition Tag */}
-              <View style={styles.doctorInfoRow}>
-                <UserCheck size={scaled(13)} color="#A8C4B0" style={{ marginRight: 5 }} />
-                <Text style={[styles.doctorInfoText, { fontSize: scaled(12) }]}>
-                  {doctorName} · {conditions}
-                </Text>
-              </View>
+              {/* Doctor / Condition Tag — hidden until either is filled in */}
+              {(doctorName || conditions) ? (
+                <View style={styles.doctorInfoRow}>
+                  <UserCheck size={scaled(13)} color="#A8C4B0" style={{ marginRight: 5 }} />
+                  <Text style={[styles.doctorInfoText, { fontSize: scaled(12) }]}>
+                    {[doctorName, conditions].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ height: 8 }} />
+              )}
 
               {/* 3 Metric Grid */}
               <View style={styles.statsRow}>
@@ -505,9 +518,13 @@ export default function DoctorSummaryScreen() {
                 PATTERNS &amp; NOTES
               </Text>
               {patternsNotes.length === 0 ? (
-                <Text style={[styles.emptyNote, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
-                  Analyzing patterns from your logs...
-                </Text>
+                aiLoading ? (
+                  <BulletListSkeleton />
+                ) : (
+                  <Text style={[styles.emptyNote, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
+                    No patterns yet. Tap Refresh Clinical Insights to try again.
+                  </Text>
+                )
               ) : (
                 patternsNotes.map((note, index) => (
                   <View key={index} style={styles.bulletRow}>
@@ -521,11 +538,12 @@ export default function DoctorSummaryScreen() {
             </View>
 
             {/* Questions to Discuss Card */}
-            {questionsToDiscuss.length > 0 && (
+            {(questionsToDiscuss.length > 0 || aiLoading) && (
               <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.neutral.border }]}>
                 <Text style={[styles.cardSectionHeader, { color: colors.neutral.muted, fontSize: scaled(11.5) }]}>
                   QUESTIONS TO DISCUSS WITH DOCTOR
                 </Text>
+                {questionsToDiscuss.length === 0 && <BulletListSkeleton rows={2} />}
                 {questionsToDiscuss.map((question, index) => (
                   <View key={index} style={styles.bulletRow}>
                     <View style={[styles.bulletDot, { backgroundColor: colors.terracotta.base }]} />

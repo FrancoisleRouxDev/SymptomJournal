@@ -30,7 +30,7 @@ import {
   scheduleDailyReminder,
   cancelDailyReminder,
 } from '@/lib/notifications';
-import api, { AI_TIMEOUT_MS } from '@/lib/api';
+import api, { AI_TIMEOUT_MS, WAKE_TIMEOUT_MS } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
@@ -122,7 +122,7 @@ export default function SettingsScreen() {
     setExporting(true);
     try {
       const user = await getCurrentUser();
-      const historyRes = await api.get('/symptoms/history');
+      const historyRes = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const logs = historyRes.data?.symptoms || [];
 
       let patternData = null;

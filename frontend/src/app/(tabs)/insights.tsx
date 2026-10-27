@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,10 +27,10 @@ import {
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
-import api, { AI_TIMEOUT_MS } from '@/lib/api';
+import api, { AI_TIMEOUT_MS, WAKE_TIMEOUT_MS } from '@/lib/api';
 import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
-import { InsightsScreenSkeleton } from '@/components/SkeletonLoader';
+import { InsightsScreenSkeleton, FindingCardsSkeleton } from '@/components/SkeletonLoader';
 
 interface Finding {
   id: string;
@@ -62,6 +62,9 @@ export default function InsightsScreen() {
   const [mostFrequentCount, setMostFrequentCount] = useState(0);
   const [avgSeverity, setAvgSeverity] = useState('0.0');
   const [findings, setFindings] = useState<Finding[]>([]);
+  // AI findings load separately so the chart and stats show as soon as history arrives
+  const [findingsLoading, setFindingsLoading] = useState(false);
+  const hasLoaded = useRef(false);
   const [weeklyChartData, setWeeklyChartData] = useState<
     Array<{ day: string; painCount: number; fatigueCount: number; maxVal: number }>
   >([]);
@@ -90,7 +93,7 @@ export default function InsightsScreen() {
 
   const loadInsights = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoaded.current) setLoading(true);
 
     try {
       const user = await getCurrentUser();
@@ -98,16 +101,21 @@ export default function InsightsScreen() {
       setUserName(rawName);
 
       // 1. Fetch symptom history for stats & chart aggregation
-      const historyRes = await api.get('/symptoms/history');
+      const historyRes = await api.get('/symptoms/history', { timeout: WAKE_TIMEOUT_MS });
       const logs: any[] = historyRes.data.symptoms || [];
       setRawLogs(logs);
       setEntriesCount(logs.length);
+      setIsReady(logs.length >= 3);
+      if (logs.length >= 3) computeLocalStatsAndCharts(logs);
 
+      // The chart and stats are ready, so drop the screen skeleton now
+      hasLoaded.current = true;
+      setLoading(false);
+      setRefreshing(false);
+
+      // 2. Fetch AI analysis patterns
       if (logs.length >= 3) {
-        setIsReady(true);
-        computeLocalStatsAndCharts(logs);
-
-        // 2. Fetch AI analysis patterns
+        setFindingsLoading(true);
         try {
           const patternRes = await api.get('/analysis/patterns', { timeout: AI_TIMEOUT_MS });
           if (patternRes.data?.ready && patternRes.data?.analysis) {
@@ -117,9 +125,9 @@ export default function InsightsScreen() {
         } catch (aiErr) {
           console.log('AI pattern analysis API error:', aiErr);
           populateFallbackFindings(logs);
+        } finally {
+          setFindingsLoading(false);
         }
-      } else {
-        setIsReady(false);
       }
     } catch (error) {
       console.log('Error loading insights:', error);
@@ -637,6 +645,8 @@ export default function InsightsScreen() {
             <Text style={[styles.sectionTitle, { color: colors.neutral.muted, fontSize: scaled(11) }]}>
               KEY FINDINGS
             </Text>
+
+            {findingsLoading && findings.length === 0 && <FindingCardsSkeleton />}
 
             {findings.map((finding) => (
               <View

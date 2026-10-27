@@ -7,6 +7,11 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://symptomjournal.onren
 // timeout; this stays above the backend's own AI timeout (~40s worst case)
 export const AI_TIMEOUT_MS = 45000;
 
+// Data requests that drive a screen's skeleton wait long enough for a sleeping
+// free-tier instance to wake (~55s measured), so the skeleton stays up until
+// the backend is ready instead of failing into an empty state
+export const WAKE_TIMEOUT_MS = 70000;
+
 const api = axios.create({
     baseURL: API_URL,
     timeout: 15000,
@@ -40,7 +45,7 @@ api.interceptors.response.use(
  * while the user is still on Home, before they reach an AI screen.
  */
 export function warmUpBackend(): void {
-    api.get('/ping', { timeout: 60000 }).catch(() => {});
+    api.get('/ping', { timeout: WAKE_TIMEOUT_MS }).catch(() => {});
 }
 
 export default api;
