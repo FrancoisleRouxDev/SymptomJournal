@@ -521,7 +521,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Text style={[styles.rightNavText, { color: colors.neutral.muted, fontSize: scaled(13) }]}>
-                1.0.6 (Build 46)
+                1.0.7 (Build 47)
               </Text>
             </View>
           </View>
