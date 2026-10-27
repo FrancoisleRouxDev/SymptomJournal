@@ -6,9 +6,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/FrancoisleRouxDev/SymptomJournal/releases"><img src="https://img.shields.io/badge/Release-v1.0.5-C86D51?style=for-the-badge&logo=github" alt="Release v1.0.5" /></a>
-  <a href="frontend/src/__tests__"><img src="https://img.shields.io/badge/Automated_Tests-110_Passing-brightgreen?style=for-the-badge&logo=jest" alt="110 Tests Passing" /></a>
-  <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-SDK%2057%20(iOS%20%26%20Android)-000020?style=for-the-badge&logo=expo" alt="Expo SDK 57" /></a>
+  <a href="https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing"><img src="https://img.shields.io/badge/Demo_Video-Watch_Now-D93025?style=for-the-badge&logo=googledrive&logoColor=white" alt="Watch the Demo Video" /></a>
+  <a href="https://github.com/FrancoisleRouxDev/SymptomJournal/releases"><img src="https://img.shields.io/badge/Release-v1.0.7-C86D51?style=for-the-badge&logo=github" alt="Release v1.0.7" /></a>
+  <a href="#automated-testing"><img src="https://img.shields.io/badge/Automated_Tests-131_Passing-brightgreen?style=for-the-badge&logo=jest" alt="131 Tests Passing" /></a>
+  <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-SDK%2058%20(iOS%20%26%20Android)-000020?style=for-the-badge&logo=expo" alt="Expo SDK 58" /></a>
   <a href="https://symptomjournal.onrender.com/docs"><img src="https://img.shields.io/badge/Backend-FastAPI%20Cloud-009688?style=for-the-badge&logo=fastapi" alt="FastAPI Backend" /></a>
   <a href="https://supabase.com"><img src="https://img.shields.io/badge/Database-Supabase%20Postgres-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase Postgres" /></a>
   <img src="https://img.shields.io/badge/Theme-Dark%20%26%20Light%20Mode-5A7D66?style=for-the-badge" alt="Dark & Light Mode" />
@@ -26,18 +27,36 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
+## Demo Video
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing">
+    <img src="docs/images/mockup_devices_showcase.jpg" alt="Watch the SymptomJournal demo video" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>▶ <a href="https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing">Watch the full walkthrough on Google Drive</a></strong>
+</p>
+
+The walkthrough follows a brand-new user from onboarding and sign-up through logging symptoms, the timeline, AI insights, the doctor summary and PDF export, the AI medication assistant, profile, and settings.
+
+---
+
 ## Quick Links & Live Deployments
 
 | Resource | Link | Description |
 |:---|:---|:---|
+| **Demo Video** | [Watch on Google Drive](https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing) | Full app walkthrough as a brand-new user |
 | **GitHub Releases** | [SymptomJournal Releases](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Latest release notes, binary downloads, and changelog |
-| **Android APK (v1.0.5)** | [Download Android APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Native installable Android APK with adaptive brand icons & splash |
-| **iOS Simulator Build** | [iOS Simulator (.tar.gz)](https://expo.dev/artifacts/eas/evplY85VchJ5j7K3TtDT6uXIu1fE2h_BfyZBJYh9l9s.tar.gz) | Apple iOS Simulator build ready for Appetize.io or Xcode Simulator |
+| **Android APK (v1.0.7)** | [Download Android APK](https://github.com/FrancoisleRouxDev/SymptomJournal/releases) | Native installable Android APK with adaptive brand icons & splash |
+| **iOS Simulator Build (v1.0.7)** | [iOS Simulator (.tar.gz) on Google Drive](https://drive.google.com/file/d/12JoXY0DjwHH6oY1v2ckVJGk1jnKhxIp-/view?usp=sharing) | Apple iOS Simulator build. Upload the .tar.gz to Appetize.io to run it in a browser, or open it in the Xcode Simulator on a Mac |
 <!-- | **Production API** | [symptomjournal.onrender.com](https://symptomjournal.onrender.com) | FastAPI backend deployed with live CORS and health monitoring | -->
 | **API Documentation** | [Swagger UI Console](https://symptomjournal.onrender.com/docs) | OpenAPI interactive testing sandbox with auth and analysis routes |
 | **Patient User Journey** | [User Journey Map](docs/USER_JOURNEY.md) | Complete end-to-end patient experience map & visual flow diagram |
 | **Database ERD** | [Entity Relationship Diagram](docs/ERD-Diagram.png) | PostgreSQL schema diagram with foreign keys and relationships |
-| **Technical Architecture** | [Technical Documentation](docs/MILESTONE_2_DOCUMENTATION.md) | Database schemas, token dictionaries, and safety guardrails |
+| **Database Schema** | [supabase_schema.sql](docs/supabase_schema.sql) | SQL definitions for the Supabase tables |
+| **Project Pitch** | [DV300 Project Pitch (PDF)](docs/Francois%20le%20Roux%20231256_DV300_Project_Pitch_Semester%202_Term%204-1.pdf) | Original proposal, problem statement, and scope |
 
 ---
 
@@ -45,7 +64,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│             React Native (Expo SDK 57)                 │
+│             React Native (Expo SDK 58)                 │
 │   • Expo Router (File-based Tabs & Stacks)             │
 │   • Lucide Native Icons & Bespoke Theme System         │
 │   • Dynamic Text Scaling (85% – 130%)                  │
@@ -59,23 +78,27 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
      (ES256 / HS256)                   (Axios Interceptor)
             │                                │
             ▼                                ▼
-┌───────────────────────┐        ┌───────────────────────┐
-│  Supabase PostgreSQL  │        │   FastAPI (Python)    │
-│  • users profile      │◄───────┤   • /symptoms (CRUD)  │
-│  • symptom_logs       │ (CRUD) │   • /analysis (AI)    │
-│  • Row-Level Security │        │   • /chat (Assistant) │
-└───────────────────────┘        └───────────┬───────────┘
+┌───────────────────────┐        ┌────────────────────────┐
+│  Supabase PostgreSQL  │        │ FastAPI on Render      │
+│  • users profile      │◄───────┤ • /auth (rate-limited) │
+│  • symptom_logs       │ (CRUD) │ • /symptoms (CRUD)     │
+│  • triggers           │        │ • /analysis/patterns   │
+│  • notifications      │        │ • /analysis/summary    │
+│                       │        │ • /analysis/chat       │
+└───────────────────────┘        └───────────┬────────────┘
                                              │
                                      Secure Server Key
                                              ▼
-                                 ┌───────────────────────┐
-                                 │      NVIDIA NIM       │
-                                 │  Llama 3.3 70B / 3.2  │
-                                 │  • Pattern Discovery  │
-                                 │  • Clinical SBAR Summ │
-                                 │  • Guardrailed AI Rx  │
-                                 └───────────────────────┘
+                                 ┌────────────────────────┐
+                                 │       NVIDIA NIM       │
+                                 │ Nemotron 3.5 Lightning │
+                                 │  • Pattern Discovery   │
+                                 │  • Clinical SBAR Summ  │
+                                 │  • Guardrailed AI Rx   │
+                                 └────────────────────────┘
 ```
+
+The AI model is `nvidia/nemotron-3.5-lightning-30b-a3b`, with reasoning mode switched off so answers return in seconds. It can be changed with the `NVIDIA_MODEL` environment variable. A scheduled GitHub Action pings `/ping` to keep the free Render instance awake, and the app also wakes the backend on launch and whenever it returns to the foreground.
 
 ---
 
@@ -136,7 +159,8 @@ The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Secur
 </p>
 
 * **15-Second Entry Workflow:** Six core physiological categories (*Pain, Fatigue, Mood, Digestion, Breathing, Skin*) with specific clinical subcategories.
-* **Severity & Onset Presets:** Interactive tactile slider with visual colour cues and time offsets (*Now, 1h ago, 3h ago, Earlier*).
+* **Severity & Onset Presets:** Interactive tactile slider with visual colour cues and time offsets (*Now, 1h ago, 3h ago, Earlier*). The chosen start time is saved as the log time and shown in the user's local timezone.
+* **Short Notes:** Optional note with a live character counter (50 characters max).
 * **Anatomical Mapping:** Select from primary body regions or save custom anatomical locations.
 * **Lifestyle & Environmental Triggers:** Track factors such as *Poor Sleep, Screen Glare, Dehydration, Stress, Exercise* or add custom triggers.
 * **Interactive Calendar Timeline:** Visual calendar indicator dots marking active logging days, category filter badges, and expandable symptom cards.
@@ -195,7 +219,8 @@ The data layer is managed on **Supabase PostgreSQL** with strict Row-Level Secur
 * **Automated Trend Detection:** Evaluates logging history once ≥ 3 logs are recorded.
 * **Weekly Overview Charts:** Comparative bar visualiser plotting symptom trajectories over time.
 * **Actionable Key Findings:** Plain-language discoveries (*e.g., "Headaches occur 85% more often after fewer than 5 hours of sleep"*).
-* **Smooth Loading States:** Shimmer skeleton loaders protect visual continuity during network inference.
+* **Smooth Loading States:** Screen skeletons end as soon as your logs arrive. AI sections then show their own placeholders until the model responds.
+* **Live AI Status:** An online/offline indicator on the AI assistant that re-checks automatically while the backend wakes up.
 
 ---
 
@@ -245,8 +270,9 @@ cd frontend && npm test
 | `theme.test.ts` | Design tokens, contrast ratios, and theme switcher state |
 | `components.test.tsx` | Custom typography scaling and themed view containers |
 | `SkeletonLoader.test.tsx` | Shimmer loading animations across tab views |
+| `dates.test.ts` | UTC timestamp parsing and local calendar-day grouping |
 
-**61 tests passing** across 8 suites.
+**66 tests passing** across 9 suites.
 
 ### Backend — pytest & FastAPI TestClient
 ```bash
@@ -259,10 +285,21 @@ cd backend && .venv/Scripts/python -m pytest
 | `test_auth.py` | Supabase JWT verification (ES256 / HS256) and user profile sync |
 | `test_symptoms.py` | Input validation (Pydantic models) and database CRUD endpoints |
 | `test_ai_service.py` | LLM prompt templating, markdown fence stripping, and fallback handling |
+| `test_security.py` | Forged-token rejection, log ownership, input limits, rate-limit keys, and login lockout |
 
-**49 tests passing** across 4 suites.
+**65 tests passing** across 5 suites.
 
-**Total: 110 automated tests passing.**
+**Total: 131 automated tests passing.**
+
+---
+
+## Security Measures
+
+* **Verified tokens only:** Every API request needs a Supabase JWT whose signature checks out (ES256 through Supabase, HS256 with the project secret). Unsigned or forged tokens are rejected.
+* **Rate limiting:** Sign-up and login are limited per IP and globally, and an account is locked out for 15 minutes after 5 failed logins. Data and AI endpoints are limited per user.
+* **Ownership checks:** A user can only read or delete their own symptom logs.
+* **Input limits:** Severity 1–10, notes up to 50 characters, at most 30 triggers per log, no future timestamps, and capped chat message and history sizes.
+* **No leaked internals:** Server errors return generic messages. CORS only allows the methods and headers the app uses, and responses send `nosniff` and `DENY` frame headers.
 
 ---
 
@@ -287,9 +324,24 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
+Create `backend/.env` with:
+```env
+SUPABASE_URL=...
+SUPABASE_KEY=...
+SUPABASE_JWT_SECRET=...
+NVIDIA_API_KEY=...
+NVIDIA_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b   # optional
+```
 Swagger UI available at `http://localhost:8000/docs`.
 
 ### 3. Frontend (React Native / Expo)
+Create `frontend/.env` with:
+```env
+EXPO_PUBLIC_API_URL=https://symptomjournal.onrender.com   # or your local backend
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_KEY=...
+```
+Then:
 ```bash
 cd frontend
 npm install
