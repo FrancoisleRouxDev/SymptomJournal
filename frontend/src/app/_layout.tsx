@@ -12,7 +12,7 @@ import {
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
 import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
-import { registerForPushNotificationsAsync } from '@/lib/notifications';
+import { registerForPushNotificationsAsync, syncDailyReminderFromSettings } from '@/lib/notifications';
 import { warmUpBackend } from '@/lib/api';
 
 SplashScreen.preventAutoHideAsync();
@@ -61,7 +61,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync().catch(() => {});
-      registerForPushNotificationsAsync().catch(() => {});
+      // Ask for permission, then make sure the daily reminder Settings shows is actually scheduled
+      registerForPushNotificationsAsync()
+        .then(() => syncDailyReminderFromSettings())
+        .catch(() => {});
     }
   }, [fontsLoaded, fontError]);
 

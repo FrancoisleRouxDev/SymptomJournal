@@ -1,15 +1,25 @@
 import { supabase } from './supabase';
 import { getCurrentUser } from './auth';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const REMINDER_CHANNEL_ID = 'daily-reminders';
+
+// Shared with the Settings screen, which writes these preferences
+export const NOTIFICATION_SETTINGS_KEY = 'settings_notifications';
+export const DEFAULT_REMINDER_TIME = { hour: 20, minute: 0, label: '8:00 PM' };
 
 // Safe lazy accessor for expo-notifications to prevent web/build crashes
 let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
   if (Notifications && Notifications.setNotificationHandler) {
+    // shouldShowAlert is deprecated since SDK 53; without shouldShowBanner /
+    // shouldShowList, notifications that arrive while the app is open don't show
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
       }),
@@ -27,7 +37,7 @@ export async function registerForPushNotificationsAsync(): Promise<boolean> {
 
   try {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('daily-reminders', {
+      await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
         name: 'Daily Symptom Reminders',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
@@ -63,23 +73,20 @@ export async function scheduleDailyReminder(hour = 20, minute = 0): Promise<void
     // Cancel existing scheduled notifications first to prevent duplicates
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const triggerType = Notifications.SchedulableTriggerInputTypes?.DAILY || 'daily';
-
+    // DailyTriggerInput repeats by definition and only accepts type/hour/minute/channelId
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Daily Symptom Check-in 🌿',
         body: 'How is your body feeling today? Take 30 seconds to log your symptoms.',
         data: { screen: 'log' },
         sound: true,
-        channelId: 'daily-reminders',
       },
       trigger: {
-        type: triggerType,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
-        repeats: true,
-        channelId: 'daily-reminders',
-      } as any,
+        channelId: REMINDER_CHANNEL_ID,
+      },
     });
     console.log(`[Notifications] Daily reminder scheduled for ${hour}:${minute.toString().padStart(2, '0')} (ID: ${notifId})`);
   } catch (err) {
@@ -97,6 +104,33 @@ export async function cancelDailyReminder(): Promise<void> {
     console.log('[Notifications] Cancelled all scheduled reminders');
   } catch (err) {
     console.warn('[Notifications] Error cancelling daily reminder:', err);
+  }
+}
+
+/**
+ * Schedule (or clear) the daily reminder to match the saved Settings.
+ * Settings shows reminders as on at 8:00 PM by default, so without this a user
+ * who never touched the switch would never get a reminder. Safe to call on
+ * every launch: scheduling replaces any existing reminder.
+ */
+export async function syncDailyReminderFromSettings(): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+  try {
+    const raw = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    const saved = raw ? JSON.parse(raw) : {};
+    const enabled = (saved.push ?? true) && (saved.reminders ?? true);
+    if (!enabled) {
+      await cancelDailyReminder();
+      return;
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return;
+
+    const time = saved.reminderTime ?? DEFAULT_REMINDER_TIME;
+    await scheduleDailyReminder(time.hour, time.minute);
+  } catch (err) {
+    console.warn('[Notifications] Error syncing daily reminder:', err);
   }
 }
 
@@ -124,22 +158,19 @@ export async function sendTestNotificationAsync(seconds = 4): Promise<boolean> {
     const granted = await registerForPushNotificationsAsync();
     if (!granted) return false;
 
-    const triggerType = Notifications.SchedulableTriggerInputTypes?.TIME_INTERVAL || 'timeInterval';
-
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Daily Symptom Check-in 🌿',
         body: 'How is your body feeling right now? Take 30 seconds to log your symptoms.',
         data: { screen: 'log' },
         sound: true,
-        channelId: 'daily-reminders',
       },
       trigger: {
-        type: triggerType,
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: Math.max(1, seconds),
         repeats: false,
-        channelId: 'daily-reminders',
-      } as any,
+        channelId: REMINDER_CHANNEL_ID,
+      },
     });
     console.log('[Notifications] Test notification scheduled with id:', notifId);
     return true;

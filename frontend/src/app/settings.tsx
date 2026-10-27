@@ -21,6 +21,7 @@ import {
   FileText,
   AlertCircle,
   ShieldCheck,
+  BellRing,
 } from 'lucide-react-native';
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -29,6 +30,7 @@ import {
   registerForPushNotificationsAsync,
   scheduleDailyReminder,
   cancelDailyReminder,
+  sendTestNotificationAsync,
 } from '@/lib/notifications';
 import api, { AI_TIMEOUT_MS, WAKE_TIMEOUT_MS } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -111,6 +113,18 @@ export default function SettingsScreen() {
       JSON.stringify({ push: pushEnabled, reminders: remindersEnabled, insights: insightAlertsEnabled, reminderTime: time })
     );
     Alert.alert('Reminder Time Updated', `Your daily symptom check-in is set for ${time.label}.`);
+  };
+
+  const handleSendTestNotification = async () => {
+    const sent = await sendTestNotificationAsync(5);
+    if (sent) {
+      Alert.alert('Test Notification Sent', 'You should see a check-in notification in about 5 seconds.');
+    } else {
+      Alert.alert(
+        'Notification Permission',
+        'Please enable notifications in your phone Settings > Apps > SymptomJournal > Notifications, then try again.'
+      );
+    }
   };
 
   // Privacy toggles
@@ -360,6 +374,24 @@ export default function SettingsScreen() {
                 </Text>
                 <ChevronRight size={scaled(14)} color={colors.neutral.muted} />
               </View>
+            </TouchableOpacity>
+
+            <View style={dividerStyle} />
+
+            {/* SEND TEST NOTIFICATION */}
+            <TouchableOpacity style={styles.settingRow} onPress={handleSendTestNotification} activeOpacity={0.7}>
+              <View style={styles.settingInfo}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <BellRing size={scaled(15)} color={colors.sage.base} />
+                  <Text style={[styles.settingTitle, { color: colors.neutral.brown, fontSize: scaled(14.5) }]}>
+                    Send Test Notification
+                  </Text>
+                </View>
+                <Text style={[styles.settingSubtitle, { color: colors.neutral.muted, fontSize: scaled(12) }]}>
+                  Check that reminders reach this phone
+                </Text>
+              </View>
+              <ChevronRight size={scaled(14)} color={colors.neutral.muted} />
             </TouchableOpacity>
           </View>
 
