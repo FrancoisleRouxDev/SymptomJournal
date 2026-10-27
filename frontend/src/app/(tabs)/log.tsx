@@ -323,13 +323,17 @@ export default function LogScreen() {
     setDeleteConfirm(null);
   };
 
-  // Convert time preset to backend-valid time_of_day ('morning' | 'afternoon' | 'evening' | 'night')
-  const mapTimeToTimeOfDay = (preset: TimePreset): string => {
+  // Convert time preset to the moment the symptom started
+  const getStartTime = (preset: TimePreset): Date => {
     const date = new Date();
     if (preset === '1h ago') date.setHours(date.getHours() - 1);
     else if (preset === '3h ago') date.setHours(date.getHours() - 3);
     else if (preset === 'earlier') date.setHours(date.getHours() - 6);
+    return date;
+  };
 
+  // Convert a local time to backend-valid time_of_day ('morning' | 'afternoon' | 'evening' | 'night')
+  const mapTimeToTimeOfDay = (date: Date): string => {
     const hour = date.getHours();
     if (hour >= 5 && hour < 12) return 'morning';
     if (hour >= 12 && hour < 17) return 'afternoon';
@@ -384,10 +388,13 @@ export default function LogScreen() {
           };
         });
 
+      const startTime = getStartTime(timePreset);
+
       const payload = {
         description: description.trim(),
         severity: Math.max(1, Math.min(10, Math.round(Number(severity) || 5))),
-        time_of_day: mapTimeToTimeOfDay(timePreset),
+        time_of_day: mapTimeToTimeOfDay(startTime),
+        occurred_at: startTime.toISOString(),
         mood: notes.trim() ? notes.trim().slice(0, 100) : undefined,
         triggers: triggersPayload,
       };

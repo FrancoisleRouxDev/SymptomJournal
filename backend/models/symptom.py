@@ -1,10 +1,13 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 VALID_TIME_OF_DAY = ["morning", "afternoon", "evening", "night"]
 VALID_TRIGGER_TYPES = ["sleep", "stress", "food", "exercise", "weather", "other", "custom"]
+
+# Tolerate small clock drift between the device and the server
+MAX_FUTURE_SKEW = timedelta(minutes=5)
 
 
 class SymptomLogCreate(BaseModel):
@@ -12,6 +15,21 @@ class SymptomLogCreate(BaseModel):
     severity: Optional[int] = Field(None, ge=1, le=10)
     time_of_day: Optional[str] = Field(None)
     mood: Optional[str] = Field(None, max_length=100)
+    # When the symptom started; defaults to the insert time if omitted
+    occurred_at: Optional[datetime] = Field(None)
+
+    @field_validator("occurred_at")
+    @classmethod
+    def validate_occurred_at(cls, v):
+        if v is None:
+            return v
+        # Treat naive timestamps as UTC, then normalise everything to UTC
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        v = v.astimezone(timezone.utc)
+        if v > datetime.now(timezone.utc) + MAX_FUTURE_SKEW:
+            raise ValueError("occurred_at cannot be in the future")
+        return v
 
     @field_validator("time_of_day")
     @classmethod

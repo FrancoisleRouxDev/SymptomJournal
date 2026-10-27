@@ -144,6 +144,48 @@ class TestSymptomLogging:
         print("✅ test_get_symptom_history passed")
 
     @patch("routers.symptoms.supabase")
+    def test_history_timestamps_marked_utc(self, mock_supabase):
+        """Test that naive timestamps are returned with an explicit UTC suffix"""
+        mock_supabase.table.return_value.select.return_value\
+            .eq.return_value.order.return_value.execute = mock_symptom_history
+
+        response = client.get("/symptoms/history")
+
+        symptoms = response.json()["symptoms"]
+        assert symptoms[0]["created_at"] == "2026-09-22T14:30:00Z"
+        assert symptoms[1]["created_at"] == "2026-09-22T09:15:00Z"
+        print("✅ test_history_timestamps_marked_utc passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_log_symptom_with_occurred_at(self, mock_supabase):
+        """Test that occurred_at is stored as a UTC created_at"""
+        mock_supabase.table.return_value.insert.return_value.execute = mock_symptom_insert
+
+        response = client.post(
+            "/symptoms/log",
+            json={
+                "description": "Headache",
+                "time_of_day": "morning",
+                "occurred_at": "2026-09-22T09:00:00+02:00"
+            }
+        )
+
+        assert response.status_code == 200
+        inserted = mock_supabase.table.return_value.insert.call_args[0][0]
+        assert inserted["created_at"] == "2026-09-22T07:00:00+00:00"
+        print("✅ test_log_symptom_with_occurred_at passed")
+
+    @patch("routers.symptoms.supabase")
+    def test_log_symptom_future_occurred_at(self, mock_supabase):
+        """Test that a start time in the future is rejected"""
+        response = client.post(
+            "/symptoms/log",
+            json={"description": "Headache", "occurred_at": "2099-01-01T00:00:00Z"}
+        )
+        assert response.status_code == 422
+        print("✅ test_log_symptom_future_occurred_at passed")
+
+    @patch("routers.symptoms.supabase")
     def test_severity_range(self, mock_supabase):
         """Test logging symptoms at boundary severity values"""
         mock_supabase.table.return_value.insert.return_value.execute = mock_symptom_insert

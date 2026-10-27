@@ -6,6 +6,7 @@ from supabase import create_client
 from dotenv import load_dotenv
 from services.logger import get_logger
 import os
+import re
 
 load_dotenv()
 
@@ -16,6 +17,20 @@ supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_KEY")
 )
+
+_TZ_SUFFIX = re.compile(r"(Z|[+-]\d{2}:?\d{2})$")
+
+
+def _mark_utc(log: dict) -> dict:
+    """
+    Timestamps are stored in UTC, but a column without a time zone comes back
+    with no offset, which clients then misread as local time. Append 'Z' so
+    the value is unambiguous.
+    """
+    ts = log.get("created_at")
+    if isinstance(ts, str) and not _TZ_SUFFIX.search(ts):
+        log["created_at"] = ts + "Z"
+    return log
 
 
 @router.post("/log")
@@ -35,6 +50,9 @@ async def log_symptom(
             "time_of_day": symptom.time_of_day,
             "mood": symptom.mood,
         }
+
+        if symptom.occurred_at:
+            log_data["created_at"] = symptom.occurred_at.isoformat()
 
         result = supabase.table("symptom_logs").insert(log_data).execute()
 
@@ -78,7 +96,7 @@ async def get_symptom_history(
             .order("created_at", desc=True)\
             .execute()
 
-        return {"symptoms": result.data}
+        return {"symptoms": [_mark_utc(log) for log in result.data]}
 
     except Exception as e:
         logger.error(f"Error in get_symptom_history: {str(e)}")
@@ -103,7 +121,7 @@ async def get_single_log(
         if not result.data:
             raise HTTPException(status_code=404, detail="Log not found")
 
-        return result.data
+        return _mark_utc(result.data)
 
     except Exception as e:
         logger.error(f"Error in get_single_log: {str(e)}")
