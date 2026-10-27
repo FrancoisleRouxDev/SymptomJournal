@@ -24,6 +24,7 @@ import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import { parseTimestamp, timestampDateKey, toLocalDateKey } from '@/lib/dates';
 import { HomeScreenSkeleton } from '@/components/SkeletonLoader';
 import {
   fetchUserNotifications,
@@ -101,7 +102,7 @@ export default function HomeScreen() {
       setRecentSymptoms(symptoms.slice(0, 4));
       setHasInsight(symptoms.length >= 3);
 
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = toLocalDateKey(new Date());
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth();
 
@@ -113,8 +114,8 @@ export default function HomeScreen() {
 
       symptoms.forEach((log) => {
         if (log.created_at) {
-          const logDate = new Date(log.created_at);
-          const dateStr = log.created_at.slice(0, 10);
+          const logDate = parseTimestamp(log.created_at);
+          const dateStr = toLocalDateKey(logDate);
           uniqueDays.add(dateStr);
 
           if (dateStr === todayStr) {
@@ -203,23 +204,23 @@ export default function HomeScreen() {
   };
 
   const formatLogSubtitle = (log: any): string => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toLocalDateKey(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const yesterdayStr = toLocalDateKey(yesterday);
 
     let prefix = 'Recent';
 
     if (log.created_at) {
-      const dateKey = log.created_at.slice(0, 10);
-      const timePart = new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateKey = timestampDateKey(log.created_at);
+      const timePart = parseTimestamp(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       if (dateKey === todayStr) {
         prefix = `Today, ${timePart}`;
       } else if (dateKey === yesterdayStr) {
         prefix = `Yesterday, ${timePart}`;
       } else {
-        const d = new Date(log.created_at);
+        const d = parseTimestamp(log.created_at);
         prefix = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
     } else {

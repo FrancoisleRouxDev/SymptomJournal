@@ -28,6 +28,7 @@ import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { InsightsScreenSkeleton } from '@/components/SkeletonLoader';
 
@@ -173,7 +174,7 @@ export default function InsightsScreen() {
 
     logs.forEach((log) => {
       if (log.created_at) {
-        const d = new Date(log.created_at);
+        const d = parseTimestamp(log.created_at);
         const dayIdx = d.getDay();
         const desc = (log.description || '').toLowerCase();
 
@@ -355,7 +356,7 @@ export default function InsightsScreen() {
       ];
 
       const formattedRecent = rawLogs.slice(0, 10).map((log) => {
-        const d = log.created_at ? new Date(log.created_at) : new Date();
+        const d = log.created_at ? parseTimestamp(log.created_at) : new Date();
         const triggersList = Array.isArray(log.triggers)
           ? log.triggers.map((t: any) => t.name || t).join(', ')
           : '';

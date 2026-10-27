@@ -17,6 +17,7 @@ import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentUser } from '@/lib/auth';
 import api from '@/lib/api';
+import { parseTimestamp } from '@/lib/dates';
 import { exportDoctorSummaryToPdf, DoctorReportData } from '@/lib/pdf-export';
 import { SummaryScreenSkeleton } from '@/components/SkeletonLoader';
 import { fetchCommonConditions } from '@/lib/conditions';
@@ -139,7 +140,7 @@ export default function DoctorSummaryScreen() {
 
         // Date range calculation
         const dates = logs
-          .map((l) => (l.created_at ? new Date(l.created_at).getTime() : 0))
+          .map((l) => (l.created_at ? parseTimestamp(l.created_at).getTime() : 0))
           .filter((d) => d > 0)
           .sort((a, b) => a - b);
 
@@ -302,7 +303,7 @@ export default function DoctorSummaryScreen() {
     try {
       // Map recent logs for clean printable table
       const formattedRecent = symptomLogs.slice(0, 10).map((log) => {
-        const d = log.created_at ? new Date(log.created_at) : new Date();
+        const d = log.created_at ? parseTimestamp(log.created_at) : new Date();
         const triggersList = Array.isArray(log.triggers)
           ? log.triggers.map((t: any) => t.name || t).join(', ')
           : '';

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import api from '@/lib/api';
+import { timestampDateKey } from '@/lib/dates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchCommonConditions, saveCommonConditions } from '@/lib/conditions';
 
@@ -99,7 +100,7 @@ export default function ProfileScreen() {
       const uniqueDays = new Set<string>();
       const uniqueTypes = new Set<string>();
       logs.forEach((log) => {
-        if (log.created_at) uniqueDays.add(log.created_at.slice(0, 10));
+        if (log.created_at) uniqueDays.add(timestampDateKey(log.created_at));
         const desc = (log.description || 'General').replace(/\s*\(.*?\)/, '').trim();
         if (desc) uniqueTypes.add(desc);
       });

@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Trash
 import { Spacing, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import api from '@/lib/api';
+import { parseTimestamp, timestampDateKey, toLocalDateKey } from '@/lib/dates';
 import { TimelineScreenSkeleton } from '@/components/SkeletonLoader';
 
 const CATEGORY_FILTERS = ['All', 'Pain', 'Fatigue', 'Mood', 'Digestion', 'Breathing', 'Skin'];
@@ -121,7 +122,7 @@ export default function TimelineScreen() {
     const map: Record<string, boolean> = {};
     symptoms.forEach((s) => {
       if (s.created_at) {
-        const dKey = s.created_at.slice(0, 10);
+        const dKey = timestampDateKey(s.created_at);
         map[dKey] = true;
       }
     });
@@ -167,17 +168,17 @@ export default function TimelineScreen() {
     }
 
     if (selectedDateKey) {
-      list = list.filter((s) => s.created_at && s.created_at.startsWith(selectedDateKey));
+      list = list.filter((s) => s.created_at && timestampDateKey(s.created_at) === selectedDateKey);
     }
 
     const groups: Record<string, any[]> = {};
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toLocalDateKey(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const yesterdayStr = toLocalDateKey(yesterday);
 
     list.forEach((s) => {
-      const dateStr = s.created_at ? s.created_at.slice(0, 10) : 'Unknown Date';
+      const dateStr = s.created_at ? timestampDateKey(s.created_at) : 'Unknown Date';
       let title = dateStr;
 
       if (dateStr === todayStr) {
@@ -187,7 +188,7 @@ export default function TimelineScreen() {
         const formattedDate = yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
         title = `YESTERDAY — ${formattedDate}`;
       } else if (s.created_at) {
-        const d = new Date(s.created_at);
+        const d = parseTimestamp(s.created_at);
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
         const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
         title = `${dayName} — ${formattedDate}`;
@@ -367,7 +368,7 @@ export default function TimelineScreen() {
                     const dotColor = (categoryDotColors as any)[primaryCategory] || colors.neutral.muted;
 
                     const timeFormatted = symptom.created_at
-                      ? new Date(symptom.created_at).toLocaleTimeString([], {
+                      ? parseTimestamp(symptom.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })
