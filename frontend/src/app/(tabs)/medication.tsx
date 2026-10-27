@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,14 +11,15 @@ import {
     Platform,
     Modal,
     Keyboard,
+    AppState,
     type ScrollViewInstance,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Bot, Sparkles, ChevronLeft, User, Send, Wifi, WifiOff, X, Info } from 'lucide-react-native';
 import { Colors, Spacing, Radius, FontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import api from '@/lib/api';
+import api, { AI_TIMEOUT_MS } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Message {
@@ -39,6 +40,12 @@ const STORAGE_SEEN_NETWORK_WARNING = 'has_seen_ai_rx_network_notice';
 
 // Extra breathing room (in pixels) to keep the input bar comfortably above the keyboard
 const KEYBOARD_EXTRA_OFFSET = 24;
+
+// Render's free tier sleeps when idle and can take 30-50s to wake, so the
+// status check waits long enough for that instead of reporting offline early
+const STATUS_TIMEOUT_MS = 60000;
+// While offline, re-check this often so the pill recovers on its own
+const OFFLINE_RECHECK_MS = 30000;
 
 export default function MedicationAssistantScreen() {
     const router = useRouter();
@@ -88,9 +95,24 @@ export default function MedicationAssistantScreen() {
         };
     }, []);
 
-    useEffect(() => {
-        checkStatus();
+    const checkInFlight = useRef(false);
 
+    const checkStatus = useCallback(async () => {
+        if (checkInFlight.current) return;
+        checkInFlight.current = true;
+        setIsChecking(true);
+        try {
+            const res = await api.get('/ping', { timeout: STATUS_TIMEOUT_MS });
+            setIsOnline(res.status === 200);
+        } catch {
+            setIsOnline(false);
+        } finally {
+            checkInFlight.current = false;
+            setIsChecking(false);
+        }
+    }, []);
+
+    useEffect(() => {
         AsyncStorage.getItem(STORAGE_SEEN_NETWORK_WARNING).then((seen) => {
             if (!seen) {
                 setShowNetworkModal(true);
@@ -98,17 +120,23 @@ export default function MedicationAssistantScreen() {
         });
     }, []);
 
-    const checkStatus = async () => {
-        setIsChecking(true);
-        try {
-            const res = await api.get('/', { timeout: 5000 });
-            setIsOnline(res.status === 200);
-        } catch {
-            setIsOnline(false);
-        } finally {
-            setIsChecking(false);
-        }
-    };
+    // Tab screens stay mounted, so re-check whenever the screen is opened
+    // and whenever the app comes back to the foreground
+    useFocusEffect(
+        useCallback(() => {
+            checkStatus();
+            const sub = AppState.addEventListener('change', (state) => {
+                if (state === 'active') checkStatus();
+            });
+            return () => sub.remove();
+        }, [checkStatus])
+    );
+
+    useEffect(() => {
+        if (isOnline) return;
+        const timer = setInterval(checkStatus, OFFLINE_RECHECK_MS);
+        return () => clearInterval(timer);
+    }, [isOnline, checkStatus]);
 
     const handleDismissModal = async () => {
         setShowNetworkModal(false);
@@ -139,8 +167,9 @@ export default function MedicationAssistantScreen() {
                 // Call real AI backend endpoint
                 const res = await api.post('/analysis/chat', {
                     query: textToSend.trim(),
-                    history: messages.map((m) => ({ sender: m.sender, text: m.text })),
-                });
+                    // The backend only uses the most recent turns for context
+                    history: messages.slice(-6).map((m) => ({ sender: m.sender, text: m.text })),
+                }, { timeout: AI_TIMEOUT_MS });
 
                 if (res.data?.response) {
                     assistantResponse = res.data.response;
@@ -148,7 +177,10 @@ export default function MedicationAssistantScreen() {
                 }
             } catch (apiErr: any) {
                 console.log('AI chat API error, using safe fallback:', apiErr?.message || apiErr);
+                // This answer comes from the offline rules; re-check so the pill
+                // recovers once the backend is reachable again
                 setIsOnline(false);
+                checkStatus();
 
                 // Safe medical fallback rules if backend is unreachable or offline
                 const lower = textToSend.toLowerCase();
@@ -228,7 +260,10 @@ export default function MedicationAssistantScreen() {
                                     borderColor: isOnline ? colors.sage.base : colors.terracotta.light,
                                 },
                             ]}
-                            onPress={() => setShowNetworkModal(true)}
+                            onPress={() => {
+                                setShowNetworkModal(true);
+                                checkStatus();
+                            }}
                             activeOpacity={0.7}
                             accessibilityLabel="AI Network Status"
                         >

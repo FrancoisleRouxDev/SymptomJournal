@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
   DMSerifDisplay_400Regular,
@@ -12,6 +13,7 @@ import {
 } from '@expo-google-fonts/nunito';
 import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
+import { warmUpBackend } from '@/lib/api';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,6 +48,15 @@ export default function RootLayout() {
     'Nunito-Medium': Nunito_500Medium,
     'Nunito-Bold': Nunito_700Bold,
   });
+
+  // Wake the free-tier backend on launch and whenever the app returns to the foreground
+  useEffect(() => {
+    warmUpBackend();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') warmUpBackend();
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

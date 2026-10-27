@@ -3,6 +3,8 @@ name: Keep Render Backend Alive
 on:
   schedule:
     # Runs every 10 minutes — keeps Render free-tier from spinning down
+    # Note: GitHub often delays scheduled runs by hours, so this is a backup —
+    # an external uptime monitor pinging /ping every 5 minutes is more reliable.
     - cron: "*/10 * * * *"
   workflow_dispatch: # Allow manual trigger from GitHub Actions UI
 
@@ -11,14 +13,18 @@ jobs:
     name: Ping Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Ping root endpoint
+      - name: Ping health endpoint
         run: |
-          # Use root / endpoint (always available in production).
-          # /ping will also work once development is merged into main.
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://symptomjournal.onrender.com/)
-          echo "Response status: $STATUS"
-          if [ "$STATUS" -ne 200 ]; then
-            echo "Warning: backend returned status $STATUS"
-            exit 1
-          fi
-          echo "Backend is alive ✅"
+          # A sleeping free-tier instance can take 30-60s to wake, so allow
+          # 90s per attempt and retry before reporting a failure.
+          for attempt in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 https://symptomjournal.onrender.com/ping || echo 000)
+            echo "Attempt $attempt: status $STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Backend is alive ✅"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Warning: backend did not respond after 3 attempts"
+          exit 1
