@@ -6,12 +6,19 @@ import re
 
 load_dotenv()
 
+# Bounded so a slow model fails fast (worst case ~40s) instead of hanging for minutes
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("NVIDIA_API_KEY")
+    api_key=os.getenv("NVIDIA_API_KEY"),
+    timeout=20,
+    max_retries=1,
 )
 
-MODEL = os.getenv("NVIDIA_MODEL", "meta/llama-3.2-11b-vision-instruct")
+MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
+
+# Nemotron models reason before answering by default, which spends the token
+# budget on hidden thinking. Switch it off for fast, direct answers.
+EXTRA_BODY = {"chat_template_kwargs": {"enable_thinking": False}} if "nemotron" in MODEL else None
 
 
 def _format_triggers(triggers: list[dict]) -> str:
@@ -117,7 +124,8 @@ Respond with ONLY the JSON. No explanation, no preamble."""
                 }
             ],
             max_tokens=600,
-            temperature=0.3
+            temperature=0.3,
+            extra_body=EXTRA_BODY
         )
 
         response_text = completion.choices[0].message.content.strip()
@@ -229,7 +237,8 @@ Write the summary now:"""
                 }
             ],
             max_tokens=800,
-            temperature=0.2
+            temperature=0.2,
+            extra_body=EXTRA_BODY
         )
 
         return completion.choices[0].message.content.strip()
@@ -278,7 +287,8 @@ def answer_medication_query(question: str, conversation_history: list[dict] = No
             model=MODEL,
             messages=messages,
             max_tokens=500,
-            temperature=0.3
+            temperature=0.3,
+            extra_body=EXTRA_BODY
         )
         return completion.choices[0].message.content.strip()
     except Exception as e:
