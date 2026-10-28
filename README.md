@@ -27,7 +27,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 
 ---
 
-## Demo Video
+## Presentation Video
 
 <p align="center">
   <a href="https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing">
@@ -36,7 +36,7 @@ Every interface token is tailored for soothing visual accessibility: warm linen 
 </p>
 
 <p align="center">
-  <strong>▶ <a href="https://drive.google.com/file/d/1T-G9pcPBQFfmpMDE1VsPNFXUsfRVfK2b/view?usp=sharing">Watch the full walkthrough on Google Drive</a></strong>
+  <strong>▶ <a href="https://drive.google.com/file/d/1AC0Uixj7OhL9on8PNMDKNyWhRbKnfbqB/view?usp=sharing">Watch the Presentation Video on Google Drive</a></strong>
 </p>
 
 The walkthrough follows a brand-new user from onboarding and sign-up through logging symptoms, the timeline, AI insights, the doctor summary and PDF export, the AI medication assistant, profile, and settings.
