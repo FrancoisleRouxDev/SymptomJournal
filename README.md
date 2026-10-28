@@ -306,7 +306,7 @@ cd backend && .venv/Scripts/python -m pytest
 ## Local Development Setup
 
 ### Prerequisites
-* Node.js ≥ 18
+* Node.js 22.13+ or 24.3+ (required by Expo SDK 58 and React Native 0.88)
 * Python ≥ 3.11
 * Expo Go on Android/iOS, or an Android/iOS emulator
 
