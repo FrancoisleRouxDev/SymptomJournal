@@ -381,7 +381,7 @@ Special thanks to:
 - **FastAPI & Render** — For the Python REST backend and cloud web service hosting
 - **NVIDIA NIM** — For accelerated LLM inference powering clinical pattern recognition
 - **Lucide** — For the open-source icon system used across the user interface
-<!-- - **Claude & Gemini** — AI development assistants utilized for pair-programming and debugging -->
+- **Claude & Gemini** — AI development assistants utilized for pair-programming and debugging
 
 
 ---
